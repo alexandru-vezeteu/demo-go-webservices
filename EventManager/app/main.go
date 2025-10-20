@@ -1,6 +1,7 @@
 package main
 
 import (
+	"eventManager/Config"
 	"eventManager/Controller"
 	"eventManager/Routes"
 	"log"
@@ -10,6 +11,9 @@ import (
 )
 
 func main() {
+
+	Config.Connect()
+	Config.Migrate()
 
 	var port = os.Getenv("EVENT_MANAGER_PORT")
 	if port == "" {

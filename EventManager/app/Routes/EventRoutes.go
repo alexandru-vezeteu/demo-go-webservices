@@ -9,4 +9,5 @@ import (
 func AddEventRoutes(router *gin.RouterGroup, ec IController.IEventController) {
 	var events = router.Group("events")
 	events.GET("/:id", ec.GetEvent)
+	events.POST("", ec.PostEvent)
 }
