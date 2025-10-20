@@ -1,0 +1,45 @@
+services:
+  eventManager:
+    build:
+      context: .
+      dockerfile: app.dockerfile
+    image: event_manager_image
+    container_name: eventManager
+    ports:
+      - "12345:8080"
+    volumes:
+      - "./app:/app"
+    # depends_on:
+    #   - eventManagerDB
+    environment:
+      DB_HOST: "eventManagerDB"
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: parola1234
+    restart: always
+    networks:
+      - POSnetwork
+    
+    #ca sa pot sa intru in el
+    stdin_open: true
+    tty: true 
+  
+  # eventManagerDB:
+  #   build:
+  #     context: .
+  #     dockerfile: db.dockerfile
+  #   image: evenetManagerDBImage
+  #   container_name: evenetManagerDB
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_PASSWORD: parola1234
+  #     - POSTGRES_USER: postgres
+  #     - POSTGRES_DB: 
+  #   restart: always
+  #   networks:
+  #     - POSnetwork
+
+networks:
+  POSnetwork:
+    driver: bridge
