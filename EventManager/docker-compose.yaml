@@ -4,18 +4,19 @@ services:
       context: .
       dockerfile: app.dockerfile
     image: event_manager_image
-    container_name: eventManager
+    container_name: ${EVENT_MANAGER_HOST}
     ports:
-      - "12345:8080"
+      - "12345:${EVENT_MANAGER_PORT}"
     volumes:
       - "./app:/app"
     # depends_on:
     #   - eventManagerDB
     environment:
-      DB_HOST: "eventManagerDB"
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: parola1234
+      EVENT_MANAGER_PORT: ${EVENT_MANAGER_PORT}
+      DB_HOST: ${EVENT_MANAGER_DB_HOST}
+      DB_PORT: ${EVENET_MANAGER_DB_PORT}
+      DB_USER: 
+      DB_PASSWORD:
     restart: always
     networks:
       - POSnetwork
@@ -28,13 +29,13 @@ services:
   #   build:
   #     context: .
   #     dockerfile: db.dockerfile
-  #   image: evenetManagerDBImage
-  #   container_name: evenetManagerDB
+  #   image: eventManagerDBImage
+  #   container_name: ${EVENT_MANAGER_DB_HOST}
   #   volumes:
   #     - postgres_data:/var/lib/postgresql/data
   #   environment:
-  #     - POSTGRES_PASSWORD: parola1234
-  #     - POSTGRES_USER: postgres
+  #     - POSTGRES_PASSWORD: 
+  #     - POSTGRES_USER: 
   #     - POSTGRES_DB: 
   #   restart: always
   #   networks:
