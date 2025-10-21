@@ -1,0 +1,71 @@
+@startuml
+!theme toy
+
+title Event Manager - Architecture Overview
+
+' Define Packages (Layers)
+package "infrastructure/http/gin/handler" as Handler {
+    class GinEventHandler
+}
+
+package "infrastructure/http/gin/router" as Router {
+    class EventRouter
+}
+
+package "controller" as Controller {
+    class EventController
+}
+
+package "application/service" as Service {
+    interface IEventService
+    class eventService
+}
+
+package "application/repository" as Repository {
+    interface EventRepository
+}
+
+package "infrastructure/persistence/postgres/gormModel" as GormModel {
+    class GormEvent
+}
+
+package "infrastructure/persistence/postgres/gormrepository" as GormRepo {
+    class GormEventRepository
+}
+
+package "domain" as Domain {
+    class Event
+}
+
+' --- Dependencies (The Flow) ---
+
+' HTTP Request Flow
+Router .up.> Handler : Uses
+Handler .right.> Controller : Contains/Calls
+Controller .right.> Service : Contains/Calls
+
+' Domain Core (Central)
+Domain <--* Service : Manipulates
+Domain <--* GormModel : Conversion
+
+' Service and Persistence
+Service .down.> Repository : Depends on (Interface)
+Repository <.left. GormRepo : Implements
+
+' Persistence Implementation Details
+GormRepo .up.> GormModel : Uses (Conversion)
+GormRepo .up.> Domain : Returns (Conversion)
+
+' Handler and DTOs (Implicit from code)
+Handler ..> "httpdto" : Binds/Converts
+
+' Service Implements Interface
+IEventService <.left. eventService : Implements
+
+' --- Relationships within Layers ---
+GinEventHandler *-- EventController
+EventController *-- IEventService
+eventService *-- EventRepository
+GormEventRepository *-- Domain.Event
+
+@enduml

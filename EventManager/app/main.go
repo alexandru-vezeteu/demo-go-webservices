@@ -1,34 +1,36 @@
 package main
 
 import (
-	"eventManager/Config"
-	"eventManager/Controller"
-	"eventManager/Routes"
-	"log"
+	"eventManager/application/service"
+	"eventManager/controller"
+	"eventManager/infrastructure/http/gin/handler"
+	"eventManager/infrastructure/http/gin/router"
+	"eventManager/infrastructure/persistence/postgres"
+	gormrepository "eventManager/infrastructure/persistence/postgres/gormRepository"
+	"fmt"
 	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	db := postgres.InitDB()
+	eventRepo := &gormrepository.GormEventRepository{DB: db}
+	eventService := service.NewEventService(eventRepo)
+	eventController := controller.NewEventController(eventService)
+	eventHandler := handler.NewGinEventHandler(eventController)
 
-	Config.Connect()
-	Config.Migrate()
+	r := gin.Default()
+	eventAPI := r.Group("/api/event-manager")
+	router.RegisterEventRoutes(eventAPI, eventHandler)
 
-	var port = os.Getenv("EVENT_MANAGER_PORT")
+	port := os.Getenv("EVENT_MANAGER_PORT")
 	if port == "" {
-		//panic mai bine?
 		port = "8080"
 	}
-	r := gin.Default()
 
-	api := r.Group("/api/event-manager")
-
-	var eventManager = &Controller.EventController{}
-	Routes.AddEventRoutes(api, eventManager)
-
-	err := r.Run("0.0.0.0:" + port)
+	err := r.Run(":" + port)
 	if err != nil {
-		log.Fatal("Failed to start server:", err)
+		fmt.Println(err.Error())
 	}
 }
