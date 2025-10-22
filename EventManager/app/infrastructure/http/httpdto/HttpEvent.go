@@ -1,7 +1,6 @@
 package httpdto
 
 import (
-	"errors"
 	"eventManager/domain"
 )
 
@@ -15,10 +14,8 @@ type HttpEvent struct {
 	Seats       int    `json:"seats"`
 }
 
-func (event *HttpEvent) ToEvent() (*domain.Event, error) {
-	if event == nil {
-		return nil, errors.New("httpevent is nil")
-	}
+func (event *HttpEvent) ToEvent() *domain.Event {
+
 	return &domain.Event{
 		ID:          event.ID,
 		OwnerID:     event.OwnerID,
@@ -26,13 +23,10 @@ func (event *HttpEvent) ToEvent() (*domain.Event, error) {
 		Location:    event.Location,
 		Description: event.Description,
 		Seats:       event.Seats,
-	}, nil
+	}
 }
 
-func ToHttpEvent(event *domain.Event) (*HttpEvent, error) {
-	if event == nil {
-		return nil, errors.New("domain.event is nil")
-	}
+func ToHttpEvent(event *domain.Event) *HttpEvent {
 	return &HttpEvent{
 		ID:          event.ID,
 		OwnerID:     event.OwnerID,
@@ -40,5 +34,5 @@ func ToHttpEvent(event *domain.Event) (*HttpEvent, error) {
 		Location:    event.Location,
 		Description: event.Description,
 		Seats:       event.Seats,
-	}, nil
+	}
 }

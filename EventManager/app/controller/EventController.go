@@ -6,27 +6,35 @@ import (
 	"eventManager/domain"
 )
 
-// aici nu prea are sens dar l am lasat asa (are sens in momentul in care am mai multe "servicii" si le agreg)
-type EventController struct {
+// aici nu prea are sens dar l am lasat asa (are sens in momentul in care am mai multe "servicii" si le agreg? - flowuri mai complexe)
+
+type IEventController interface {
+	CreateEvent(event *domain.Event) (*domain.Event, error)
+	GetEventByID(id int) (*domain.Event, error)
+	UpdateEvent(event *domain.Event) (*domain.Event, error)
+	DeleteEvent(id int) (*domain.Event, error)
+}
+
+type eventController struct {
 	service service.IEventService
 }
 
-func NewEventController(service service.IEventService) *EventController {
-	return &EventController{service: service}
+func NewEventController(service service.IEventService) *eventController {
+	return &eventController{service: service}
 }
 
-func (c *EventController) CreateEvent(event *domain.Event) (*domain.Event, error) {
+func (c *eventController) CreateEvent(event *domain.Event) (*domain.Event, error) {
 	return c.service.CreateEvent(event)
 }
 
-func (c *EventController) GetEventByID(id int) (*domain.Event, error) {
-	return nil, errors.New("TODO")
+func (c *eventController) GetEventByID(id int) (*domain.Event, error) {
+	return c.service.GetEventByID(id)
 }
 
-func (c *EventController) UpdateEvent(id int, event *domain.Event) (*domain.Event, error) {
-	return nil, errors.New("TODO")
+func (c *eventController) UpdateEvent(event *domain.Event) (*domain.Event, error) {
+	return c.service.UpdateEvent(event)
 }
 
-func (c *EventController) DeleteEvent(id int) (*domain.Event, error) {
+func (c *eventController) DeleteEvent(id int) (*domain.Event, error) {
 	return nil, errors.New("TODO")
 }

@@ -1,7 +1,6 @@
 package gormmodel
 
 import (
-	"errors"
 	"eventManager/domain"
 )
 
@@ -18,10 +17,7 @@ func (GormEvent) TableName() string {
 	return "events"
 }
 
-func (ge *GormEvent) ToDomain() (*domain.Event, error) {
-	if ge == nil {
-		return nil, errors.New("gormevent is nil")
-	}
+func (ge *GormEvent) ToDomain() *domain.Event {
 	return &domain.Event{
 		ID:          ge.ID,
 		OwnerID:     ge.OwnerID,
@@ -29,13 +25,11 @@ func (ge *GormEvent) ToDomain() (*domain.Event, error) {
 		Location:    ge.Location,
 		Description: ge.Description,
 		Seats:       ge.Seats,
-	}, nil
+	}
 }
 
-func FromDomain(e *domain.Event) (*GormEvent, error) {
-	if e == nil {
-		return nil, errors.New("domain event is nil")
-	}
+func FromDomain(e *domain.Event) *GormEvent {
+
 	return &GormEvent{
 		ID:          e.ID,
 		OwnerID:     e.OwnerID,
@@ -43,5 +37,5 @@ func FromDomain(e *domain.Event) (*GormEvent, error) {
 		Location:    e.Location,
 		Description: e.Description,
 		Seats:       e.Seats,
-	}, nil
+	}
 }

@@ -9,7 +9,6 @@ services:
       - "12345:${EVENT_MANAGER_PORT}"
     volumes:
       - "./app:/app"
-      - "./app2:/app2"
     depends_on:
       - eventManagerDB
     environment:

@@ -1,0 +1,3 @@
+gormrepository.go: create daca am id chiar daca am autoicrement ce fac err sau il ignore?
+	//autoincrement-ignor ce primesc (daca primesc) sau ar trb sa dau err?
+    //bag in service?
