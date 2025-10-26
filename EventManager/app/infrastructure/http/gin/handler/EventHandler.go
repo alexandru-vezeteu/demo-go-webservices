@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"errors"
 	"eventManager/controller"
+	"eventManager/domain"
 	"eventManager/infrastructure/http/httpdto"
 	"net/http"
 	"strconv"
@@ -18,22 +20,30 @@ func NewGinEventHandler(controller controller.IEventController) *GinEventHandler
 }
 
 func (h *GinEventHandler) CreateEvent(c *gin.Context) {
-
-	var req httpdto.HttpEvent
+	var req httpdto.HttpCreateEvent
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	event := req.ToEvent()
-	ret, err := h.controller.CreateEvent(event)
-	if err != nil {
+
+	ch_err := make(chan error, 1)
+	ch_res := make(chan *domain.Event, 1)
+	go func() {
+		ret, err := h.controller.CreateEvent(event)
+		ch_res <- ret
+		ch_err <- err
+	}()
+
+	err := <-ch_err
+
+	if errors.Is(err, domain.NewEventValidationError("sda")) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	resp := httpdto.ToHttpEvent(ret)
-
+	ret := <-ch_res
+	resp := httpdto.ToHttpResponseEvent(ret)
 	c.JSON(http.StatusCreated, resp)
 }
 
@@ -52,14 +62,14 @@ func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 	} else if ret == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "No event found!"})
 	}
-	resp := httpdto.ToHttpEvent(ret)
+	resp := httpdto.ToHttpResponseEvent(ret)
 
 	c.JSON(http.StatusOK, resp)
 
 }
 
 func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
-	var req httpdto.HttpEvent
+	var req httpdto.HttpUpdateEvent
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -72,10 +82,26 @@ func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpEvent(event)
+	resp := httpdto.ToHttpResponseEvent(event)
 	c.JSON(http.StatusNoContent, resp)
 }
 
 func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
+		return
+	}
 
+	ret, err := h.controller.DeleteEvent(int(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	} else if ret == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No event found!"})
+	}
+	resp := httpdto.ToHttpResponseEvent(ret)
+
+	c.JSON(http.StatusOK, resp)
 }

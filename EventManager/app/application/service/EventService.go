@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"eventManager/application/repository"
 	"eventManager/domain"
 	"fmt"
@@ -20,8 +21,6 @@ func (service *eventService) CreateEvent(event *domain.Event) (*domain.Event, er
 		return nil, domain.NewEventValidationError("invalid object received")
 	}
 
-	event.ID = 0
-	//nu dau check la id ca e creat automat oricum
 	if event.OwnerID < 1 {
 		return nil, domain.NewEventValidationError("owner_id must be positive")
 	}
@@ -42,8 +41,8 @@ func (service *eventService) GetEventByID(id int) (*domain.Event, error) {
 }
 
 func (service *eventService) UpdateEvent(event *domain.Event) (*domain.Event, error) {
-	return nil, nil
+	return nil, errors.New("TODO")
 }
 func (service *eventService) DeleteEvent(id int) (*domain.Event, error) {
-	return nil, nil
+	return nil, errors.New("TODO")
 }

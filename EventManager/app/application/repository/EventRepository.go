@@ -7,4 +7,5 @@ type EventRepository interface {
 	GetByID(id int) (*domain.Event, error)
 	Update(event *domain.Event) (*domain.Event, error)
 	Delete(event *domain.Event) (*domain.Event, error)
+	//GetEventPackets(id int) (*[]domain.EventPacket, error)
 }
