@@ -15,14 +15,23 @@ import (
 
 func main() {
 	db := postgres.InitDB()
+
 	eventRepo := &gormrepository.GormEventRepository{DB: db}
+	eventPacketRepo := &gormrepository.GormEventPacketRepository{DB: db}
+
 	eventService := service.NewEventService(eventRepo)
+	eventPacketService := service.NewEventPacketService(eventPacketRepo)
+
 	eventController := controller.NewEventController(eventService)
+	eventPacketController := controller.NewEventPacketController(eventPacketService)
+
 	eventHandler := handler.NewGinEventHandler(eventController)
+	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketController)
 
 	r := gin.Default()
 	eventAPI := r.Group("/api/event-manager")
 	router.RegisterEventRoutes(eventAPI, eventHandler)
+	router.RegisterEventPacketRoutes(eventAPI, eventPacketHandler)
 
 	port := os.Getenv("EVENT_MANAGER_PORT")
 	if port == "" {

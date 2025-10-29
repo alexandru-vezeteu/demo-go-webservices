@@ -1,6 +1,6 @@
 package domain
 
-type EventpacketInclusion struct {
+type EventPacketInclusion struct {
 	PacketID       int
 	EventID        int
 	AllocatedSeats int

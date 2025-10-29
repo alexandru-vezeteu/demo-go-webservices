@@ -13,7 +13,7 @@ type GormEventRepository struct {
 }
 
 func (r *GormEventRepository) Create(event *domain.Event) (*domain.Event, error) {
-	gormEvent := gormmodel.FromDomain(event)
+	gormEvent := gormmodel.FromEvent(event)
 
 	if err := r.DB.Create(gormEvent).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {

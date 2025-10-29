@@ -4,38 +4,35 @@ import (
 	"eventManager/domain"
 )
 
-type GormEvent struct {
+type GormEventPacket struct {
 	ID          int    `gorm:"primaryKey;autoIncrement"`
 	OwnerID     int    `gorm:"column:id_owner;not null"`
 	Name        string `gorm:"column:name;unique;not null"`
 	Location    string `gorm:"column:location"`
 	Description string `gorm:"column:description"`
-	Seats       int    `gorm:"column:seats"`
 }
 
-func (GormEvent) TableName() string {
-	return "events"
+func (GormEventPacket) TableName() string {
+	return "eventsPacket"
 }
 
-func (ge *GormEvent) ToDomain() *domain.Event {
-	return &domain.Event{
+func (ge *GormEventPacket) ToDomain() *domain.EventPacket {
+	return &domain.EventPacket{
 		ID:          ge.ID,
 		OwnerID:     ge.OwnerID,
 		Name:        ge.Name,
 		Location:    ge.Location,
 		Description: ge.Description,
-		Seats:       ge.Seats,
 	}
 }
 
-func FromEvent(e *domain.Event) *GormEvent {
+func FromDomain(e *domain.EventPacket) *GormEventPacket {
 
-	return &GormEvent{
+	return &GormEventPacket{
 		ID:          e.ID,
 		OwnerID:     e.OwnerID,
 		Name:        e.Name,
 		Location:    e.Location,
 		Description: e.Description,
-		Seats:       e.Seats,
 	}
 }
