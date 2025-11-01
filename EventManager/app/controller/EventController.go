@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"eventManager/application/service"
 	"eventManager/domain"
 )
@@ -11,7 +10,7 @@ import (
 type IEventController interface {
 	CreateEvent(event *domain.Event) (*domain.Event, error)
 	GetEventByID(id int) (*domain.Event, error)
-	UpdateEvent(event *domain.Event) (*domain.Event, error)
+	UpdateEvent(id int, updates map[string]interface{}) (*domain.Event, error)
 	DeleteEvent(id int) (*domain.Event, error)
 }
 
@@ -31,10 +30,10 @@ func (c *eventController) GetEventByID(id int) (*domain.Event, error) {
 	return c.service.GetEventByID(id)
 }
 
-func (c *eventController) UpdateEvent(event *domain.Event) (*domain.Event, error) {
-	return c.service.UpdateEvent(event)
+func (c *eventController) UpdateEvent(id int, updates map[string]interface{}) (*domain.Event, error) {
+	return c.service.UpdateEvent(id, updates)
 }
 
 func (c *eventController) DeleteEvent(id int) (*domain.Event, error) {
-	return nil, errors.New("TODO")
+	return c.service.DeleteEvent(id)
 }

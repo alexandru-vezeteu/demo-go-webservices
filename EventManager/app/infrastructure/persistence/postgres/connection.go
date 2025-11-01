@@ -54,9 +54,7 @@ func InitDB() *gorm.DB {
 		sqlDB.SetConnMaxLifetime(time.Hour)
 	}
 
-	err = db.AutoMigrate(&gormmodel.GormEvent{},
-		&gormmodel.GormEventPacket{},
-		&gormmodel.GormEventPacketInclusion{})
+	err = db.AutoMigrate(&gormmodel.GormEvent{})
 	if err != nil {
 		log.Fatalf("FATAL: Failed to run migrations: %v", err)
 	}

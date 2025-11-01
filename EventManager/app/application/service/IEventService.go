@@ -7,6 +7,6 @@ import (
 type IEventService interface {
 	CreateEvent(event *domain.Event) (*domain.Event, error)
 	GetEventByID(id int) (*domain.Event, error)
-	UpdateEvent(event *domain.Event) (*domain.Event, error)
+	UpdateEvent(id int, updates map[string]interface{}) (*domain.Event, error)
 	DeleteEvent(id int) (*domain.Event, error)
 }

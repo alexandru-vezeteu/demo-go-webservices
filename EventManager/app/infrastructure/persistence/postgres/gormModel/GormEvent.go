@@ -5,12 +5,12 @@ import (
 )
 
 type GormEvent struct {
-	ID          int    `gorm:"primaryKey;autoIncrement"`
-	OwnerID     int    `gorm:"column:id_owner;not null"`
-	Name        string `gorm:"column:name;unique;not null"`
-	Location    string `gorm:"column:location"`
-	Description string `gorm:"column:description"`
-	Seats       int    `gorm:"column:seats"`
+	ID          int     `gorm:"primaryKey;autoIncrement"`
+	OwnerID     int     `gorm:"column:id_owner;not null"`
+	Name        string  `gorm:"column:name;unique;not null"`
+	Location    *string `gorm:"column:location"`
+	Description *string `gorm:"column:description"`
+	Seats       *int    `gorm:"column:seats"`
 }
 
 func (GormEvent) TableName() string {

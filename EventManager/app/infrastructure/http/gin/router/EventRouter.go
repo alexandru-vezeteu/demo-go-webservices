@@ -13,7 +13,7 @@ func RegisterEventRoutes(router *gin.RouterGroup, handler *handler.GinEventHandl
 
 		eventsGroup.GET("/:id", handler.GetEventByID)
 
-		eventsGroup.PUT("/:id", handler.UpdateEvent)
+		eventsGroup.PATCH("/:id", handler.UpdateEvent)
 
 		eventsGroup.DELETE("/:id", handler.DeleteEvent)
 	}

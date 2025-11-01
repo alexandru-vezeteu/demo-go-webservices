@@ -1,0 +1,18 @@
+meta {
+  name: New HTTP Request
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:12345/api/event-manager/events/3
+  body: none
+  auth: none
+}
+
+body:json {
+  {
+    "id_owner": 3,
+    "name": ""
+  }
+}

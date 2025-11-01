@@ -6,64 +6,66 @@ type Event struct {
 	ID          int
 	OwnerID     int
 	Name        string
-	Location    string
-	Description string
-	Seats       int
+	Location    *string
+	Description *string
+	Seats       *int
 }
 
-type eventError struct {
-	Code    string
-	Message string
-	Err     error
+type EventValidationError struct{ Msg string }
+
+func (e *EventValidationError) Error() string { return e.Msg }
+
+func NewEventValidationError(message string) error {
+	return &EventValidationError{Msg: message}
 }
 
-func (e *eventError) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("%s: %s (cause: %v)", e.Code, e.Message, e.Err)
-	}
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
+type EventNotFoundError struct{ ID int }
+
+func (e *EventNotFoundError) Error() string { return fmt.Sprintf("event with ID %d not found", e.ID) }
+
+func NewEventNotFoundError(id int) error {
+	return &EventNotFoundError{ID: id}
 }
 
-func (e *eventError) Unwrap() error {
-	return e.Err
+type EventAlreadyExistsError struct{ Name string }
+
+func (e *EventAlreadyExistsError) Error() string {
+	return fmt.Sprintf("event '%s' already exists", e.Name)
 }
 
-func NewEventNotFoundError(id int) *eventError {
-	return &eventError{
-		Code:    "EVENT_NOT_FOUND",
-		Message: fmt.Sprintf("event with ID %d not found", id),
-		Err:     nil,
-	}
+func NewEventAlreadyExistsError(name string) error {
+	return &EventAlreadyExistsError{Name: name}
 }
 
-func NewEventValidationError(message string) *eventError {
-	return &eventError{
-		Code:    "EVENT_VALIDATION_ERROR",
-		Message: message,
-		Err:     nil,
-	}
+type EventFullError struct{ ID int }
+
+func (e *EventFullError) Error() string {
+	return fmt.Sprintf("event %d has reached maximum capacity", e.ID)
 }
 
-func NewEventAlreadyExistsError(name string) *eventError {
-	return &eventError{
-		Code:    "EVENT_ALREADY_EXISTS",
-		Message: fmt.Sprintf("event '%s' already exists", name),
-		Err:     nil,
-	}
+func NewEventFullError(id int) error {
+	return &EventFullError{ID: id}
 }
 
-func NewEventFullError(id int) *eventError {
-	return &eventError{
-		Code:    "EVENT_FULL",
-		Message: fmt.Sprintf("event %d has reached maximum capacity", id),
-		Err:     nil,
-	}
+type InternalError struct {
+	Msg string
+	Err error
 }
 
-func NewInternalError(message string, cause error) *eventError {
-	return &eventError{
-		Code:    "INTERNAL_ERROR",
-		Message: message,
-		Err:     cause,
-	}
+func (e *InternalError) Error() string { return fmt.Sprintf("%s (cause: %v)", e.Msg, e.Err) }
+func (e *InternalError) Unwrap() error { return e.Err }
+
+func NewInternalError(message string, cause error) error {
+	return &InternalError{Msg: message, Err: cause}
+}
+
+type UniqueNameError struct {
+	Msg string
+}
+
+func (e *UniqueNameError) Error() string { return e.Msg }
+
+func NewUniqueNameError(message string) error {
+	return &UniqueNameError{Msg: message}
+
 }
