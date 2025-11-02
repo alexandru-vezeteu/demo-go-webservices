@@ -24,11 +24,11 @@ func (ge *GormEventPacketInclusion) ToDomain() *domain.EventPacketInclusion {
 	}
 }
 
-func FromEventPacket(e *domain.EventPacketInclusion) *GormEventPacketInclusion {
+// func FromEventPacket(e *domain.EventPacketInclusion) *GormEventPacketInclusion {
 
-	return &GormEventPacketInclusion{
-		PacketID:       e.PacketID,
-		EventID:        e.EventID,
-		AllocatedSeats: e.AllocatedSeats,
-	}
-}
+// 	return &GormEventPacketInclusion{
+// 		PacketID:       e.PacketID,
+// 		EventID:        e.EventID,
+// 		AllocatedSeats: e.AllocatedSeats,
+// 	}
+// }

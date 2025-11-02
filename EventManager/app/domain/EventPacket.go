@@ -4,8 +4,6 @@ type EventPacket struct {
 	ID          int
 	OwnerID     int
 	Name        string
-	Location    string
-	Description string
+	Location    *string
+	Description *string
 }
-
-//erori pt event packet
