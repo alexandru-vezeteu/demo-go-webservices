@@ -30,13 +30,13 @@ func (h *GinEventPacketHandler) CreateEventPacket(c *gin.Context) {
 
 	ret, err := h.controller.CreateEventPacket(eventPacket)
 
-	var validationErr *domain.EventPacketValidationError
+	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var existsErr *domain.EventPacketAlreadyExistsError
+	var existsErr *domain.AlreadyExistsError
 	if errors.As(err, &existsErr) {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
@@ -62,13 +62,13 @@ func (h *GinEventPacketHandler) GetEventPacketByID(c *gin.Context) {
 
 	ret, err := h.controller.GetEventPacketByID(int(id))
 
-	var notFoundErr *domain.EventPacketNotFoundError
+	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
 		c.JSON(http.StatusNotFound, gin.H{"error": notFoundErr.Error()})
 		return
 	}
 
-	var validationErr *domain.EventPacketValidationError
+	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
 		return
@@ -102,8 +102,8 @@ func (h *GinEventPacketHandler) UpdateEventPacket(c *gin.Context) {
 
 	event, err := h.controller.UpdateEventPacket(int(id), updates)
 
-	var validationErr *domain.EventPacketValidationError
-	var notFoundErr *domain.EventPacketNotFoundError
+	var validationErr *domain.ValidationError
+	var notFoundErr *domain.NotFoundError
 	var uniqueName *domain.UniqueNameError
 	if errors.As(err, &validationErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -138,7 +138,7 @@ func (h *GinEventPacketHandler) DeleteEventPacket(c *gin.Context) {
 
 	ret, err := h.controller.DeleteEventPacket(int(id))
 
-	var notFoundErr *domain.EventPacketNotFoundError
+	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
 		c.JSON(http.StatusNotFound, gin.H{"error": notFoundErr.Error()})
 		return

@@ -8,12 +8,16 @@ import (
 
 func RegisterEventPacketInclusionRoutes(router *gin.RouterGroup, handler *handler.GinEventPacketInclusionHandler) {
 
-	router.POST("/events/event-packets", handler.CreateEventPacketInclusion)
-	router.POST("/event-packets/events", handler.CreateEventPacketInclusion)
+	router.POST("/events/:event_id/event-packets/:packet_id", handler.CreateEventPacketInclusion)
+	router.POST("/event-packets/:packet_id/events/:event_id", handler.CreateEventPacketInclusion)
 
-	router.GET("/events/:id/events-packets", handler.GetEventPacketsByEventID)
-	router.GET("/events-packets/:id/events", handler.GetEventsByPacketID)
+	router.GET("/events/:event_id/event-packets", handler.GetEventPacketsByEventID)
+	router.GET("/event-packets/:packet_id/events", handler.GetEventsByPacketID)
 
-	//router.DELETE("/:id", handler.DeleteEventPacket)
+	router.DELETE("/events/:event_id/event-packets/:packet_id", handler.DeleteEventPacketInclusion)
+	router.DELETE("/event-packets/:packet_id/events/:event_id", handler.DeleteEventPacketInclusion)
+
+	router.PATCH("/events/:event_id/event-packets/:packet_id", handler.UpdateEventPacketInclusion)
+	router.PATCH("/event-packets/:packet_id/events/:event_id", handler.UpdateEventPacketInclusion)
 
 }

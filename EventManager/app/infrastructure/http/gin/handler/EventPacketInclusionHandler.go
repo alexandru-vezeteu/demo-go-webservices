@@ -1,7 +1,12 @@
 package handler
 
 import (
+	"errors"
 	"eventManager/controller"
+	"eventManager/domain"
+	"eventManager/infrastructure/http/httpdto"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,100 +20,181 @@ func NewGinEventPacketInclusionHandler(controller controller.IEventPacketInclusi
 }
 
 func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Context) {
-	// var req httpdto.HttpCreateEventPacket
-	// if err := c.ShouldBindJSON(&req); err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	// 	return
-	// }
+	eventID, err := strconv.Atoi(c.Param("event_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event_id"})
+		return
+	}
 
-	// eventPacket := req.ToEventPacket()
+	packetID, err := strconv.Atoi(c.Param("packet_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid packet_id"})
+		return
+	}
 
-	// ret, err := h.controller.CreateEventPacket(eventPacket)
+	var dto httpdto.HttpCreateEventPacketInclusion
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	// if errors.Is(err, domain.NewEventValidationError("sda")) {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	// 	return
-	// }
+	inclusion := dto.ToEventPacketInclusion()
+	inclusion.EventID = eventID
+	inclusion.PacketID = packetID
 
-	// resp := httpdto.ToHttpResponseEventPacket(ret)
-	// c.JSON(http.StatusCreated, resp)
+	created, err := h.controller.CreateEventPacketInclusion(inclusion)
+	if err != nil {
+		var validationErr *domain.ValidationError
+		var alreadyExistsErr *domain.AlreadyExistsError
+		var foreignKeyErr *domain.ForeignKeyError
+		var internalErr *domain.InternalError
+
+		if errors.As(err, &validationErr) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else if errors.As(err, &alreadyExistsErr) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else if errors.As(err, &foreignKeyErr) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else if errors.As(err, &internalErr) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, httpdto.ToHttpResponseEventPacketInclusion(created))
 }
 
 func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context) {
-	// idStr := c.Param("id")
-	// id, err := strconv.ParseInt(idStr, 10, 64)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
-	// 	return
-	// }
+	eventID, err := strconv.Atoi(c.Param("event_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event_id"})
+		return
+	}
 
-	// ret, err := h.controller.GetEventPacketByID(int(id))
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// } else if ret == nil {
-	// 	c.JSON(http.StatusNotFound, gin.H{"error": "No event found!"})
-	// }
-	// resp := httpdto.ToHttpResponseEventPacket(ret)
+	packets, err := h.controller.GetEventPacketsByEventID(eventID)
+	if err != nil {
+		var notFoundErr *domain.NotFoundError
+		var internalErr *domain.InternalError
 
-	// c.JSON(http.StatusOK, resp)
+		if errors.As(err, &notFoundErr) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else if errors.As(err, &internalErr) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
+		return
+	}
 
+	response := make([]*httpdto.HttpResponseEventPacket, len(packets))
+	for i, packet := range packets {
+		response[i] = httpdto.ToHttpResponseEventPacket(packet)
+	}
+
+	c.JSON(http.StatusOK, response)
 }
+func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
+	packetID, err := strconv.Atoi(c.Param("packet_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid packet_id"})
+		return
+	}
 
-// func (h *GinEventPacketHandler) UpdateEventPacket(c *gin.Context) {
-// 	var req httpdto.HttpUpdateEventPacket
-// 	if err := c.ShouldBindJSON(&req); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		return
-// 	}
+	events, err := h.controller.GetEventsByPacketID(packetID)
+	if err != nil {
+		var notFoundErr *domain.NotFoundError
+		var internalErr *domain.InternalError
 
-// 	eventPacket := req.ToEventPacket()
-// 	eventPacket, err := h.controller.UpdateEventPacket(eventPacket)
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "TODO": "TODO"})
-// 		return
-// 	}
+		if errors.As(err, &notFoundErr) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else if errors.As(err, &internalErr) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
+		return
+	}
 
-// 	resp := httpdto.ToHttpResponseEventPacket(eventPacket)
-// 	c.JSON(http.StatusNoContent, resp)
-// }
+	response := make([]*httpdto.HttpResponseEvent, len(events))
+	for i, event := range events {
+		response[i] = httpdto.ToHttpResponseEvent(event)
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Context) {
+	eventID, err := strconv.Atoi(c.Param("event_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event_id"})
+		return
+	}
+
+	packetID, err := strconv.Atoi(c.Param("packet_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid packet_id"})
+		return
+	}
+
+	var dto httpdto.HttpUpdateEventPacketInclusion
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updates := dto.ToUpdateMap()
+	updated, err := h.controller.Update(eventID, packetID, updates)
+	if err != nil {
+		var notFoundErr *domain.NotFoundError
+		var validationErr *domain.ValidationError
+		var foreignKeyErr *domain.ForeignKeyError
+		var internalErr *domain.InternalError
+
+		if errors.As(err, &notFoundErr) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else if errors.As(err, &validationErr) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else if errors.As(err, &foreignKeyErr) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else if errors.As(err, &internalErr) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, httpdto.ToHttpResponseEventPacketInclusion(updated))
+}
 
 func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Context) {
-	// idStr := c.Param("id")
-	// id, err := strconv.ParseInt(idStr, 10, 64)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
-	// 	return
-	// }
+	eventID, err := strconv.Atoi(c.Param("event_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event_id"})
+		return
+	}
 
-	// ret, err := h.controller.DeleteEventPacket(int(id))
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// } else if ret == nil {
-	// 	c.JSON(http.StatusNotFound, gin.H{"error": "No event found!"})
-	// }
-	// resp := httpdto.ToHttpResponseEventPacket(ret)
+	packetID, err := strconv.Atoi(c.Param("packet_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid packet_id"})
+		return
+	}
 
-	// c.JSON(http.StatusOK, resp)
-}
+	deleted, err := h.controller.DeleteEventPacketInclusion(eventID, packetID)
+	if err != nil {
+		var notFoundErr *domain.NotFoundError
+		var internalErr *domain.InternalError
 
-func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
-	// idStr := c.Param("id")
-	// id, err := strconv.ParseInt(idStr, 10, 64)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
-	// 	return
-	// }
+		if errors.As(err, &notFoundErr) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else if errors.As(err, &internalErr) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
+		return
+	}
 
-	// ret, err := h.controller.DeleteEventPacket(int(id))
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// } else if ret == nil {
-	// 	c.JSON(http.StatusNotFound, gin.H{"error": "No event found!"})
-	// }
-	// resp := httpdto.ToHttpResponseEventPacket(ret)
-
-	// c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, httpdto.ToHttpResponseEventPacketInclusion(deleted))
 }

@@ -7,9 +7,10 @@ import (
 
 type IEventPacketInclusionController interface {
 	CreateEventPacketInclusion(event *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error)
-	GetEventsInPacketbyID(id int) (*domain.EventPacketInclusion, error)
-	GetEventPacketsByEventID(id int) (*domain.EventPacketInclusion, error)
-	DeleteEventPacketInclusion(event *domain.EventPacket) (*domain.EventPacket, error)
+	GetEventsByPacketID(packetID int) ([]*domain.Event, error)
+	GetEventPacketsByEventID(eventID int) ([]*domain.EventPacket, error)
+	DeleteEventPacketInclusion(eventID, packetID int) (*domain.EventPacketInclusion, error)
+	Update(eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error)
 }
 
 type eventPacketInclusionController struct {
@@ -21,17 +22,17 @@ func NewEventPacketInclusionController(service service.IEventPacketInclusionServ
 }
 
 func (controller *eventPacketInclusionController) CreateEventPacketInclusion(event *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error) {
-	return nil, nil
-
+	return controller.service.CreateEventPacketInclusion(event)
 }
-
-func (controller *eventPacketInclusionController) GetEventsInPacketbyID(id int) (*domain.EventPacketInclusion, error) {
-	return nil, nil
+func (controller *eventPacketInclusionController) GetEventsByPacketID(packetID int) ([]*domain.Event, error) {
+	return controller.service.GetEventsByPacketID(packetID)
 }
-func (controller *eventPacketInclusionController) GetEventPacketsByEventID(id int) (*domain.EventPacketInclusion, error) {
-	return nil, nil
+func (controller *eventPacketInclusionController) GetEventPacketsByEventID(eventID int) ([]*domain.EventPacket, error) {
+	return controller.service.GetEventPacketsByEventID(eventID)
 }
-
-func (controller *eventPacketInclusionController) DeleteEventPacketInclusion(event *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error) {
-	return nil, nil
+func (controller *eventPacketInclusionController) DeleteEventPacketInclusion(eventID, packetID int) (*domain.EventPacketInclusion, error) {
+	return controller.service.DeleteEventPacketInclusion(eventID, packetID)
+}
+func (controller *eventPacketInclusionController) Update(eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error) {
+	return controller.service.Update(eventID, packetID, updates)
 }

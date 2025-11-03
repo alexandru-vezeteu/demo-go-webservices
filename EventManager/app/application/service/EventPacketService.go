@@ -23,7 +23,7 @@ func (service *eventPacketService) CreateEventPacket(event *domain.EventPacket) 
 
 func (service *eventPacketService) GetEventPacketByID(id int) (*domain.EventPacket, error) {
 	if id < 1 {
-		return nil, domain.NewEventPacketValidationError(fmt.Sprintf("id:%d must be positive", id))
+		return nil, &domain.ValidationError{Msg: fmt.Sprintf("id:%d must be positive", id)}
 	}
 	return service.repo.GetByID(id)
 }
@@ -31,19 +31,19 @@ func (service *eventPacketService) GetEventPacketByID(id int) (*domain.EventPack
 func (service *eventPacketService) UpdateEventPacket(id int, updates map[string]interface{}) (*domain.EventPacket, error) {
 
 	if len(updates) == 0 {
-		return nil, domain.NewEventPacketValidationError("no fields to update")
+		return nil, &domain.ValidationError{Msg: "no fields to update"}
 	}
 
 	if owner_id, ok := updates["id_owner"]; ok {
 		if owner_idPtr, ok := owner_id.(int); ok && owner_idPtr < 1 {
-			return nil, domain.NewEventPacketValidationError("owner_id must be positive")
+			return nil, &domain.ValidationError{Msg: "owner_id must be positive"}
 
 		}
 	}
 
 	if name, ok := updates["name"]; ok {
 		if namePtr, ok := name.(string); ok && namePtr == "" {
-			return nil, domain.NewEventPacketValidationError("name must be set")
+			return nil, &domain.ValidationError{Msg: "name must be set"}
 		}
 	}
 
@@ -51,22 +51,22 @@ func (service *eventPacketService) UpdateEventPacket(id int, updates map[string]
 }
 func (service *eventPacketService) DeleteEventPacket(id int) (*domain.EventPacket, error) {
 	if id < 1 {
-		return nil, domain.NewEventPacketValidationError(fmt.Sprintf("id:%d must be positive", id))
+		return nil, &domain.ValidationError{Msg: fmt.Sprintf("id:%d must be positive", id)}
 	}
 	return service.repo.Delete(id)
 }
 
 func (service *eventPacketService) validateEventPacket(event *domain.EventPacket) error {
 	if event == nil {
-		return domain.NewEventValidationError("invalid object received")
+		return &domain.ValidationError{Msg: "invalid object received"}
 	}
 
 	if event.OwnerID < 1 {
-		return domain.NewEventValidationError("owner_id must be positive")
+		return &domain.ValidationError{Msg: "owner_id must be positive"}
 	}
 
 	if event.Name == "" {
-		return domain.NewEventValidationError("name must be set")
+		return &domain.ValidationError{Msg: "name must be set"}
 	}
 	return nil
 }

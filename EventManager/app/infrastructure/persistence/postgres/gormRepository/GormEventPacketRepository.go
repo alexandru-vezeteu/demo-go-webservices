@@ -22,10 +22,10 @@ func (r *GormEventPacketRepository) Create(event *domain.EventPacket) (*domain.E
 		//postgres err code
 		if strings.Contains(err.Error(), "duplicate key") ||
 			strings.Contains(err.Error(), "23505") {
-			return nil, domain.NewEventPacketAlreadyExistsError(gormEvent.Name)
+			return nil, &domain.AlreadyExistsError{Name: gormEvent.Name}
 
 		}
-		return nil, domain.NewInternalError("failed to persist event", err)
+		return nil, &domain.InternalError{Msg: "failed to persist event", Err: err}
 	}
 
 	return gormEvent.ToDomain(), nil
@@ -36,9 +36,9 @@ func (r *GormEventPacketRepository) GetByID(id int) (*domain.EventPacket, error)
 	var ret gormmodel.GormEventPacket
 	result := r.DB.Where("id = ?", id).First(&ret)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, domain.NewEventPacketNotFoundError(id)
+		return nil, &domain.NotFoundError{ID: id}
 	} else if result.Error != nil {
-		return nil, domain.NewInternalError("could not find the event", result.Error)
+		return nil, &domain.InternalError{Msg: "could not find the event", Err: result.Error}
 	}
 
 	retDomain := ret.ToDomain()
@@ -56,13 +56,13 @@ func (r *GormEventPacketRepository) Update(id int, updates map[string]interface{
 		if strings.Contains(result.Error.Error(), "duplicate key") ||
 			strings.Contains(result.Error.Error(), "23505") {
 
-			return nil, domain.NewUniqueNameError(updates["name"].(string))
+			return nil, &domain.UniqueNameError{Msg: updates["name"].(string)}
 		}
-		return nil, domain.NewInternalError("could not update the event", result.Error)
+		return nil, &domain.InternalError{Msg: "could not update the event", Err: result.Error}
 	}
 
 	if result.RowsAffected == 0 {
-		return nil, domain.NewEventPacketNotFoundError(id)
+		return nil, &domain.NotFoundError{ID: id}
 	}
 
 	return r.GetByID(id)
@@ -77,15 +77,15 @@ func (r *GormEventPacketRepository) Delete(id int) (*domain.EventPacket, error) 
 		result := tx.Where("id = ?", id).First(&ret)
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return domain.NewEventPacketNotFoundError(id)
+			return &domain.NotFoundError{ID: id}
 		} else if result.Error != nil {
-			return domain.NewInternalError("could not find the event", result.Error)
+			return &domain.InternalError{Msg: "could not find the event", Err: result.Error}
 		}
 
 		deleteResult := tx.Where("id = ?", id).Delete(&gormmodel.GormEventPacket{})
 
 		if deleteResult.Error != nil {
-			return domain.NewInternalError("could not delete the event", deleteResult.Error)
+			return &domain.InternalError{Msg: "could not delete the event", Err: deleteResult.Error}
 		}
 
 		retDomain = ret.ToDomain()

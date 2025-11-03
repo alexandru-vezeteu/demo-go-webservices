@@ -17,15 +17,15 @@ func NewEventService(repo repository.EventRepository) *eventService {
 
 func (service *eventService) validateEvent(event *domain.Event) error {
 	if event == nil {
-		return domain.NewEventValidationError("invalid object received")
+		return &domain.ValidationError{Msg: "invalid object received"}
 	}
 
 	if event.OwnerID < 1 {
-		return domain.NewEventValidationError("owner_id must be positive")
+		return &domain.ValidationError{Msg: "owner_id must be positive"}
 	}
 
 	if event.Name == "" {
-		return domain.NewEventValidationError("name must be set")
+		return &domain.ValidationError{Msg: "name must be set"}
 	}
 	return nil
 }
@@ -39,7 +39,7 @@ func (service *eventService) CreateEvent(event *domain.Event) (*domain.Event, er
 
 func (service *eventService) GetEventByID(id int) (*domain.Event, error) {
 	if id < 1 {
-		return nil, domain.NewEventValidationError(fmt.Sprintf("id:%d must be positive", id))
+		return nil, &domain.ValidationError{Msg: fmt.Sprintf("id:%d must be positive", id)}
 	}
 	return service.repo.GetByID(id)
 }
@@ -49,24 +49,24 @@ func (service *eventService) UpdateEvent(id int, updates map[string]interface{})
 	if seats, ok := updates["seats"]; ok {
 
 		if seatsPtr, ok := seats.(int); ok && seatsPtr < 0 {
-			return nil, domain.NewEventValidationError("seats cannot be negative")
+			return nil, &domain.ValidationError{Msg: "seats cannot be negative"}
 		}
 	}
 
 	if len(updates) == 0 {
-		return nil, domain.NewEventValidationError("no fields to update")
+		return nil, &domain.ValidationError{Msg: "no fields to update"}
 	}
 
 	if owner_id, ok := updates["id_owner"]; ok {
 		if owner_idPtr, ok := owner_id.(int); ok && owner_idPtr < 1 {
-			return nil, domain.NewEventValidationError("owner_id must be positive")
+			return nil, &domain.ValidationError{Msg: "owner_id must be positive"}
 
 		}
 	}
 
 	if name, ok := updates["name"]; ok {
 		if namePtr, ok := name.(string); ok && namePtr == "" {
-			return nil, domain.NewEventValidationError("name must be set")
+			return nil, &domain.ValidationError{Msg: "name must be set"}
 		}
 	}
 
@@ -75,7 +75,7 @@ func (service *eventService) UpdateEvent(id int, updates map[string]interface{})
 
 func (service *eventService) DeleteEvent(id int) (*domain.Event, error) {
 	if id < 1 {
-		return nil, domain.NewEventValidationError(fmt.Sprintf("id:%d must be positive", id))
+		return nil, &domain.ValidationError{Msg: fmt.Sprintf("id:%d must be positive", id)}
 	}
 	return service.repo.Delete(id)
 }
