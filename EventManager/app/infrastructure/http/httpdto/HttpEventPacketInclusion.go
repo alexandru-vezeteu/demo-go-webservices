@@ -1,6 +1,6 @@
 package httpdto
 
-import "eventManager/domain"
+import "eventManager/application/domain"
 
 type HttpResponseEventPacketInclusion struct {
 	PacketID int  `json:"id_packet"`

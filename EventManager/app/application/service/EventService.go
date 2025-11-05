@@ -1,8 +1,8 @@
 package service
 
 import (
+	"eventManager/application/domain"
 	"eventManager/application/repository"
-	"eventManager/domain"
 	"fmt"
 )
 
@@ -78,4 +78,8 @@ func (service *eventService) DeleteEvent(id int) (*domain.Event, error) {
 		return nil, &domain.ValidationError{Msg: fmt.Sprintf("id:%d must be positive", id)}
 	}
 	return service.repo.Delete(id)
+}
+
+func (service *eventService) FilterEvents(filter *domain.EventFilter) ([]*domain.Event, error) {
+	return service.repo.FilterEvents(filter)
 }

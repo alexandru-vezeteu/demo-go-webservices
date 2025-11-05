@@ -1,6 +1,6 @@
 package service
 
-import "eventManager/domain"
+import "eventManager/application/domain"
 
 type IEventPacketService interface {
 	CreateEventPacket(event *domain.EventPacket) (*domain.EventPacket, error)

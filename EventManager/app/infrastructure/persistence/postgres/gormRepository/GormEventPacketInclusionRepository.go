@@ -2,7 +2,7 @@ package gormrepository
 
 import (
 	"errors"
-	"eventManager/domain"
+	"eventManager/application/domain"
 	gormmodel "eventManager/infrastructure/persistence/postgres/gormModel"
 
 	"gorm.io/gorm"

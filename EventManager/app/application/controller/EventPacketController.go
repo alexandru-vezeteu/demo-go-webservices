@@ -1,8 +1,8 @@
 package controller
 
 import (
+	"eventManager/application/domain"
 	"eventManager/application/service"
-	"eventManager/domain"
 )
 
 type IEventPacketController interface {

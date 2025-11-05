@@ -1,0 +1,285 @@
+basePath: /api/event-manager
+definitions:
+  http.Link:
+    properties:
+      href:
+        type: string
+      type:
+        type: string
+    type: object
+  httpdto.HttpCreateEvent:
+    properties:
+      description:
+        type: string
+      id_owner:
+        type: integer
+      location:
+        type: string
+      name:
+        type: string
+      seats:
+        type: integer
+    required:
+    - id_owner
+    - name
+    type: object
+  httpdto.HttpResponseEvent:
+    properties:
+      event:
+        $ref: '#/definitions/httpdto.httpResponseEvent'
+    type: object
+  httpdto.HttpResponseEventList:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/httpdto.httpResponseEvent'
+        type: array
+    type: object
+  httpdto.HttpUpdateEvent:
+    properties:
+      description:
+        type: string
+      id_owner:
+        type: integer
+      location:
+        type: string
+      name:
+        type: string
+      seats:
+        type: integer
+    type: object
+  httpdto.httpResponseEvent:
+    properties:
+      _links:
+        additionalProperties:
+          $ref: '#/definitions/http.Link'
+        type: object
+      description:
+        type: string
+      id:
+        type: integer
+      id_owner:
+        type: integer
+      location:
+        type: string
+      name:
+        type: string
+      seats:
+        type: integer
+    type: object
+info:
+  contact: {}
+  title: Event Service API
+  version: "1.0"
+paths:
+  /events:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of events with optional filters, sorting, and
+        pagination.
+      parameters:
+      - description: Filter by name (partial match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by location (partial match)
+        in: query
+        name: location
+        type: string
+      - description: Minimum seats
+        in: query
+        name: min_seats
+        type: integer
+      - description: Maximum seats
+        in: query
+        name: max_seats
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Sort order (e.g., name_asc, seats_desc)
+        in: query
+        name: order_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: A list of events
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventList'
+        "400":
+          description: Invalid query parameters or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: An unexpected error occurred
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Filter and list events
+      tags:
+      - events
+    post:
+      consumes:
+      - application/json
+      description: Adds a new event to the system.
+      parameters:
+      - description: Event to create
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpCreateEvent'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Event created successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEvent'
+        "400":
+          description: Invalid request format or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Event already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new event
+      tags:
+      - events
+  /events/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an event by its ID and returns the deleted event.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event deleted successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEvent'
+        "400":
+          description: Invalid event ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: An unexpected error occurred
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete an event
+      tags:
+      - events
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single event using its unique integer ID
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: The requested event
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEvent'
+        "400":
+          description: Invalid event ID format or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get an event by ID
+      tags:
+      - events
+    patch:
+      consumes:
+      - application/json
+      description: Partially updates an existing event by its ID.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: updates
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpUpdateEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event updated successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEvent'
+        "400":
+          description: Invalid event ID format or request body
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Name already taken
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: An unexpected error occurred
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update an event
+      tags:
+      - events
+swagger: "2.0"

@@ -2,7 +2,7 @@ package gormrepository
 
 import (
 	"errors"
-	"eventManager/domain"
+	"eventManager/application/domain"
 	gormmodel "eventManager/infrastructure/persistence/postgres/gormModel"
 
 	"strings"
@@ -98,4 +98,75 @@ func (r *GormEventRepository) Delete(id int) (*domain.Event, error) {
 	}
 
 	return retDomain, nil
+}
+
+func (r *GormEventRepository) FilterEvents(filter *domain.EventFilter) ([]*domain.Event, error) {
+	if filter == nil {
+		return nil, &domain.ValidationError{Msg: "filter cannot be nil"}
+	}
+	if filter.Page == nil {
+		return nil, &domain.ValidationError{Msg: "page cannot be nil"}
+	}
+	if filter.PerPage == nil {
+		return nil, &domain.ValidationError{Msg: "per_page cannot be nil"}
+	}
+
+	var gormEvents []gormmodel.GormEvent
+	query := r.DB.Model(&gormmodel.GormEvent{})
+
+	if filter.Name != nil {
+		query = query.Where("name LIKE ?", "%"+*filter.Name+"%")
+	}
+
+	if filter.Location != nil {
+		query = query.Where("location LIKE ?", "%"+*filter.Location+"%")
+	}
+
+	if filter.Description != nil {
+		query = query.Where("description LIKE ?", "%"+*filter.Description+"%")
+	}
+
+	if filter.MinSeats != nil {
+		query = query.Where("seats >= ?", *filter.MinSeats)
+	}
+
+	if filter.MaxSeats != nil {
+		query = query.Where("seats <= ?", *filter.MaxSeats)
+	}
+
+	var sortTranslationMap = map[string]string{
+		"name_asc":   "name asc",
+		"name_desc":  "name desc",
+		"seats_asc":  "seats asc",
+		"seats_desc": "seats desc",
+	}
+
+	if filter.OrderBy != nil {
+
+		if sqlSortString, ok := sortTranslationMap[*filter.OrderBy]; ok {
+			query = query.Order(sqlSortString)
+		} else {
+			return nil, &domain.ValidationError{Msg: "invalid order by. valid options: name_asc/desc, seats_asc/desc"}
+		}
+	} else {
+
+		query = query.Order("id asc")
+	}
+
+	limit := *filter.PerPage
+	page := *filter.Page
+	offset := (page - 1) * limit
+	query = query.Limit(limit).Offset(offset)
+
+	if err := query.Find(&gormEvents).Error; err != nil {
+		return nil, &domain.InternalError{Msg: "failed to filter events", Err: err}
+	}
+
+	domainEvents := make([]*domain.Event, 0, len(gormEvents))
+	for _, gormEvent := range gormEvents {
+		domainEvents = append(domainEvents, gormEvent.ToDomain())
+	}
+
+	return domainEvents, nil
+
 }

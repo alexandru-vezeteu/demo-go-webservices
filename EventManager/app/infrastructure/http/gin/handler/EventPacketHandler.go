@@ -2,8 +2,8 @@ package handler
 
 import (
 	"errors"
-	"eventManager/controller"
-	"eventManager/domain"
+	"eventManager/application/controller"
+	"eventManager/application/domain"
 	"eventManager/infrastructure/http/httpdto"
 	"net/http"
 	"strconv"

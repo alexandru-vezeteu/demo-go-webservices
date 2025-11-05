@@ -1,6 +1,6 @@
 package repository
 
-import "eventManager/domain"
+import "eventManager/application/domain"
 
 type EventPacketInclusionRepository interface {
 	Create(event *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error)

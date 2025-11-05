@@ -1,8 +1,8 @@
 package service
 
 import (
+	"eventManager/application/domain"
 	"eventManager/application/repository"
-	"eventManager/domain"
 )
 
 type eventPacketInclusionService struct {

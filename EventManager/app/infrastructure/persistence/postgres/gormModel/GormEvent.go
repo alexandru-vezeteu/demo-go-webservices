@@ -1,7 +1,7 @@
 package gormmodel
 
 import (
-	"eventManager/domain"
+	"eventManager/application/domain"
 )
 
 type GormEvent struct {

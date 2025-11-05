@@ -1,10 +1,14 @@
 package httpdto
 
 import (
-	"eventManager/domain"
+	"eventManager/application/domain"
 )
 
 type HttpResponseEventPacket struct {
+	EventPacket *httpResponseEventPacket `json:"event_packet"`
+}
+
+type httpResponseEventPacket struct {
 	ID          int     `json:"id"`
 	OwnerID     int     `json:"id_owner"`
 	Name        string  `json:"name"`
@@ -12,23 +16,16 @@ type HttpResponseEventPacket struct {
 	Description *string `json:"description"`
 }
 
-func (event *HttpResponseEventPacket) ToEventPacket() *domain.EventPacket {
-	return &domain.EventPacket{
+func ToHttpResponseEventPacket(event *domain.EventPacket) *HttpResponseEventPacket {
+	dto := &httpResponseEventPacket{
 		ID:          event.ID,
 		OwnerID:     event.OwnerID,
 		Name:        event.Name,
 		Location:    event.Location,
 		Description: event.Description,
 	}
-}
-
-func ToHttpResponseEventPacket(event *domain.EventPacket) *HttpResponseEventPacket {
 	return &HttpResponseEventPacket{
-		ID:          event.ID,
-		OwnerID:     event.OwnerID,
-		Name:        event.Name,
-		Location:    event.Location,
-		Description: event.Description,
+		EventPacket: dto,
 	}
 }
 
