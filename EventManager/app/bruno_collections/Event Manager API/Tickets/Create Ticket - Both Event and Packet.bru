@@ -1,0 +1,29 @@
+meta {
+  name: Create Ticket - Both Event and Packet (XOR Constraint)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/tickets
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "event_id": 1,
+    "packet_id": 1
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("should reject ticket with both event_id and packet_id", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.error).to.include("cannot be associated with both");
+  });
+}

@@ -24,23 +24,37 @@ import (
 func main() {
 	db := postgres.InitDB()
 
+	// Initialize repositories
 	eventRepo := &gormrepository.GormEventRepository{DB: db}
 	eventPacketRepo := &gormrepository.GormEventPacketRepository{DB: db}
+	eventPacketInclusionRepo := &gormrepository.GormEventPacketInclusionRepository{DB: db}
+	ticketRepo := &gormrepository.GormTicketRepository{DB: db}
 
-	eventService := service.NewEventService(eventRepo)
-	eventPacketService := service.NewEventPacketService(eventPacketRepo)
+	// Initialize services with dependencies
+	eventService := service.NewEventService(eventRepo, eventPacketInclusionRepo)
+	eventPacketService := service.NewEventPacketService(eventPacketRepo, eventPacketInclusionRepo)
+	eventPacketInclusionService := service.NewEventPacketInclusionService(eventPacketInclusionRepo, eventRepo, eventPacketRepo)
+	ticketService := service.NewTicketService(ticketRepo, eventRepo, eventPacketRepo, eventPacketInclusionRepo)
 
+	// Initialize controllers
 	eventController := controller.NewEventController(eventService)
 	eventPacketController := controller.NewEventPacketController(eventPacketService)
+	eventPacketInclusionController := controller.NewEventPacketInclusionController(eventPacketInclusionService)
+	ticketController := controller.NewTicketController(ticketService)
 
+	// Initialize handlers
 	eventHandler := handler.NewGinEventHandler(eventController)
 	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketController)
+	eventPacketInclusionHandler := handler.NewGinEventPacketInclusionHandler(eventPacketInclusionController)
+	ticketHandler := handler.NewGinTicketHandler(ticketController)
 
 	r := gin.Default()
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	eventAPI := r.Group("/api/event-manager")
 	router.RegisterEventRoutes(eventAPI, eventHandler)
 	router.RegisterEventPacketRoutes(eventAPI, eventPacketHandler)
+	router.RegisterEventPacketInclusionRoutes(eventAPI, eventPacketInclusionHandler)
+	router.RegisterTicketRoutes(eventAPI, ticketHandler)
 
 	port := os.Getenv("EVENT_MANAGER_PORT")
 	if port == "" {

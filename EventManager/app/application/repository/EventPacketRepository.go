@@ -7,4 +7,5 @@ type EventPacketRepository interface {
 	GetByID(id int) (*domain.EventPacket, error)
 	Update(id int, updates map[string]interface{}) (*domain.EventPacket, error)
 	Delete(id int) (*domain.EventPacket, error)
+	CountSoldTickets(id int) (int, error)
 }

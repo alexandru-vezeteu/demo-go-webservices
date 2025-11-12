@@ -8,4 +8,5 @@ type EventRepository interface {
 	Update(id int, updates map[string]interface{}) (*domain.Event, error)
 	Delete(id int) (*domain.Event, error)
 	FilterEvents(filter *domain.EventFilter) ([]*domain.Event, error)
+	CountSoldTickets(id int) (int, error)
 }

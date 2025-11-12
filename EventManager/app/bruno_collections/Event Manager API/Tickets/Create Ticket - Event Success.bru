@@ -1,0 +1,31 @@
+meta {
+  name: Create Ticket - Event Success
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/tickets
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "event_id": 1
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("should create ticket for event with auto-generated UUID", function() {
+    expect(res.status).to.equal(201);
+    expect(res.body.code).to.exist;
+    expect(res.body.code).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    expect(res.body.event_id).to.equal(1);
+    expect(res.body.packet_id).to.be.null;
+  });
+}

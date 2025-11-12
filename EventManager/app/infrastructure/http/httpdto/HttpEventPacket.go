@@ -9,20 +9,22 @@ type HttpResponseEventPacket struct {
 }
 
 type httpResponseEventPacket struct {
-	ID          int     `json:"id"`
-	OwnerID     int     `json:"id_owner"`
-	Name        string  `json:"name"`
-	Location    *string `json:"location"`
-	Description *string `json:"description"`
+	ID             int     `json:"id"`
+	OwnerID        int     `json:"id_owner"`
+	Name           string  `json:"name"`
+	Location       *string `json:"location"`
+	Description    *string `json:"description"`
+	AllocatedSeats *int    `json:"allocated_seats"`
 }
 
 func ToHttpResponseEventPacket(event *domain.EventPacket) *HttpResponseEventPacket {
 	dto := &httpResponseEventPacket{
-		ID:          event.ID,
-		OwnerID:     event.OwnerID,
-		Name:        event.Name,
-		Location:    event.Location,
-		Description: event.Description,
+		ID:             event.ID,
+		OwnerID:        event.OwnerID,
+		Name:           event.Name,
+		Location:       event.Location,
+		Description:    event.Description,
+		AllocatedSeats: event.AllocatedSeats,
 	}
 	return &HttpResponseEventPacket{
 		EventPacket: dto,
@@ -30,27 +32,30 @@ func ToHttpResponseEventPacket(event *domain.EventPacket) *HttpResponseEventPack
 }
 
 type HttpCreateEventPacket struct {
-	OwnerID     int     `json:"id_owner" binding:"required"`
-	Name        string  `json:"name" binding:"required"`
-	Location    *string `json:"location"`
-	Description *string `json:"description"`
+	OwnerID        int     `json:"id_owner" binding:"required"`
+	Name           string  `json:"name" binding:"required"`
+	Location       *string `json:"location"`
+	Description    *string `json:"description"`
+	AllocatedSeats *int    `json:"allocated_seats"`
 }
 
 func (event *HttpCreateEventPacket) ToEventPacket() *domain.EventPacket {
 
 	return &domain.EventPacket{
-		OwnerID:     event.OwnerID,
-		Name:        event.Name,
-		Location:    event.Location,
-		Description: event.Description,
+		OwnerID:        event.OwnerID,
+		Name:           event.Name,
+		Location:       event.Location,
+		Description:    event.Description,
+		AllocatedSeats: event.AllocatedSeats,
 	}
 }
 
 type HttpUpdateEventPacket struct {
-	OwnerID     *int    `json:"id_owner"`
-	Name        *string `json:"name"`
-	Location    *string `json:"location"`
-	Description *string `json:"description"`
+	OwnerID        *int    `json:"id_owner"`
+	Name           *string `json:"name"`
+	Location       *string `json:"location"`
+	Description    *string `json:"description"`
+	AllocatedSeats *int    `json:"allocated_seats"`
 }
 
 func (event *HttpUpdateEventPacket) ToUpdateMap() map[string]interface{} {
@@ -67,6 +72,9 @@ func (event *HttpUpdateEventPacket) ToUpdateMap() map[string]interface{} {
 	}
 	if event.Description != nil {
 		updates["description"] = *event.Description
+	}
+	if event.AllocatedSeats != nil {
+		updates["allocated_seats"] = *event.AllocatedSeats
 	}
 
 	return updates

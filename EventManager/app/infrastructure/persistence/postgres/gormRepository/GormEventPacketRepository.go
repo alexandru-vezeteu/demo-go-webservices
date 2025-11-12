@@ -47,7 +47,7 @@ func (r *GormEventPacketRepository) GetByID(id int) (*domain.EventPacket, error)
 }
 
 func (r *GormEventPacketRepository) Update(id int, updates map[string]interface{}) (*domain.EventPacket, error) {
-	result := r.DB.Model(&gormmodel.GormEvent{}).Clauses(clause.Returning{}).
+	result := r.DB.Model(&gormmodel.GormEventPacket{}).Clauses(clause.Returning{}).
 		Where("id = ?", id).
 		Updates(updates)
 
@@ -98,4 +98,13 @@ func (r *GormEventPacketRepository) Delete(id int) (*domain.EventPacket, error) 
 
 	return retDomain, nil
 
+}
+
+func (r *GormEventPacketRepository) CountSoldTickets(packetID int) (int, error) {
+	var count int64
+	err := r.DB.Model(&gormmodel.GormTicket{}).Where("packet_id = ?", packetID).Count(&count).Error
+	if err != nil {
+		return 0, &domain.InternalError{Msg: "failed to count tickets", Err: err}
+	}
+	return int(count), nil
 }

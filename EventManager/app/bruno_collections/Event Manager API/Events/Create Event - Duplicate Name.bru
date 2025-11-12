@@ -1,0 +1,30 @@
+meta {
+  name: Create Event - Duplicate Name
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/events
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id_owner": 1,
+    "name": "Tech Conference 2025",
+    "seats": 100
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("should return 409 for duplicate event name", function() {
+    expect(res.status).to.equal(409);
+    expect(res.body.error).to.exist;
+  });
+}

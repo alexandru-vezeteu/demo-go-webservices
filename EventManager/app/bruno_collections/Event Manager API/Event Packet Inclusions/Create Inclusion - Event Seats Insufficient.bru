@@ -1,0 +1,31 @@
+meta {
+  name: Create Inclusion - Event Seats Insufficient
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/events/2/packets/1
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("should reject inclusion when event seats < packet allocated_seats", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.error).to.include("seats");
+  });
+}
+
+docs {
+  # Prerequisite: Event 2 should have fewer seats than packet 1's allocated_seats
+  # This validates: event.Seats >= packet.AllocatedSeats constraint
+}

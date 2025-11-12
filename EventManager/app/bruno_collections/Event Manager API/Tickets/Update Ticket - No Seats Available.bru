@@ -1,0 +1,33 @@
+meta {
+  name: Update Ticket - Reassign to Sold Out Event
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{base_url}}/tickets/{{ticket_code}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "event_id": 3
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("should reject reassignment when target event has no seats", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.error).to.include("no available seats");
+  });
+}
+
+docs {
+  # Event 3 should have no available seats
+  # Tests seat validation in UpdateTicket
+}

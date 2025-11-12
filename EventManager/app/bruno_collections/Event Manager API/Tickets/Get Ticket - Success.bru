@@ -1,0 +1,26 @@
+meta {
+  name: Get Ticket - Success
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/tickets/{{ticket_code}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should retrieve ticket by code", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.code).to.exist;
+  });
+}
+
+docs {
+  # Replace {{ticket_code}} with actual UUID from create ticket response
+}

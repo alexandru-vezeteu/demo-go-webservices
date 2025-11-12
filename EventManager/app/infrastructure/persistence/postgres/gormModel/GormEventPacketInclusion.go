@@ -5,11 +5,10 @@ import (
 )
 
 type GormEventPacketInclusion struct {
-	PacketID       int             `gorm:"primaryKey;column:packet_id"`
-	EventID        int             `gorm:"primaryKey;column:event_id"`
-	AllocatedSeats *int            `gorm:"column:allocated_seats"`
-	Packet         GormEventPacket `gorm:"foreignKey:PacketID;references:ID"`
-	Event          GormEvent       `gorm:"foreignKey:EventID;references:ID"`
+	PacketID int             `gorm:"primaryKey;column:packet_id"`
+	EventID  int             `gorm:"primaryKey;column:event_id"`
+	Packet   GormEventPacket `gorm:"foreignKey:PacketID;references:ID"`
+	Event    GormEvent       `gorm:"foreignKey:EventID;references:ID"`
 }
 
 func (GormEventPacketInclusion) TableName() string {
@@ -18,17 +17,15 @@ func (GormEventPacketInclusion) TableName() string {
 
 func (ge *GormEventPacketInclusion) ToDomain() *domain.EventPacketInclusion {
 	return &domain.EventPacketInclusion{
-		PacketID:       ge.PacketID,
-		EventID:        ge.EventID,
-		AllocatedSeats: ge.AllocatedSeats,
+		PacketID: ge.PacketID,
+		EventID:  ge.EventID,
 	}
 }
 
 func FromEventPacketInclusion(e *domain.EventPacketInclusion) *GormEventPacketInclusion {
 
 	return &GormEventPacketInclusion{
-		PacketID:       e.PacketID,
-		EventID:        e.EventID,
-		AllocatedSeats: e.AllocatedSeats,
+		PacketID: e.PacketID,
+		EventID:  e.EventID,
 	}
 }

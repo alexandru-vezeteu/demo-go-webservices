@@ -8,11 +8,15 @@ import (
 
 // nu poate fi utilizat direct trb initializat cu NewEventService:p
 type eventService struct {
-	repo repository.EventRepository
+	repo          repository.EventRepository
+	inclusionRepo repository.EventPacketInclusionRepository
 }
 
-func NewEventService(repo repository.EventRepository) *eventService {
-	return &eventService{repo: repo}
+func NewEventService(repo repository.EventRepository, inclusionRepo repository.EventPacketInclusionRepository) *eventService {
+	return &eventService{
+		repo:          repo,
+		inclusionRepo: inclusionRepo,
+	}
 }
 
 func (service *eventService) validateEvent(event *domain.Event) error {
@@ -46,15 +50,20 @@ func (service *eventService) GetEventByID(id int) (*domain.Event, error) {
 
 func (service *eventService) UpdateEvent(id int, updates map[string]interface{}) (*domain.Event, error) {
 
-	if seats, ok := updates["seats"]; ok {
-
-		if seatsPtr, ok := seats.(int); ok && seatsPtr < 0 {
-			return nil, &domain.ValidationError{Msg: "seats cannot be negative"}
-		}
-	}
-
 	if len(updates) == 0 {
 		return nil, &domain.ValidationError{Msg: "no fields to update"}
+	}
+
+	if seats, ok := updates["seats"]; ok {
+		if seatsPtr, ok := seats.(int); ok {
+			if seatsPtr < 0 {
+				return nil, &domain.ValidationError{Msg: "seats cannot be negative"}
+			}
+			// Validate that reducing seats doesn't break packet constraints
+			if err := service.validateSeatsAgainstPackets(id, seatsPtr); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	if owner_id, ok := updates["id_owner"]; ok {
@@ -71,6 +80,26 @@ func (service *eventService) UpdateEvent(id int, updates map[string]interface{})
 	}
 
 	return service.repo.Update(id, updates)
+}
+
+// validateSeatsAgainstPackets validates that reducing event seats doesn't violate packet constraints
+func (service *eventService) validateSeatsAgainstPackets(eventID int, newSeats int) error {
+	// Get all packets this event is included in
+	packets, err := service.inclusionRepo.GetEventPacketsByEventID(eventID)
+	if err != nil {
+		return err
+	}
+
+	// Check each packet's allocated seats constraint
+	for _, packet := range packets {
+		if packet.AllocatedSeats != nil && newSeats < *packet.AllocatedSeats {
+			return &domain.ValidationError{
+				Msg: fmt.Sprintf("cannot reduce seats to %d: event is in packet '%s' which requires %d allocated seats", newSeats, packet.Name, *packet.AllocatedSeats),
+			}
+		}
+	}
+
+	return nil
 }
 
 func (service *eventService) DeleteEvent(id int) (*domain.Event, error) {

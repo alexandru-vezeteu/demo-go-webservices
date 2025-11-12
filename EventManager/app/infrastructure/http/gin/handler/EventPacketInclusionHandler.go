@@ -4,9 +4,10 @@ import (
 	"errors"
 	"eventManager/application/controller"
 	"eventManager/application/domain"
+	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
+	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,21 +20,35 @@ func NewGinEventPacketInclusionHandler(controller controller.IEventPacketInclusi
 	return &GinEventPacketInclusionHandler{controller: controller}
 }
 
+// @Summary      Create an event packet inclusion
+// @Description  Adds an event to an event packet. Validates that the event has enough seats to meet the packet's allocated_seats requirement.
+// @Tags         event-packet-inclusions
+// @Accept       json
+// @Produce      json
+// @Param        event_id   path      int  true  "Event ID"
+// @Param        packet_id  path      int  true  "Event Packet ID"
+// @Param        inclusion body httpdto.HttpCreateEventPacketInclusion true "Inclusion data"
+// @Success      201  {object}  httpdto.HttpResponseEventPacketInclusion  "Inclusion created successfully"
+// @Failure      400  {object}  map[string]interface{} "Invalid request format or validation error"
+// @Failure      404  {object}  map[string]interface{} "Event or packet not found (foreign key error)"
+// @Failure      409  {object}  map[string]interface{} "Inclusion already exists"
+// @Failure      500  {object}  map[string]interface{} "Internal error"
+// @Router       /events/{event_id}/packets/{packet_id} [post]
 func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Context) {
-	eventID, err := strconv.Atoi(c.Param("event_id"))
+	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	packetID, err := strconv.Atoi(c.Param("packet_id"))
+	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid packet_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	var dto httpdto.HttpCreateEventPacketInclusion
-	if err := c.ShouldBindJSON(&dto); err != nil {
+	if err := middleware.StrictBindJSON(c, &dto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -58,6 +73,7 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 		} else if errors.As(err, &internalErr) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
+			fmt.Println(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 		return
@@ -66,10 +82,21 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 	c.JSON(http.StatusCreated, httpdto.ToHttpResponseEventPacketInclusion(created))
 }
 
+// @Summary      Get event packets by event ID
+// @Description  Retrieves all event packets that include a specific event
+// @Tags         event-packet-inclusions
+// @Accept       json
+// @Produce      json
+// @Param        event_id   path      int  true  "Event ID"
+// @Success      200  {array}   httpdto.HttpResponseEventPacket  "List of event packets"
+// @Failure      400  {object}  map[string]interface{} "Invalid event ID format"
+// @Failure      404  {object}  map[string]interface{} "Not found"
+// @Failure      500  {object}  map[string]interface{} "Internal error"
+// @Router       /events/{event_id}/packets [get]
 func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context) {
-	eventID, err := strconv.Atoi(c.Param("event_id"))
+	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -95,10 +122,22 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 
 	c.JSON(http.StatusOK, response)
 }
+
+// @Summary      Get events by packet ID
+// @Description  Retrieves all events that are included in a specific event packet
+// @Tags         event-packet-inclusions
+// @Accept       json
+// @Produce      json
+// @Param        packet_id   path      int  true  "Event Packet ID"
+// @Success      200  {array}   httpdto.HttpResponseEvent  "List of events"
+// @Failure      400  {object}  map[string]interface{} "Invalid packet ID format"
+// @Failure      404  {object}  map[string]interface{} "Not found"
+// @Failure      500  {object}  map[string]interface{} "Internal error"
+// @Router       /event-packets/{packet_id}/events [get]
 func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
-	packetID, err := strconv.Atoi(c.Param("packet_id"))
+	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid packet_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -124,21 +163,35 @@ func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+// @Summary      Update an event packet inclusion
+// @Description  Updates an existing inclusion relationship between an event and a packet
+// @Tags         event-packet-inclusions
+// @Accept       json
+// @Produce      json
+// @Param        event_id   path      int  true  "Event ID"
+// @Param        packet_id  path      int  true  "Event Packet ID"
+// @Param        updates body httpdto.HttpUpdateEventPacketInclusion true "Fields to update"
+// @Success      200  {object}  httpdto.HttpResponseEventPacketInclusion  "Inclusion updated successfully"
+// @Failure      400  {object}  map[string]interface{} "Invalid IDs, request body, or validation error"
+// @Failure      404  {object}  map[string]interface{} "Inclusion not found or foreign key error"
+// @Failure      500  {object}  map[string]interface{} "Internal error"
+// @Router       /events/{event_id}/packets/{packet_id} [patch]
 func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Context) {
-	eventID, err := strconv.Atoi(c.Param("event_id"))
+	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	packetID, err := strconv.Atoi(c.Param("packet_id"))
+	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid packet_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	var dto httpdto.HttpUpdateEventPacketInclusion
-	if err := c.ShouldBindJSON(&dto); err != nil {
+	if err := middleware.StrictBindJSON(c, &dto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -168,16 +221,28 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 	c.JSON(http.StatusOK, httpdto.ToHttpResponseEventPacketInclusion(updated))
 }
 
+// @Summary      Delete an event packet inclusion
+// @Description  Removes an event from an event packet by deleting the inclusion relationship
+// @Tags         event-packet-inclusions
+// @Accept       json
+// @Produce      json
+// @Param        event_id   path      int  true  "Event ID"
+// @Param        packet_id  path      int  true  "Event Packet ID"
+// @Success      200  {object}  httpdto.HttpResponseEventPacketInclusion  "Inclusion deleted successfully"
+// @Failure      400  {object}  map[string]interface{} "Invalid event or packet ID format"
+// @Failure      404  {object}  map[string]interface{} "Inclusion not found"
+// @Failure      500  {object}  map[string]interface{} "Internal error"
+// @Router       /events/{event_id}/packets/{packet_id} [delete]
 func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Context) {
-	eventID, err := strconv.Atoi(c.Param("event_id"))
+	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	packetID, err := strconv.Atoi(c.Param("packet_id"))
+	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid packet_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

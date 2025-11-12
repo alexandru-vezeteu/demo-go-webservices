@@ -3,32 +3,89 @@ package service
 import (
 	"eventManager/application/domain"
 	"eventManager/application/repository"
+	"fmt"
+	"strings"
 )
 
 type eventPacketInclusionService struct {
-	repo repository.EventPacketInclusionRepository
+	repo       repository.EventPacketInclusionRepository
+	eventRepo  repository.EventRepository
+	packetRepo repository.EventPacketRepository
 }
 
-func NewEventPacketInclusionService(repo repository.EventPacketInclusionRepository) *eventPacketInclusionService {
-	return &eventPacketInclusionService{repo: repo}
+func NewEventPacketInclusionService(
+	repo repository.EventPacketInclusionRepository,
+	eventRepo repository.EventRepository,
+	packetRepo repository.EventPacketRepository,
+) *eventPacketInclusionService {
+	return &eventPacketInclusionService{
+		repo:       repo,
+		eventRepo:  eventRepo,
+		packetRepo: packetRepo,
+	}
 }
 
-func (service *eventPacketInclusionService) CreateEventPacketInclusion(event *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error) {
+func (service *eventPacketInclusionService) CreateEventPacketInclusion(inclusion *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error) {
 
-	if event == nil {
+	if inclusion == nil {
 		return nil, &domain.ValidationError{Msg: "invalid object"}
 	}
-	if event.AllocatedSeats != nil && *event.AllocatedSeats < 0 {
-		return nil, &domain.ValidationError{Msg: "allocated seats must be >= 0"}
-	}
-	if event.EventID < 0 {
+	if inclusion.EventID < 0 {
 		return nil, &domain.ValidationError{Msg: "event id must be >= 0"}
 	}
-	if event.PacketID < 0 {
+	if inclusion.PacketID < 0 {
 		return nil, &domain.ValidationError{Msg: "packet id must be >= 0"}
 	}
-	return service.repo.Create(event)
 
+	// Validate seat constraints
+	if err := service.validateInclusionConstraints(inclusion.EventID, inclusion.PacketID); err != nil {
+		return nil, err
+	}
+
+	return service.repo.Create(inclusion)
+
+}
+
+// validateInclusionConstraints validates that an event can be added to a packet
+func (service *eventPacketInclusionService) validateInclusionConstraints(eventID int, packetID int) error {
+	// Get the event
+	event, err := service.eventRepo.GetByID(eventID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return &domain.NotFoundError{ID: eventID}
+		}
+		return err
+	}
+
+	// Get the packet
+	packet, err := service.packetRepo.GetByID(packetID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return &domain.NotFoundError{ID: packetID}
+		}
+		return err
+	}
+
+	// If packet doesn't specify allocated seats, any event is OK
+	if packet.AllocatedSeats == nil {
+		return nil
+	}
+
+	// Event must have seats defined
+	if event.Seats == nil {
+		return &domain.ValidationError{
+			Msg: fmt.Sprintf("event %d doesn't have seats defined, cannot be added to packet requiring %d seats", event.ID, *packet.AllocatedSeats),
+		}
+	}
+
+	// Event must have enough seats
+	if *event.Seats < *packet.AllocatedSeats {
+		return &domain.ValidationError{
+			Msg: fmt.Sprintf("event has %d seats but packet requires %d allocated seats", *event.Seats, *packet.AllocatedSeats),
+		}
+	}
+
+	return nil
 }
 func (service *eventPacketInclusionService) GetEventsByPacketID(packetID int) ([]*domain.Event, error) {
 	if packetID < 0 {

@@ -23,6 +23,31 @@ definitions:
     - id_owner
     - name
     type: object
+  httpdto.HttpCreateEventPacket:
+    properties:
+      allocated_seats:
+        type: integer
+      description:
+        type: string
+      id_owner:
+        type: integer
+      location:
+        type: string
+      name:
+        type: string
+    required:
+    - id_owner
+    - name
+    type: object
+  httpdto.HttpCreateEventPacketInclusion:
+    type: object
+  httpdto.HttpCreateTicket:
+    properties:
+      event_id:
+        type: integer
+      packet_id:
+        type: integer
+    type: object
   httpdto.HttpResponseEvent:
     properties:
       event:
@@ -35,6 +60,27 @@ definitions:
           $ref: '#/definitions/httpdto.httpResponseEvent'
         type: array
     type: object
+  httpdto.HttpResponseEventPacket:
+    properties:
+      event_packet:
+        $ref: '#/definitions/httpdto.httpResponseEventPacket'
+    type: object
+  httpdto.HttpResponseEventPacketInclusion:
+    properties:
+      id_event:
+        type: integer
+      id_packet:
+        type: integer
+    type: object
+  httpdto.HttpResponseTicket:
+    properties:
+      code:
+        type: string
+      event_id:
+        type: integer
+      packet_id:
+        type: integer
+    type: object
   httpdto.HttpUpdateEvent:
     properties:
       description:
@@ -46,6 +92,28 @@ definitions:
       name:
         type: string
       seats:
+        type: integer
+    type: object
+  httpdto.HttpUpdateEventPacket:
+    properties:
+      allocated_seats:
+        type: integer
+      description:
+        type: string
+      id_owner:
+        type: integer
+      location:
+        type: string
+      name:
+        type: string
+    type: object
+  httpdto.HttpUpdateEventPacketInclusion:
+    type: object
+  httpdto.HttpUpdateTicket:
+    properties:
+      event_id:
+        type: integer
+      packet_id:
         type: integer
     type: object
   httpdto.httpResponseEvent:
@@ -67,11 +135,223 @@ definitions:
       seats:
         type: integer
     type: object
+  httpdto.httpResponseEventPacket:
+    properties:
+      allocated_seats:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      id_owner:
+        type: integer
+      location:
+        type: string
+      name:
+        type: string
+    type: object
 info:
   contact: {}
   title: Event Service API
   version: "1.0"
 paths:
+  /event-packets:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new event packet. Event packets can include multiple
+        events and have allocated seats that must not exceed the minimum seats of
+        included events.
+      parameters:
+      - description: Event packet to create
+        in: body
+        name: event_packet
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpCreateEventPacket'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Event packet created successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacket'
+        "400":
+          description: Invalid request format or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Event packet already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new event packet
+      tags:
+      - event-packets
+  /event-packets/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an event packet by its ID and returns the deleted event
+        packet.
+      parameters:
+      - description: Event Packet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event packet deleted successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacket'
+        "400":
+          description: Invalid event packet ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event packet not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: An unexpected error occurred
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete an event packet
+      tags:
+      - event-packets
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single event packet using its unique integer ID
+      parameters:
+      - description: Event Packet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: The requested event packet
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacket'
+        "400":
+          description: Invalid event packet ID format or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event packet not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get an event packet by ID
+      tags:
+      - event-packets
+    patch:
+      consumes:
+      - application/json
+      description: Partially updates an existing event packet by its ID. Validates
+        that allocated_seats does not exceed minimum seats of included events.
+      parameters:
+      - description: Event Packet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: updates
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpUpdateEventPacket'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event packet updated successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacket'
+        "400":
+          description: Invalid event packet ID format, request body, or validation
+            error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event packet not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Name already taken
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: An unexpected error occurred
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update an event packet
+      tags:
+      - event-packets
+  /event-packets/{packet_id}/events:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all events that are included in a specific event packet
+      parameters:
+      - description: Event Packet ID
+        in: path
+        name: packet_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of events
+          schema:
+            items:
+              $ref: '#/definitions/httpdto.HttpResponseEvent'
+            type: array
+        "400":
+          description: Invalid packet ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get events by packet ID
+      tags:
+      - event-packet-inclusions
   /events:
     get:
       consumes:
@@ -165,6 +445,185 @@ paths:
       summary: Create a new event
       tags:
       - events
+  /events/{event_id}/packets:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all event packets that include a specific event
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of event packets
+          schema:
+            items:
+              $ref: '#/definitions/httpdto.HttpResponseEventPacket'
+            type: array
+        "400":
+          description: Invalid event ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get event packets by event ID
+      tags:
+      - event-packet-inclusions
+  /events/{event_id}/packets/{packet_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes an event from an event packet by deleting the inclusion
+        relationship
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      - description: Event Packet ID
+        in: path
+        name: packet_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inclusion deleted successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
+        "400":
+          description: Invalid event or packet ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Inclusion not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete an event packet inclusion
+      tags:
+      - event-packet-inclusions
+    patch:
+      consumes:
+      - application/json
+      description: Updates an existing inclusion relationship between an event and
+        a packet
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      - description: Event Packet ID
+        in: path
+        name: packet_id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: updates
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpUpdateEventPacketInclusion'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inclusion updated successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
+        "400":
+          description: Invalid IDs, request body, or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Inclusion not found or foreign key error
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update an event packet inclusion
+      tags:
+      - event-packet-inclusions
+    post:
+      consumes:
+      - application/json
+      description: Adds an event to an event packet. Validates that the event has
+        enough seats to meet the packet's allocated_seats requirement.
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      - description: Event Packet ID
+        in: path
+        name: packet_id
+        required: true
+        type: integer
+      - description: Inclusion data
+        in: body
+        name: inclusion
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpCreateEventPacketInclusion'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Inclusion created successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
+        "400":
+          description: Invalid request format or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event or packet not found (foreign key error)
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Inclusion already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create an event packet inclusion
+      tags:
+      - event-packet-inclusions
   /events/{id}:
     delete:
       consumes:
@@ -282,4 +741,158 @@ paths:
       summary: Update an event
       tags:
       - events
+  /tickets:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new ticket for either an event or an event packet. The
+        ticket code is automatically generated as a UUID. Validates seat availability
+        before creation.
+      parameters:
+      - description: Ticket to create (must specify either event_id or packet_id,
+          not both)
+        in: body
+        name: ticket
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpCreateTicket'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Ticket created successfully with auto-generated code
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseTicket'
+        "400":
+          description: Invalid request format, validation error, or no seats available
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Ticket already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new ticket
+      tags:
+      - tickets
+  /tickets/{code}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a ticket by its code and returns the deleted ticket.
+      parameters:
+      - description: Ticket Code (UUID)
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ticket deleted successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseTicket'
+        "400":
+          description: Invalid ticket code format
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Ticket not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: An unexpected error occurred
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a ticket
+      tags:
+      - tickets
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single ticket using its unique UUID code
+      parameters:
+      - description: Ticket Code (UUID)
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: The requested ticket
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseTicket'
+        "400":
+          description: Invalid ticket code format or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Ticket not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a ticket by code
+      tags:
+      - tickets
+    patch:
+      consumes:
+      - application/json
+      description: Partially updates an existing ticket by its code. Validates seat
+        availability when reassigning to a different event or packet.
+      parameters:
+      - description: Ticket Code (UUID)
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: Fields to update (event_id or packet_id)
+        in: body
+        name: updates
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpUpdateTicket'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ticket updated successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseTicket'
+        "400":
+          description: Invalid ticket code format, request body, or validation error
+            (e.g., no seats available)
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Ticket not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: An unexpected error occurred
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a ticket
+      tags:
+      - tickets
 swagger: "2.0"

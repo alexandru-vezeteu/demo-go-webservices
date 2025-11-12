@@ -4,9 +4,9 @@ import (
 	"errors"
 	"eventManager/application/controller"
 	"eventManager/application/domain"
+	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,8 +32,8 @@ func NewGinEventHandler(controller controller.IEventController) *GinEventHandler
 // @Router       /events [post]
 func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 	var req httpdto.HttpCreateEvent
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+	if err := middleware.StrictBindJSON(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -74,14 +74,13 @@ func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{} "Internal error"
 // @Router       /events/{id} [get]
 func (h *GinEventHandler) GetEventByID(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	ret, err := h.controller.GetEventByID(int(id))
+	ret, err := h.controller.GetEventByID(id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -120,22 +119,21 @@ func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
 // @Router       /events/{id} [patch]
 func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
-
-	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	var req httpdto.HttpUpdateEvent
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+	if err := middleware.StrictBindJSON(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	updates := req.ToUpdateMap()
 
-	event, err := h.controller.UpdateEvent(int(id), updates)
+	event, err := h.controller.UpdateEvent(id, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -175,14 +173,13 @@ func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 // @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
 // @Router       /events/{id} [delete]
 func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	ret, err := h.controller.DeleteEvent(int(id))
+	ret, err := h.controller.DeleteEvent(id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -216,8 +213,9 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 // @Router       /events [get]
 func (h *GinEventHandler) FilterEvents(c *gin.Context) {
 	var filter httpdto.HttpFilterEvent
-	if err := c.ShouldBindQuery(&filter); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid query parameters"})
+	allowedParams := []string{"name", "location", "description", "min_seats", "max_seats", "page", "per_page", "order_by"}
+	if err := middleware.StrictBindQuery(c, &filter, allowedParams); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

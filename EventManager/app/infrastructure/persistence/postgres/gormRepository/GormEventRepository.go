@@ -4,6 +4,7 @@ import (
 	"errors"
 	"eventManager/application/domain"
 	gormmodel "eventManager/infrastructure/persistence/postgres/gormModel"
+	"fmt"
 
 	"strings"
 
@@ -35,9 +36,11 @@ func (r *GormEventRepository) GetByID(id int) (*domain.Event, error) {
 
 	var ret gormmodel.GormEvent
 	result := r.DB.Where("id = ?", id).First(&ret)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	fmt.Println(result.Error.Error())
+	if strings.Contains(result.Error.Error(), "not found") {
 		return nil, &domain.NotFoundError{ID: id}
 	} else if result.Error != nil {
+		fmt.Println("PULA")
 		return nil, &domain.InternalError{Msg: "could not find the event", Err: result.Error}
 	}
 
@@ -169,4 +172,13 @@ func (r *GormEventRepository) FilterEvents(filter *domain.EventFilter) ([]*domai
 
 	return domainEvents, nil
 
+}
+
+func (r *GormEventRepository) CountSoldTickets(eventID int) (int, error) {
+	var count int64
+	err := r.DB.Model(&gormmodel.GormTicket{}).Where("event_id = ?", eventID).Count(&count).Error
+	if err != nil {
+		return 0, &domain.InternalError{Msg: "failed to count tickets", Err: err}
+	}
+	return int(count), nil
 }

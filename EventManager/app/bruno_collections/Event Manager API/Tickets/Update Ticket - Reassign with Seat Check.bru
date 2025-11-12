@@ -1,0 +1,33 @@
+meta {
+  name: Update Ticket - Reassign Event (Validates Seat Availability)
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{base_url}}/tickets/{{ticket_code}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "event_id": 2
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should reassign ticket to different event with seat validation", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.event_id).to.equal(2);
+  });
+}
+
+docs {
+  # Tests that UpdateTicket validates seat availability when reassigning
+  # Event 2 must have available seats
+}
