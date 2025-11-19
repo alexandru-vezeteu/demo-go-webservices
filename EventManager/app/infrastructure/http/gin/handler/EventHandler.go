@@ -207,7 +207,7 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 // @Param        max_seats query int false "Maximum seats"
 // @Param        page query int false "Page number" default(1)
 // @Param        per_page query int false "Items per page" default(10)
-// @Param        order_by query string false "Sort order (e.g., name_asc, seats_desc)"
+// @Param        order_by query string false "Sort order: name_asc, name_desc, seats_asc, seats_desc"
 // @Success      200  {object}  httpdto.HttpResponseEventList "A list of events"
 // @Failure      400  {object}  map[string]interface{} "Invalid query parameters or validation error"
 // @Failure      500  {object}  map[string]interface{} "Internal server error"

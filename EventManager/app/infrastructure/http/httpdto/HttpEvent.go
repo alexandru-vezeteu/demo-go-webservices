@@ -2,19 +2,17 @@ package httpdto
 
 import (
 	"eventManager/application/domain"
-	"eventManager/infrastructure/http"
-	"fmt"
 )
 
 type httpResponseEvent struct {
-	ID          int                  `json:"id"`
-	OwnerID     int                  `json:"id_owner"`
-	Name        string               `json:"name"`
-	Location    *string              `json:"location,omitempty"`
-	Description *string              `json:"description,omitempty"`
-	Seats       *int                 `json:"seats,omitempty"`
-	Links       map[string]http.Link `json:"_links"`
+	ID          int     `json:"id"`
+	OwnerID     int     `json:"id_owner"`
+	Name        string  `json:"name"`
+	Location    *string `json:"location,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Seats       *int    `json:"seats,omitempty"`
 }
+
 type HttpResponseEvent struct {
 	Event *httpResponseEvent `json:"event"`
 }
@@ -30,21 +28,6 @@ func ToHttpResponseEvent(event *domain.Event) *HttpResponseEvent {
 		Location:    event.Location,
 		Description: event.Description,
 		Seats:       event.Seats,
-	}
-	prefix := "/api/event-manager"
-	dto.Links = map[string]http.Link{
-		"self": {
-			Href: fmt.Sprintf("%s/events/%d", prefix, event.ID),
-			Type: "GET",
-		},
-		"update": {
-			Href: fmt.Sprintf("%s/events/%d", prefix, event.ID),
-			Type: "PATCH",
-		},
-		"delete": {
-			Href: fmt.Sprintf("%s/events/%d", prefix, event.ID),
-			Type: "DELETE",
-		},
 	}
 	return &HttpResponseEvent{
 		Event: dto,
@@ -84,7 +67,6 @@ type HttpCreateEvent struct {
 }
 
 func (event *HttpCreateEvent) ToEvent() *domain.Event {
-
 	return &domain.Event{
 		OwnerID:     event.OwnerID,
 		Name:        event.Name,

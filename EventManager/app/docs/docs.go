@@ -614,7 +614,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Sort order (e.g., name_asc, seats_desc)",
+                        "description": "Sort order: name_asc, name_desc, seats_asc, seats_desc",
                         "name": "order_by",
                         "in": "query"
                     }
@@ -1088,17 +1088,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "http.Link": {
-            "type": "object",
-            "properties": {
-                "href": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
         "httpdto.HttpCreateEvent": {
             "type": "object",
             "required": [
@@ -1270,12 +1259,6 @@ const docTemplate = `{
         "httpdto.httpResponseEvent": {
             "type": "object",
             "properties": {
-                "_links": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/http.Link"
-                    }
-                },
                 "description": {
                     "type": "string"
                 },

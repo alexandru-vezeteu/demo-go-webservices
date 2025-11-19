@@ -1,12 +1,5 @@
 basePath: /api/event-manager
 definitions:
-  http.Link:
-    properties:
-      href:
-        type: string
-      type:
-        type: string
-    type: object
   httpdto.HttpCreateEvent:
     properties:
       description:
@@ -118,10 +111,6 @@ definitions:
     type: object
   httpdto.httpResponseEvent:
     properties:
-      _links:
-        additionalProperties:
-          $ref: '#/definitions/http.Link'
-        type: object
       description:
         type: string
       id:
@@ -568,7 +557,7 @@ paths:
         in: query
         name: per_page
         type: integer
-      - description: Sort order (e.g., name_asc, seats_desc)
+      - description: 'Sort order: name_asc, name_desc, seats_asc, seats_desc'
         in: query
         name: order_by
         type: string

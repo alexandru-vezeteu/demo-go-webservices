@@ -1,0 +1,22 @@
+services:
+  event-service:
+    url: "/api/event-manager"
+    routes: 
+      get_event: "/events/{id}"
+      update_event: "/events/{id}"
+      delete_event: "/events/{id}"
+      list_events: "/events"
+      create_event: "/events"
+      publish_event: "/events/{id}/publish"
+      cancel_event: "/events/{id}/cancel"
+      archive_event: "/events/{id}/archive"
+
+  ticket-service:
+    url: "/api/event-manager"
+    routes:
+      create_ticket: "/tickets"
+      get_ticket: "/tickets/{code}"
+      update_ticket: "/tickets/{code}"
+      delete_ticket: "/tickets/{code}"
+      assign_ticket: "/tickets/{code}/assign"
+      revoke_ticket: "/tickets/{code}/revoke"
