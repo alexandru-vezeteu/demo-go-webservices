@@ -6,7 +6,7 @@ services:
     image: event_manager_image
     container_name: ${EVENT_MANAGER_HOST}
     ports:
-      - "12345:${EVENT_MANAGER_PORT}"
+      - "${EVENT_MANAGER_PORT}:${EVENT_MANAGER_PORT}"
     volumes:
       - "./app:/app"
     depends_on:
@@ -32,7 +32,7 @@ services:
     ports:
       - "5432:${EVENT_MANAGER_DB_PORT}"
     volumes:
-      - auth_db:/var/lib/postgresql/data
+      - event_db:/var/lib/postgresql/data
     
     environment:
       POSTGRES_PASSWORD: ${EVENT_MANAGER_DB_PASSWORD}
@@ -47,5 +47,5 @@ networks:
     driver: bridge
 
 volumes:
-  auth_db:
+  event_db:
     driver: local

@@ -95,7 +95,7 @@ func (h *GinUserHandler) GetUserByID(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
 		return
 	}
 
@@ -114,7 +114,7 @@ func (h *GinUserHandler) GetUserByID(c *gin.Context) {
 // @Success      200  {object}  httpdto.HttpResponseUser "User updated successfully"
 // @Failure      400  {object}  map[string]interface{} "Invalid user ID format or request body"
 // @Failure      404  {object}  map[string]interface{} "User not found"
-// @Failure      409  {object}  map[string]interface{} "Email already taken"
+// @Failure      409  {object}  map[string]interface{} "Resource already exists (e.g., email already taken)"
 // @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
 // @Router       /users/{id} [patch]
 func (h *GinUserHandler) UpdateUser(c *gin.Context) {

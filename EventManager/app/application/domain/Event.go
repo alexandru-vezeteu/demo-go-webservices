@@ -40,7 +40,7 @@ func (filter *EventFilter) Validate() error {
 	}
 
 	if filter.OrderBy != nil && !validOrderings[*filter.OrderBy] {
-		return &ValidationError{Msg: "invalid order by. valid options: name_asc/desc, seats_asc/desc"}
+		return &ValidationError{Reason: "invalid order by. valid options: name_asc/desc, seats_asc/desc"}
 	}
 	return nil
 }

@@ -15,6 +15,319 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/event-packet-inclusions/event/{event_id}": {
+            "get": {
+                "description": "Retrieves all event packets that include a specific event",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event-packet-inclusions"
+                ],
+                "summary": "Get event packets by event ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Event ID",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of event packets",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/httpdto.HttpResponseEventPacket"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid event ID format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/event-packet-inclusions/event/{event_id}/packet/{packet_id}": {
+            "post": {
+                "description": "Adds an event to an event packet. Validates that the event has enough seats to meet the packet's allocated_seats requirement.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event-packet-inclusions"
+                ],
+                "summary": "Create an event packet inclusion",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Event ID",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Event Packet ID",
+                        "name": "packet_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Inclusion data",
+                        "name": "inclusion",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpCreateEventPacketInclusion"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Inclusion created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpResponseEventPacketInclusion"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format or validation error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Event or packet not found (foreign key error)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Inclusion already exists",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes an event from an event packet by deleting the inclusion relationship",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event-packet-inclusions"
+                ],
+                "summary": "Delete an event packet inclusion",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Event ID",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Event Packet ID",
+                        "name": "packet_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Inclusion deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpResponseEventPacketInclusion"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid event or packet ID format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Inclusion not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Updates an existing inclusion relationship between an event and a packet",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event-packet-inclusions"
+                ],
+                "summary": "Update an event packet inclusion",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Event ID",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Event Packet ID",
+                        "name": "packet_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "updates",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpUpdateEventPacketInclusion"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Inclusion updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpResponseEventPacketInclusion"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid IDs, request body, or validation error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Inclusion not found or foreign key error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/event-packet-inclusions/packet/{packet_id}": {
+            "get": {
+                "description": "Retrieves all events that are included in a specific event packet",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event-packet-inclusions"
+                ],
+                "summary": "Get events by packet ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Event Packet ID",
+                        "name": "packet_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of events",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/httpdto.HttpResponseEvent"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid packet ID format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/event-packets": {
             "post": {
                 "description": "Creates a new event packet. Event packets can include multiple events and have allocated seats that must not exceed the minimum seats of included events.",
@@ -241,62 +554,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/event-packets/{packet_id}/events": {
-            "get": {
-                "description": "Retrieves all events that are included in a specific event packet",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "event-packet-inclusions"
-                ],
-                "summary": "Get events by packet ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Event Packet ID",
-                        "name": "packet_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of events",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/httpdto.HttpResponseEvent"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid packet ID format",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/events": {
             "get": {
                 "description": "Retrieves a list of events with optional filters, sorting, and pagination.",
@@ -321,6 +578,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter by location (partial match)",
                         "name": "location",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by description (partial match)",
+                        "name": "description",
                         "in": "query"
                     },
                     {
@@ -371,7 +634,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "An unexpected error occurred",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -424,264 +687,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/events/{event_id}/packets": {
-            "get": {
-                "description": "Retrieves all event packets that include a specific event",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "event-packet-inclusions"
-                ],
-                "summary": "Get event packets by event ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Event ID",
-                        "name": "event_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of event packets",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/httpdto.HttpResponseEventPacket"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid event ID format",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/events/{event_id}/packets/{packet_id}": {
-            "post": {
-                "description": "Adds an event to an event packet. Validates that the event has enough seats to meet the packet's allocated_seats requirement.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "event-packet-inclusions"
-                ],
-                "summary": "Create an event packet inclusion",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Event ID",
-                        "name": "event_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Event Packet ID",
-                        "name": "packet_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Inclusion data",
-                        "name": "inclusion",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/httpdto.HttpCreateEventPacketInclusion"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Inclusion created successfully",
-                        "schema": {
-                            "$ref": "#/definitions/httpdto.HttpResponseEventPacketInclusion"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request format or validation error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Event or packet not found (foreign key error)",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "409": {
-                        "description": "Inclusion already exists",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Removes an event from an event packet by deleting the inclusion relationship",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "event-packet-inclusions"
-                ],
-                "summary": "Delete an event packet inclusion",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Event ID",
-                        "name": "event_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Event Packet ID",
-                        "name": "packet_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Inclusion deleted successfully",
-                        "schema": {
-                            "$ref": "#/definitions/httpdto.HttpResponseEventPacketInclusion"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid event or packet ID format",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Inclusion not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "description": "Updates an existing inclusion relationship between an event and a packet",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "event-packet-inclusions"
-                ],
-                "summary": "Update an event packet inclusion",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Event ID",
-                        "name": "event_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Event Packet ID",
-                        "name": "packet_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Fields to update",
-                        "name": "updates",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/httpdto.HttpUpdateEventPacketInclusion"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Inclusion updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/httpdto.HttpResponseEventPacketInclusion"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid IDs, request body, or validation error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Inclusion not found or foreign key error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -734,7 +740,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -785,7 +791,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "An unexpected error occurred",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -852,7 +858,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "An unexpected error occurred",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -907,7 +913,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal error or unexpected error occurred",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

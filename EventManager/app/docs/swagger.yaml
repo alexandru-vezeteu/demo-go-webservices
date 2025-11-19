@@ -155,6 +155,223 @@ info:
   title: Event Service API
   version: "1.0"
 paths:
+  /event-packet-inclusions/event/{event_id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all event packets that include a specific event
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of event packets
+          schema:
+            items:
+              $ref: '#/definitions/httpdto.HttpResponseEventPacket'
+            type: array
+        "400":
+          description: Invalid event ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get event packets by event ID
+      tags:
+      - event-packet-inclusions
+  /event-packet-inclusions/event/{event_id}/packet/{packet_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes an event from an event packet by deleting the inclusion
+        relationship
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      - description: Event Packet ID
+        in: path
+        name: packet_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inclusion deleted successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
+        "400":
+          description: Invalid event or packet ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Inclusion not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete an event packet inclusion
+      tags:
+      - event-packet-inclusions
+    patch:
+      consumes:
+      - application/json
+      description: Updates an existing inclusion relationship between an event and
+        a packet
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      - description: Event Packet ID
+        in: path
+        name: packet_id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: updates
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpUpdateEventPacketInclusion'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inclusion updated successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
+        "400":
+          description: Invalid IDs, request body, or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Inclusion not found or foreign key error
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update an event packet inclusion
+      tags:
+      - event-packet-inclusions
+    post:
+      consumes:
+      - application/json
+      description: Adds an event to an event packet. Validates that the event has
+        enough seats to meet the packet's allocated_seats requirement.
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      - description: Event Packet ID
+        in: path
+        name: packet_id
+        required: true
+        type: integer
+      - description: Inclusion data
+        in: body
+        name: inclusion
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpCreateEventPacketInclusion'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Inclusion created successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
+        "400":
+          description: Invalid request format or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event or packet not found (foreign key error)
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Inclusion already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create an event packet inclusion
+      tags:
+      - event-packet-inclusions
+  /event-packet-inclusions/packet/{packet_id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all events that are included in a specific event packet
+      parameters:
+      - description: Event Packet ID
+        in: path
+        name: packet_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of events
+          schema:
+            items:
+              $ref: '#/definitions/httpdto.HttpResponseEvent'
+            type: array
+        "400":
+          description: Invalid packet ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get events by packet ID
+      tags:
+      - event-packet-inclusions
   /event-packets:
     post:
       consumes:
@@ -314,44 +531,6 @@ paths:
       summary: Update an event packet
       tags:
       - event-packets
-  /event-packets/{packet_id}/events:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves all events that are included in a specific event packet
-      parameters:
-      - description: Event Packet ID
-        in: path
-        name: packet_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of events
-          schema:
-            items:
-              $ref: '#/definitions/httpdto.HttpResponseEvent'
-            type: array
-        "400":
-          description: Invalid packet ID format
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get events by packet ID
-      tags:
-      - event-packet-inclusions
   /events:
     get:
       consumes:
@@ -366,6 +545,10 @@ paths:
       - description: Filter by location (partial match)
         in: query
         name: location
+        type: string
+      - description: Filter by description (partial match)
+        in: query
+        name: description
         type: string
       - description: Minimum seats
         in: query
@@ -402,7 +585,7 @@ paths:
             additionalProperties: true
             type: object
         "500":
-          description: An unexpected error occurred
+          description: Internal server error
           schema:
             additionalProperties: true
             type: object
@@ -438,192 +621,13 @@ paths:
             additionalProperties: true
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
             additionalProperties: true
             type: object
       summary: Create a new event
       tags:
       - events
-  /events/{event_id}/packets:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves all event packets that include a specific event
-      parameters:
-      - description: Event ID
-        in: path
-        name: event_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of event packets
-          schema:
-            items:
-              $ref: '#/definitions/httpdto.HttpResponseEventPacket'
-            type: array
-        "400":
-          description: Invalid event ID format
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get event packets by event ID
-      tags:
-      - event-packet-inclusions
-  /events/{event_id}/packets/{packet_id}:
-    delete:
-      consumes:
-      - application/json
-      description: Removes an event from an event packet by deleting the inclusion
-        relationship
-      parameters:
-      - description: Event ID
-        in: path
-        name: event_id
-        required: true
-        type: integer
-      - description: Event Packet ID
-        in: path
-        name: packet_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Inclusion deleted successfully
-          schema:
-            $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
-        "400":
-          description: Invalid event or packet ID format
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Inclusion not found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Delete an event packet inclusion
-      tags:
-      - event-packet-inclusions
-    patch:
-      consumes:
-      - application/json
-      description: Updates an existing inclusion relationship between an event and
-        a packet
-      parameters:
-      - description: Event ID
-        in: path
-        name: event_id
-        required: true
-        type: integer
-      - description: Event Packet ID
-        in: path
-        name: packet_id
-        required: true
-        type: integer
-      - description: Fields to update
-        in: body
-        name: updates
-        required: true
-        schema:
-          $ref: '#/definitions/httpdto.HttpUpdateEventPacketInclusion'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Inclusion updated successfully
-          schema:
-            $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
-        "400":
-          description: Invalid IDs, request body, or validation error
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Inclusion not found or foreign key error
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Update an event packet inclusion
-      tags:
-      - event-packet-inclusions
-    post:
-      consumes:
-      - application/json
-      description: Adds an event to an event packet. Validates that the event has
-        enough seats to meet the packet's allocated_seats requirement.
-      parameters:
-      - description: Event ID
-        in: path
-        name: event_id
-        required: true
-        type: integer
-      - description: Event Packet ID
-        in: path
-        name: packet_id
-        required: true
-        type: integer
-      - description: Inclusion data
-        in: body
-        name: inclusion
-        required: true
-        schema:
-          $ref: '#/definitions/httpdto.HttpCreateEventPacketInclusion'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Inclusion created successfully
-          schema:
-            $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
-        "400":
-          description: Invalid request format or validation error
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Event or packet not found (foreign key error)
-          schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Inclusion already exists
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Create an event packet inclusion
-      tags:
-      - event-packet-inclusions
   /events/{id}:
     delete:
       consumes:
@@ -653,7 +657,7 @@ paths:
             additionalProperties: true
             type: object
         "500":
-          description: An unexpected error occurred
+          description: Internal server error
           schema:
             additionalProperties: true
             type: object
@@ -688,7 +692,7 @@ paths:
             additionalProperties: true
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
             additionalProperties: true
             type: object
@@ -734,7 +738,7 @@ paths:
             additionalProperties: true
             type: object
         "500":
-          description: An unexpected error occurred
+          description: Internal server error
           schema:
             additionalProperties: true
             type: object
@@ -774,7 +778,7 @@ paths:
             additionalProperties: true
             type: object
         "500":
-          description: Internal error
+          description: Internal error or unexpected error occurred
           schema:
             additionalProperties: true
             type: object

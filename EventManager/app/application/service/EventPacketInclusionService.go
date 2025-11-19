@@ -28,13 +28,13 @@ func NewEventPacketInclusionService(
 func (service *eventPacketInclusionService) CreateEventPacketInclusion(inclusion *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error) {
 
 	if inclusion == nil {
-		return nil, &domain.ValidationError{Msg: "invalid object"}
+		return nil, &domain.ValidationError{Reason: "invalid object"}
 	}
 	if inclusion.EventID < 0 {
-		return nil, &domain.ValidationError{Msg: "event id must be >= 0"}
+		return nil, &domain.ValidationError{Reason: "event id must be >= 0"}
 	}
 	if inclusion.PacketID < 0 {
-		return nil, &domain.ValidationError{Msg: "packet id must be >= 0"}
+		return nil, &domain.ValidationError{Reason: "packet id must be >= 0"}
 	}
 
 	// Validate seat constraints
@@ -74,14 +74,14 @@ func (service *eventPacketInclusionService) validateInclusionConstraints(eventID
 	// Event must have seats defined
 	if event.Seats == nil {
 		return &domain.ValidationError{
-			Msg: fmt.Sprintf("event %d doesn't have seats defined, cannot be added to packet requiring %d seats", event.ID, *packet.AllocatedSeats),
+			Reason: fmt.Sprintf("event %d doesn't have seats defined, cannot be added to packet requiring %d seats", event.ID, *packet.AllocatedSeats),
 		}
 	}
 
 	// Event must have enough seats
 	if *event.Seats < *packet.AllocatedSeats {
 		return &domain.ValidationError{
-			Msg: fmt.Sprintf("event has %d seats but packet requires %d allocated seats", *event.Seats, *packet.AllocatedSeats),
+			Reason: fmt.Sprintf("event has %d seats but packet requires %d allocated seats", *event.Seats, *packet.AllocatedSeats),
 		}
 	}
 
@@ -89,34 +89,34 @@ func (service *eventPacketInclusionService) validateInclusionConstraints(eventID
 }
 func (service *eventPacketInclusionService) GetEventsByPacketID(packetID int) ([]*domain.Event, error) {
 	if packetID < 0 {
-		return nil, &domain.ValidationError{Msg: "packet id must be >= 0"}
+		return nil, &domain.ValidationError{Reason: "packet id must be >= 0"}
 	}
 	return service.repo.GetEventsByPacketID(packetID)
 }
 func (service *eventPacketInclusionService) GetEventPacketsByEventID(eventID int) ([]*domain.EventPacket, error) {
 	if eventID < 0 {
-		return nil, &domain.ValidationError{Msg: "event id must be >= 0"}
+		return nil, &domain.ValidationError{Reason: "event id must be >= 0"}
 	}
 	return service.repo.GetEventPacketsByEventID(eventID)
 }
 func (service *eventPacketInclusionService) Update(eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error) {
 	if eventID < 0 {
-		return nil, &domain.ValidationError{Msg: "event id must be >= 0"}
+		return nil, &domain.ValidationError{Reason: "event id must be >= 0"}
 	}
 	if packetID < 0 {
-		return nil, &domain.ValidationError{Msg: "packet id must be >= 0"}
+		return nil, &domain.ValidationError{Reason: "packet id must be >= 0"}
 	}
 	if len(updates) == 0 {
-		return nil, &domain.ValidationError{Msg: "update must contain at least one field"}
+		return nil, &domain.ValidationError{Reason: "update must contain at least one field"}
 	}
 	return service.repo.Update(eventID, packetID, updates)
 }
 func (service *eventPacketInclusionService) DeleteEventPacketInclusion(eventID, packetID int) (*domain.EventPacketInclusion, error) {
 	if eventID < 0 {
-		return nil, &domain.ValidationError{Msg: "event id must be >= 0"}
+		return nil, &domain.ValidationError{Reason: "event id must be >= 0"}
 	}
 	if packetID < 0 {
-		return nil, &domain.ValidationError{Msg: "packet id must be >= 0"}
+		return nil, &domain.ValidationError{Reason: "packet id must be >= 0"}
 	}
 
 	return service.repo.Delete(eventID, packetID)

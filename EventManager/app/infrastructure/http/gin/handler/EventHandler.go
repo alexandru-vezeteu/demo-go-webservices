@@ -28,7 +28,7 @@ func NewGinEventHandler(controller controller.IEventController) *GinEventHandler
 // @Success      201  {object}  httpdto.HttpResponseEvent  "Event created successfully"
 // @Failure      400  {object}  map[string]interface{} "Invalid request format or validation error"
 // @Failure      409  {object}  map[string]interface{} "Event already exists"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
+// @Failure      500  {object}  map[string]interface{} "Internal server error"
 // @Router       /events [post]
 func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 	var req httpdto.HttpCreateEvent
@@ -54,7 +54,7 @@ func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 
 	var internalErr *domain.InternalError
 	if errors.As(err, &internalErr) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -71,7 +71,7 @@ func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 // @Success      200  {object}  httpdto.HttpResponseEvent  "The requested event"
 // @Failure      400  {object}  map[string]interface{} "Invalid event ID format or validation error"
 // @Failure      404  {object}  map[string]interface{} "Event not found"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
+// @Failure      500  {object}  map[string]interface{} "Internal server error"
 // @Router       /events/{id} [get]
 func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
@@ -95,7 +95,7 @@ func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -116,7 +116,7 @@ func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 // @Failure      400  {object}  map[string]interface{} "Invalid event ID format or request body"
 // @Failure      404  {object}  map[string]interface{} "Event not found"
 // @Failure      409  {object}  map[string]interface{} "Name already taken"
-// @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
+// @Failure      500  {object}  map[string]interface{} "Internal server error"
 // @Router       /events/{id} [patch]
 func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
@@ -153,7 +153,7 @@ func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -170,7 +170,7 @@ func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 // @Success      200  {object}  httpdto.HttpResponseEvent "Event deleted successfully"
 // @Failure      400  {object}  map[string]interface{} "Invalid event ID format"
 // @Failure      404  {object}  map[string]interface{} "Event not found"
-// @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
+// @Failure      500  {object}  map[string]interface{} "Internal server error"
 // @Router       /events/{id} [delete]
 func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
@@ -186,7 +186,7 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": notFoundErr.Error()})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -202,6 +202,7 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 // @Produce      json
 // @Param        name query string false "Filter by name (partial match)"
 // @Param        location query string false "Filter by location (partial match)"
+// @Param        description query string false "Filter by description (partial match)"
 // @Param        min_seats query int false "Minimum seats"
 // @Param        max_seats query int false "Maximum seats"
 // @Param        page query int false "Page number" default(1)
@@ -209,7 +210,7 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 // @Param        order_by query string false "Sort order (e.g., name_asc, seats_desc)"
 // @Success      200  {object}  httpdto.HttpResponseEventList "A list of events"
 // @Failure      400  {object}  map[string]interface{} "Invalid query parameters or validation error"
-// @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
+// @Failure      500  {object}  map[string]interface{} "Internal server error"
 // @Router       /events [get]
 func (h *GinEventHandler) FilterEvents(c *gin.Context) {
 	var filter httpdto.HttpFilterEvent
@@ -229,12 +230,12 @@ func (h *GinEventHandler) FilterEvents(c *gin.Context) {
 
 	var internalErr *domain.InternalError
 	if errors.As(err, &internalErr) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 

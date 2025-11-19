@@ -28,7 +28,7 @@ func (service *eventPacketService) CreateEventPacket(event *domain.EventPacket) 
 
 func (service *eventPacketService) GetEventPacketByID(id int) (*domain.EventPacket, error) {
 	if id < 1 {
-		return nil, &domain.ValidationError{Msg: fmt.Sprintf("id:%d must be positive", id)}
+		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
 	}
 	return service.repo.GetByID(id)
 }
@@ -36,19 +36,19 @@ func (service *eventPacketService) GetEventPacketByID(id int) (*domain.EventPack
 func (service *eventPacketService) UpdateEventPacket(id int, updates map[string]interface{}) (*domain.EventPacket, error) {
 
 	if len(updates) == 0 {
-		return nil, &domain.ValidationError{Msg: "no fields to update"}
+		return nil, &domain.ValidationError{Reason: "no fields to update"}
 	}
 
 	if owner_id, ok := updates["id_owner"]; ok {
 		if owner_idPtr, ok := owner_id.(int); ok && owner_idPtr < 1 {
-			return nil, &domain.ValidationError{Msg: "owner_id must be positive"}
+			return nil, &domain.ValidationError{Reason: "owner_id must be positive"}
 
 		}
 	}
 
 	if name, ok := updates["name"]; ok {
 		if namePtr, ok := name.(string); ok && namePtr == "" {
-			return nil, &domain.ValidationError{Msg: "name must be set"}
+			return nil, &domain.ValidationError{Reason: "name must be set"}
 		}
 	}
 
@@ -56,7 +56,7 @@ func (service *eventPacketService) UpdateEventPacket(id int, updates map[string]
 	if allocatedSeats, ok := updates["allocated_seats"]; ok {
 		if seatsPtr, ok := allocatedSeats.(int); ok {
 			if seatsPtr < 0 {
-				return nil, &domain.ValidationError{Msg: "allocated_seats must be non-negative"}
+				return nil, &domain.ValidationError{Reason: "allocated_seats must be non-negative"}
 			}
 			// Validate against included events' seats
 			if err := service.validateAllocatedSeatsConstraint(id, seatsPtr); err != nil {
@@ -69,26 +69,26 @@ func (service *eventPacketService) UpdateEventPacket(id int, updates map[string]
 }
 func (service *eventPacketService) DeleteEventPacket(id int) (*domain.EventPacket, error) {
 	if id < 1 {
-		return nil, &domain.ValidationError{Msg: fmt.Sprintf("id:%d must be positive", id)}
+		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
 	}
 	return service.repo.Delete(id)
 }
 
 func (service *eventPacketService) validateEventPacket(event *domain.EventPacket) error {
 	if event == nil {
-		return &domain.ValidationError{Msg: "invalid object received"}
+		return &domain.ValidationError{Reason: "invalid object received"}
 	}
 
 	if event.OwnerID < 1 {
-		return &domain.ValidationError{Msg: "owner_id must be positive"}
+		return &domain.ValidationError{Reason: "owner_id must be positive"}
 	}
 
 	if event.Name == "" {
-		return &domain.ValidationError{Msg: "name must be set"}
+		return &domain.ValidationError{Reason: "name must be set"}
 	}
 
 	if event.AllocatedSeats != nil && *event.AllocatedSeats < 0 {
-		return &domain.ValidationError{Msg: "allocated_seats must be non-negative"}
+		return &domain.ValidationError{Reason: "allocated_seats must be non-negative"}
 	}
 
 	return nil
@@ -128,14 +128,14 @@ func (service *eventPacketService) validateAllocatedSeatsConstraint(packetID int
 	// If any event has nil seats, we can't validate
 	if minSeats == nil {
 		return &domain.ValidationError{
-			Msg: "cannot set allocated_seats: some included events don't have seats defined",
+			Reason: "cannot set allocated_seats: some included events don't have seats defined",
 		}
 	}
 
 	// Validate constraint
 	if requestedSeats > *minSeats {
 		return &domain.ValidationError{
-			Msg: fmt.Sprintf("allocated_seats (%d) cannot exceed minimum seats of included events (%d)", requestedSeats, *minSeats),
+			Reason: fmt.Sprintf("allocated_seats (%d) cannot exceed minimum seats of included events (%d)", requestedSeats, *minSeats),
 		}
 	}
 

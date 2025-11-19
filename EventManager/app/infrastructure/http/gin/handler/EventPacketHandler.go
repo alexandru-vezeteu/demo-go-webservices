@@ -55,7 +55,7 @@ func (h *GinEventPacketHandler) CreateEventPacket(c *gin.Context) {
 
 	var internalErr *domain.InternalError
 	if errors.As(err, &internalErr) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -96,7 +96,7 @@ func (h *GinEventPacketHandler) GetEventPacketByID(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -154,7 +154,7 @@ func (h *GinEventPacketHandler) UpdateEventPacket(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -187,7 +187,7 @@ func (h *GinEventPacketHandler) DeleteEventPacket(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": notFoundErr.Error()})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 

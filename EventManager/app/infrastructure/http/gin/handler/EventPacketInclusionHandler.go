@@ -6,7 +6,6 @@ import (
 	"eventManager/application/domain"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +32,7 @@ func NewGinEventPacketInclusionHandler(controller controller.IEventPacketInclusi
 // @Failure      404  {object}  map[string]interface{} "Event or packet not found (foreign key error)"
 // @Failure      409  {object}  map[string]interface{} "Inclusion already exists"
 // @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /events/{event_id}/packets/{packet_id} [post]
+// @Router       /event-packet-inclusions/event/{event_id}/packet/{packet_id} [post]
 func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -73,8 +72,7 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 		} else if errors.As(err, &internalErr) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
-			fmt.Println(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		}
 		return
 	}
@@ -92,7 +90,7 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 // @Failure      400  {object}  map[string]interface{} "Invalid event ID format"
 // @Failure      404  {object}  map[string]interface{} "Not found"
 // @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /events/{event_id}/packets [get]
+// @Router       /event-packet-inclusions/event/{event_id} [get]
 func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -110,7 +108,7 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 		} else if errors.As(err, &internalErr) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		}
 		return
 	}
@@ -133,7 +131,7 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 // @Failure      400  {object}  map[string]interface{} "Invalid packet ID format"
 // @Failure      404  {object}  map[string]interface{} "Not found"
 // @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /event-packets/{packet_id}/events [get]
+// @Router       /event-packet-inclusions/packet/{packet_id} [get]
 func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
@@ -151,7 +149,7 @@ func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 		} else if errors.As(err, &internalErr) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		}
 		return
 	}
@@ -176,7 +174,7 @@ func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 // @Failure      400  {object}  map[string]interface{} "Invalid IDs, request body, or validation error"
 // @Failure      404  {object}  map[string]interface{} "Inclusion not found or foreign key error"
 // @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /events/{event_id}/packets/{packet_id} [patch]
+// @Router       /event-packet-inclusions/event/{event_id}/packet/{packet_id} [patch]
 func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -213,7 +211,7 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 		} else if errors.As(err, &internalErr) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		}
 		return
 	}
@@ -232,7 +230,7 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 // @Failure      400  {object}  map[string]interface{} "Invalid event or packet ID format"
 // @Failure      404  {object}  map[string]interface{} "Inclusion not found"
 // @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /events/{event_id}/packets/{packet_id} [delete]
+// @Router       /event-packet-inclusions/event/{event_id}/packet/{packet_id} [delete]
 func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -256,7 +254,7 @@ func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Conte
 		} else if errors.As(err, &internalErr) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		}
 		return
 	}

@@ -3,11 +3,15 @@ package domain
 import "fmt"
 
 type ValidationError struct {
-	Msg string
+	Field  string
+	Reason string
 }
 
 func (e *ValidationError) Error() string {
-	return e.Msg
+	if e.Field != "" {
+		return fmt.Sprintf("%s: %s", e.Field, e.Reason)
+	}
+	return e.Reason
 }
 
 type NotFoundError struct {
@@ -48,9 +52,17 @@ func (e *UniqueNameError) Error() string {
 }
 
 type ForeignKeyError struct {
-	id int
+	ID int
 }
 
 func (e *ForeignKeyError) Error() string {
-	return fmt.Sprintf("id %d does not exist", e.id)
+	return fmt.Sprintf("id %d does not exist", e.ID)
+}
+
+type InvalidRequestError struct {
+	Reason string
+}
+
+func (e *InvalidRequestError) Error() string {
+	return e.Reason
 }

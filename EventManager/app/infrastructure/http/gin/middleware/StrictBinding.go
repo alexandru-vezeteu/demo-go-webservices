@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"eventManager/application/domain"
 	"fmt"
 	"io"
+	"net/http"
 	"strconv"
 	"strings"
-	"userService/application/domain"
 
 	"github.com/gin-gonic/gin"
 )
@@ -108,4 +109,20 @@ func StrictBindQuery(c *gin.Context, obj interface{}, allowedParams []string) er
 	}
 
 	return nil
+}
+
+// RejectUnknownJSONMiddleware is a middleware that validates JSON requests globally
+func RejectUnknownJSONMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Method != http.MethodGet && c.Request.Method != http.MethodDelete {
+			contentType := c.ContentType()
+			if contentType != "" && contentType != "application/json" {
+				c.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{
+					"error": "Content-Type must be application/json",
+				})
+				return
+			}
+		}
+		c.Next()
+	}
 }

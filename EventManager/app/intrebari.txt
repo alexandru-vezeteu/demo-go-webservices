@@ -1,5 +1,0 @@
-1. trb sa analizez starea resursei si in functia de ea sa returnez ce link uri sunt valabile?
-2. chestia cu tickets
-
-
-daca am body cu chestii in plus: dau eroare + querysdasa

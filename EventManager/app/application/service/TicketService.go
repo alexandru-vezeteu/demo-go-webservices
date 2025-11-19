@@ -32,16 +32,16 @@ func NewTicketService(
 // validateTicket enforces the business rule: ticket must be associated with either a packet OR an event (not both, not neither)
 func (service *ticketService) validateTicket(ticket *domain.Ticket) error {
 	if ticket == nil {
-		return &domain.ValidationError{Msg: "invalid ticket object"}
+		return &domain.ValidationError{Reason: "invalid ticket object"}
 	}
 
 	// Business rule: must have exactly one of PacketID or EventID
 	if ticket.PacketID == nil && ticket.EventID == nil {
-		return &domain.ValidationError{Msg: "ticket must be associated with either a packet or an event"}
+		return &domain.ValidationError{Reason: "ticket must be associated with either a packet or an event"}
 	}
 
 	if ticket.PacketID != nil && ticket.EventID != nil {
-		return &domain.ValidationError{Msg: "ticket cannot be associated with both a packet and an event"}
+		return &domain.ValidationError{Reason: "ticket cannot be associated with both a packet and an event"}
 	}
 
 	return nil
@@ -78,7 +78,7 @@ func (service *ticketService) validateSeatAvailability(ticket *domain.Ticket) er
 		// Check if event has seats defined
 		if event.Seats == nil {
 			return &domain.ValidationError{
-				Msg: fmt.Sprintf("event %d does not have seats defined", *ticket.EventID),
+				Reason: fmt.Sprintf("event %d does not have seats defined", *ticket.EventID),
 			}
 		}
 
@@ -113,7 +113,7 @@ func (service *ticketService) validateSeatAvailability(ticket *domain.Ticket) er
 		// 5. Check if seats are available
 		if availableSeats <= 0 {
 			return &domain.ValidationError{
-				Msg: fmt.Sprintf("event '%s' has no available seats (total: %d, direct tickets: %d, packet allocations: %d)",
+				Reason: fmt.Sprintf("event '%s' has no available seats (total: %d, direct tickets: %d, packet allocations: %d)",
 					event.Name, totalSeats, directTicketsSold, totalPacketSeats),
 			}
 		}
@@ -129,7 +129,7 @@ func (service *ticketService) validateSeatAvailability(ticket *domain.Ticket) er
 		// Check if packet has allocated seats defined
 		if packet.AllocatedSeats == nil {
 			return &domain.ValidationError{
-				Msg: fmt.Sprintf("packet %d does not have allocated seats defined", *ticket.PacketID),
+				Reason: fmt.Sprintf("packet %d does not have allocated seats defined", *ticket.PacketID),
 			}
 		}
 
@@ -148,7 +148,7 @@ func (service *ticketService) validateSeatAvailability(ticket *domain.Ticket) er
 		// Check if seats are available
 		if availableSeats <= 0 {
 			return &domain.ValidationError{
-				Msg: fmt.Sprintf("packet '%s' is sold out (%d/%d tickets sold)",
+				Reason: fmt.Sprintf("packet '%s' is sold out (%d/%d tickets sold)",
 					packet.Name, soldTickets, *packet.AllocatedSeats),
 			}
 		}
@@ -159,18 +159,18 @@ func (service *ticketService) validateSeatAvailability(ticket *domain.Ticket) er
 
 func (service *ticketService) GetTicketByCode(code string) (*domain.Ticket, error) {
 	if code == "" {
-		return nil, &domain.ValidationError{Msg: "ticket code is required"}
+		return nil, &domain.ValidationError{Reason: "ticket code is required"}
 	}
 	return service.repo.GetTicketByCode(code)
 }
 
 func (service *ticketService) UpdateTicket(code string, updates map[string]interface{}) (*domain.Ticket, error) {
 	if code == "" {
-		return nil, &domain.ValidationError{Msg: "ticket code is required"}
+		return nil, &domain.ValidationError{Reason: "ticket code is required"}
 	}
 
 	if len(updates) == 0 {
-		return nil, &domain.ValidationError{Msg: "no fields to update"}
+		return nil, &domain.ValidationError{Reason: "no fields to update"}
 	}
 
 	// Validate the constraint if updating packet_id or event_id
@@ -208,11 +208,11 @@ func (service *ticketService) UpdateTicket(code string, updates map[string]inter
 
 		// Validate the constraint
 		if newPacketID == nil && newEventID == nil {
-			return nil, &domain.ValidationError{Msg: "ticket must be associated with either a packet or an event"}
+			return nil, &domain.ValidationError{Reason: "ticket must be associated with either a packet or an event"}
 		}
 
 		if newPacketID != nil && newEventID != nil {
-			return nil, &domain.ValidationError{Msg: "ticket cannot be associated with both a packet and an event"}
+			return nil, &domain.ValidationError{Reason: "ticket cannot be associated with both a packet and an event"}
 		}
 
 		// If the ticket is being moved to a different event or packet, validate seat availability
@@ -238,7 +238,7 @@ func (service *ticketService) UpdateTicket(code string, updates map[string]inter
 
 func (service *ticketService) DeleteTicket(code string) (*domain.Ticket, error) {
 	if code == "" {
-		return nil, &domain.ValidationError{Msg: "ticket code is required"}
+		return nil, &domain.ValidationError{Reason: "ticket code is required"}
 	}
 	return service.repo.DeleteEvent(code)
 }

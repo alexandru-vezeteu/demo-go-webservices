@@ -28,7 +28,7 @@ func NewGinTicketHandler(controller controller.ITicketController) *GinTicketHand
 // @Success      201  {object}  httpdto.HttpResponseTicket  "Ticket created successfully with auto-generated code"
 // @Failure      400  {object}  map[string]interface{} "Invalid request format, validation error, or no seats available"
 // @Failure      409  {object}  map[string]interface{} "Ticket already exists"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
+// @Failure      500  {object}  map[string]interface{} "Internal error or unexpected error occurred"
 // @Router       /tickets [post]
 func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 	var req httpdto.HttpCreateTicket
@@ -101,7 +101,7 @@ func (h *GinTicketHandler) GetTicketByCode(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
 		return
 	}
 

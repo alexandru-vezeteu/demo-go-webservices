@@ -1,0 +1,2 @@
+cum dau handle la variabile de mediu pt build si pt env?
+dar pt alea care trb partajate gen host port?

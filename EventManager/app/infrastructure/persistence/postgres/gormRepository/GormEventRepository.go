@@ -4,8 +4,6 @@ import (
 	"errors"
 	"eventManager/application/domain"
 	gormmodel "eventManager/infrastructure/persistence/postgres/gormModel"
-	"fmt"
-
 	"strings"
 
 	"gorm.io/gorm"
@@ -36,11 +34,11 @@ func (r *GormEventRepository) GetByID(id int) (*domain.Event, error) {
 
 	var ret gormmodel.GormEvent
 	result := r.DB.Where("id = ?", id).First(&ret)
-	fmt.Println(result.Error.Error())
-	if strings.Contains(result.Error.Error(), "not found") {
-		return nil, &domain.NotFoundError{ID: id}
-	} else if result.Error != nil {
-		fmt.Println("PULA")
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, &domain.NotFoundError{ID: id}
+		}
 		return nil, &domain.InternalError{Msg: "could not find the event", Err: result.Error}
 	}
 
@@ -105,13 +103,17 @@ func (r *GormEventRepository) Delete(id int) (*domain.Event, error) {
 
 func (r *GormEventRepository) FilterEvents(filter *domain.EventFilter) ([]*domain.Event, error) {
 	if filter == nil {
-		return nil, &domain.ValidationError{Msg: "filter cannot be nil"}
+		return nil, &domain.ValidationError{Reason: "filter cannot be nil"}
 	}
 	if filter.Page == nil {
-		return nil, &domain.ValidationError{Msg: "page cannot be nil"}
+		return nil, &domain.ValidationError{Field: "page", Reason: "page cannot be nil"}
 	}
 	if filter.PerPage == nil {
-		return nil, &domain.ValidationError{Msg: "per_page cannot be nil"}
+		return nil, &domain.ValidationError{Field: "per_page", Reason: "per_page cannot be nil"}
+	}
+
+	if err := filter.Validate(); err != nil {
+		return nil, err
 	}
 
 	var gormEvents []gormmodel.GormEvent
@@ -145,14 +147,10 @@ func (r *GormEventRepository) FilterEvents(filter *domain.EventFilter) ([]*domai
 	}
 
 	if filter.OrderBy != nil {
-
 		if sqlSortString, ok := sortTranslationMap[*filter.OrderBy]; ok {
 			query = query.Order(sqlSortString)
-		} else {
-			return nil, &domain.ValidationError{Msg: "invalid order by. valid options: name_asc/desc, seats_asc/desc"}
 		}
 	} else {
-
 		query = query.Order("id asc")
 	}
 
