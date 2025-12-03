@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"time"
-	"userService/application/controller"
+	"userService/application/usecase"
 	"userService/application/service"
 	"userService/infrastructure/http/gin/handler"
 	"userService/infrastructure/http/gin/router"
@@ -35,11 +35,11 @@ func main() {
 	// Initialize services with dependencies
 	userService := service.NewUserService(userRepo)
 
-	// Initialize controllers
-	userController := controller.NewUserController(userService)
+	// Initialize usecases
+	userUsecase := usecase.NewUserUsecase(userService)
 
 	// Initialize handlers
-	userHandler := handler.NewGinUserHandler(userController)
+	userHandler := handler.NewGinUserHandler(userUsecase)
 
 	r := gin.Default()
 	userAPI := r.Group("/api/user-manager")

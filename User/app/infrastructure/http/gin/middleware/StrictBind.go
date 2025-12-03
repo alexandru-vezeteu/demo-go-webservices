@@ -13,30 +13,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// StrictBindJSON binds JSON with strict validation:
-// - Rejects unknown fields
-// - Rejects duplicate keys
-// - Returns detailed error messages
 func StrictBindJSON(c *gin.Context, obj interface{}) error {
-	// Read the body
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		return &domain.InvalidRequestError{Reason: "failed to read request body"}
 	}
 
-	// Restore the body for potential future reads
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	// Check for empty body
 	if len(body) == 0 {
 		return &domain.InvalidRequestError{Reason: "request body cannot be empty"}
 	}
 
-	// Create a decoder with DisallowUnknownFields
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
-	// Decode with strict validation
 	if err := decoder.Decode(obj); err != nil {
 		var syntaxError *json.SyntaxError
 		var unmarshalTypeError *json.UnmarshalTypeError
@@ -51,7 +42,6 @@ func StrictBindJSON(c *gin.Context, obj interface{}) error {
 		case errors.Is(err, io.ErrUnexpectedEOF):
 			return &domain.InvalidRequestError{Reason: "malformed JSON"}
 		default:
-			// Check for unknown field error (safely)
 			errMsg := err.Error()
 			if strings.HasPrefix(errMsg, "json: unknown field") {
 				return &domain.InvalidRequestError{Reason: errMsg}
@@ -60,7 +50,6 @@ func StrictBindJSON(c *gin.Context, obj interface{}) error {
 		}
 	}
 
-	// Check if there's additional data after the JSON object
 	if decoder.More() {
 		return &domain.InvalidRequestError{Reason: "request body contains multiple JSON objects"}
 	}
@@ -68,7 +57,6 @@ func StrictBindJSON(c *gin.Context, obj interface{}) error {
 	return nil
 }
 
-// ParseIDParam validates and parses an integer ID from route parameters
 func ParseIDParam(c *gin.Context, paramName string) (int, error) {
 	idStr := c.Param(paramName)
 	if idStr == "" {
@@ -87,9 +75,7 @@ func ParseIDParam(c *gin.Context, paramName string) (int, error) {
 	return int(id), nil
 }
 
-// StrictBindQuery validates query parameters and rejects unknown parameters
 func StrictBindQuery(c *gin.Context, obj interface{}, allowedParams []string) error {
-	// First check for unknown query parameters
 	queryParams := c.Request.URL.Query()
 	allowedMap := make(map[string]bool)
 	for _, param := range allowedParams {
@@ -102,7 +88,6 @@ func StrictBindQuery(c *gin.Context, obj interface{}, allowedParams []string) er
 		}
 	}
 
-	// Then bind the query parameters
 	if err := c.ShouldBindQuery(obj); err != nil {
 		return &domain.InvalidRequestError{Reason: err.Error()}
 	}

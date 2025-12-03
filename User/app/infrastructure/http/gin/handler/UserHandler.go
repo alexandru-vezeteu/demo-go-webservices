@@ -3,7 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"userService/application/controller"
+	"userService/application/usecase"
 	"userService/application/domain"
 	"userService/infrastructure/http/gin/middleware"
 	"userService/infrastructure/http/httpdto"
@@ -12,11 +12,11 @@ import (
 )
 
 type GinUserHandler struct {
-	controller controller.IUserController
+	usecase usecase.IUserUsecase
 }
 
-func NewGinUserHandler(controller controller.IUserController) *GinUserHandler {
-	return &GinUserHandler{controller: controller}
+func NewGinUserHandler(usecase usecase.IUserUsecase) *GinUserHandler {
+	return &GinUserHandler{usecase: usecase}
 }
 
 // @Summary      Create a new user
@@ -39,7 +39,7 @@ func (h *GinUserHandler) CreateUser(c *gin.Context) {
 
 	user := req.ToUser()
 
-	ret, err := h.controller.CreateUser(user)
+	ret, err := h.usecase.CreateUser(user)
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -80,7 +80,7 @@ func (h *GinUserHandler) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.controller.GetUserByID(id)
+	ret, err := h.usecase.GetUserByID(id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -132,7 +132,7 @@ func (h *GinUserHandler) UpdateUser(c *gin.Context) {
 
 	updates := req.ToUpdateMap()
 
-	user, err := h.controller.UpdateUser(id, updates)
+	user, err := h.usecase.UpdateUser(id, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -178,7 +178,7 @@ func (h *GinUserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.controller.DeleteUser(id)
+	ret, err := h.usecase.DeleteUser(id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {

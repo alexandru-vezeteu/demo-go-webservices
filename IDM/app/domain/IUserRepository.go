@@ -1,0 +1,15 @@
+package domain
+
+type IUserRepository interface {
+	FindByEmail(email string) (*User, error)
+
+	FindByID(id uint) (*User, error)
+
+	Create(user *User) error
+
+	Update(user *User) error
+
+	Delete(id uint) error
+
+	MigrateSchema() error
+}
