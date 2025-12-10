@@ -7,6 +7,14 @@ import (
 	"strings"
 )
 
+type EventPacketInclusionService interface {
+	CreateEventPacketInclusion(inclusion *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error)
+	GetEventsByPacketID(packetID int) ([]*domain.Event, error)
+	GetEventPacketsByEventID(eventID int) ([]*domain.EventPacket, error)
+	Update(eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error)
+	DeleteEventPacketInclusion(eventID, packetID int) (*domain.EventPacketInclusion, error)
+}
+
 type eventPacketInclusionService struct {
 	repo       repository.EventPacketInclusionRepository
 	eventRepo  repository.EventRepository
@@ -17,7 +25,7 @@ func NewEventPacketInclusionService(
 	repo repository.EventPacketInclusionRepository,
 	eventRepo repository.EventRepository,
 	packetRepo repository.EventPacketRepository,
-) *eventPacketInclusionService {
+) EventPacketInclusionService {
 	return &eventPacketInclusionService{
 		repo:       repo,
 		eventRepo:  eventRepo,

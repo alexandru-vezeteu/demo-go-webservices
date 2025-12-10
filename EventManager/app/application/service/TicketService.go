@@ -8,6 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
+type TicketService interface {
+	CreateTicket(ticket *domain.Ticket) (*domain.Ticket, error)
+	GetTicketByCode(code string) (*domain.Ticket, error)
+	UpdateTicket(code string, updates map[string]interface{}) (*domain.Ticket, error)
+	DeleteTicket(code string) (*domain.Ticket, error)
+}
+
 type ticketService struct {
 	repo          repository.TicketRepository
 	eventRepo     repository.EventRepository
@@ -20,7 +27,7 @@ func NewTicketService(
 	eventRepo repository.EventRepository,
 	packetRepo repository.EventPacketRepository,
 	inclusionRepo repository.EventPacketInclusionRepository,
-) *ticketService {
+) TicketService {
 	return &ticketService{
 		repo:          repo,
 		eventRepo:     eventRepo,

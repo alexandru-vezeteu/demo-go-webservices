@@ -12,6 +12,7 @@ func RegisterTicketRoutes(router *gin.RouterGroup, handler *handler.GinTicketHan
 		ticketsGroup.POST("/", handler.CreateTicket)
 		ticketsGroup.GET("/:code", handler.GetTicketByCode)
 		ticketsGroup.PATCH("/:code", handler.UpdateTicket)
+		ticketsGroup.PUT("/:code", handler.ReplaceTicket)
 		ticketsGroup.DELETE("/:code", handler.DeleteTicket)
 	}
 }

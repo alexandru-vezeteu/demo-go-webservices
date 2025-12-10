@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 	"userService/application/usecase"
-	"userService/application/service"
 	"userService/infrastructure/http/gin/handler"
 	"userService/infrastructure/http/gin/router"
 	"userService/infrastructure/persistence/mongodb"
@@ -32,11 +31,8 @@ func main() {
 		fmt.Printf("Warning: Failed to create indexes: %v\n", err)
 	}
 
-	// Initialize services with dependencies
-	userService := service.NewUserService(userRepo)
-
 	// Initialize usecases
-	userUsecase := usecase.NewUserUsecase(userService)
+	userUsecase := usecase.NewUserUsecase(userRepo)
 
 	// Initialize handlers
 	userHandler := handler.NewGinUserHandler(userUsecase)

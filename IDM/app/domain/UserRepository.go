@@ -1,6 +1,6 @@
 package domain
 
-type IUserRepository interface {
+type UserRepository interface {
 	FindByEmail(email string) (*User, error)
 
 	FindByID(id uint) (*User, error)

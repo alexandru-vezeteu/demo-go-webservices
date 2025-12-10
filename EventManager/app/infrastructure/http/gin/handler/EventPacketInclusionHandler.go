@@ -2,7 +2,7 @@ package handler
 
 import (
 	"errors"
-	"eventManager/application/controller"
+	"eventManager/application/usecase"
 	"eventManager/application/domain"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
@@ -12,11 +12,11 @@ import (
 )
 
 type GinEventPacketInclusionHandler struct {
-	controller controller.IEventPacketInclusionController
+	usecase usecase.EventPacketInclusionUseCase
 }
 
-func NewGinEventPacketInclusionHandler(controller controller.IEventPacketInclusionController) *GinEventPacketInclusionHandler {
-	return &GinEventPacketInclusionHandler{controller: controller}
+func NewGinEventPacketInclusionHandler(usecase usecase.EventPacketInclusionUseCase) *GinEventPacketInclusionHandler {
+	return &GinEventPacketInclusionHandler{usecase: usecase}
 }
 
 // @Summary      Create an event packet inclusion
@@ -56,7 +56,7 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 	inclusion.EventID = eventID
 	inclusion.PacketID = packetID
 
-	created, err := h.controller.CreateEventPacketInclusion(inclusion)
+	created, err := h.usecase.CreateEventPacketInclusion(inclusion)
 	if err != nil {
 		var validationErr *domain.ValidationError
 		var alreadyExistsErr *domain.AlreadyExistsError
@@ -98,7 +98,7 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 		return
 	}
 
-	packets, err := h.controller.GetEventPacketsByEventID(eventID)
+	packets, err := h.usecase.GetEventPacketsByEventID(eventID)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var internalErr *domain.InternalError
@@ -139,7 +139,7 @@ func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 		return
 	}
 
-	events, err := h.controller.GetEventsByPacketID(packetID)
+	events, err := h.usecase.GetEventsByPacketID(packetID)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var internalErr *domain.InternalError
@@ -195,7 +195,7 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 	}
 
 	updates := dto.ToUpdateMap()
-	updated, err := h.controller.Update(eventID, packetID, updates)
+	updated, err := h.usecase.Update(eventID, packetID, updates)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var validationErr *domain.ValidationError
@@ -244,7 +244,7 @@ func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Conte
 		return
 	}
 
-	deleted, err := h.controller.DeleteEventPacketInclusion(eventID, packetID)
+	deleted, err := h.usecase.DeleteEventPacketInclusion(eventID, packetID)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var internalErr *domain.InternalError

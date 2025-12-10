@@ -1,7 +1,7 @@
 package main
 
 import (
-	"eventManager/application/controller"
+	"eventManager/application/usecase"
 	"eventManager/application/service"
 	"eventManager/infrastructure/http/gin/handler"
 	"eventManager/infrastructure/http/gin/router"
@@ -36,17 +36,17 @@ func main() {
 	eventPacketInclusionService := service.NewEventPacketInclusionService(eventPacketInclusionRepo, eventRepo, eventPacketRepo)
 	ticketService := service.NewTicketService(ticketRepo, eventRepo, eventPacketRepo, eventPacketInclusionRepo)
 
-	// Initialize controllers
-	eventController := controller.NewEventController(eventService)
-	eventPacketController := controller.NewEventPacketController(eventPacketService)
-	eventPacketInclusionController := controller.NewEventPacketInclusionController(eventPacketInclusionService)
-	ticketController := controller.NewTicketController(ticketService)
+	// Initialize use cases
+	eventUseCase := usecase.NewEventUseCase(eventRepo, eventService)
+	eventPacketUseCase := usecase.NewEventPacketUseCase(eventPacketRepo, eventPacketService)
+	eventPacketInclusionUseCase := usecase.NewEventPacketInclusionUseCase(eventPacketInclusionRepo, eventPacketInclusionService)
+	ticketUseCase := usecase.NewTicketUseCase(ticketRepo, ticketService)
 
 	// Initialize handlers
-	eventHandler := handler.NewGinEventHandler(eventController)
-	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketController)
-	eventPacketInclusionHandler := handler.NewGinEventPacketInclusionHandler(eventPacketInclusionController)
-	ticketHandler := handler.NewGinTicketHandler(ticketController)
+	eventHandler := handler.NewGinEventHandler(eventUseCase)
+	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketUseCase)
+	eventPacketInclusionHandler := handler.NewGinEventPacketInclusionHandler(eventPacketInclusionUseCase)
+	ticketHandler := handler.NewGinTicketHandler(ticketUseCase)
 
 	r := gin.Default()
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

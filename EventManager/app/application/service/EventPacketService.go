@@ -6,12 +6,19 @@ import (
 	"fmt"
 )
 
+type EventPacketService interface {
+	CreateEventPacket(event *domain.EventPacket) (*domain.EventPacket, error)
+	GetEventPacketByID(id int) (*domain.EventPacket, error)
+	UpdateEventPacket(id int, updates map[string]interface{}) (*domain.EventPacket, error)
+	DeleteEventPacket(id int) (*domain.EventPacket, error)
+}
+
 type eventPacketService struct {
 	repo          repository.EventPacketRepository
 	inclusionRepo repository.EventPacketInclusionRepository
 }
 
-func NewEventPacketService(repo repository.EventPacketRepository, inclusionRepo repository.EventPacketInclusionRepository) *eventPacketService {
+func NewEventPacketService(repo repository.EventPacketRepository, inclusionRepo repository.EventPacketInclusionRepository) EventPacketService {
 	return &eventPacketService{
 		repo:          repo,
 		inclusionRepo: inclusionRepo,

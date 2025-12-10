@@ -2,7 +2,7 @@ package handler
 
 import (
 	"errors"
-	"eventManager/application/controller"
+	"eventManager/application/usecase"
 	"eventManager/application/domain"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
@@ -12,11 +12,11 @@ import (
 )
 
 type GinTicketHandler struct {
-	controller controller.ITicketController
+	usecase usecase.TicketUseCase
 }
 
-func NewGinTicketHandler(controller controller.ITicketController) *GinTicketHandler {
-	return &GinTicketHandler{controller: controller}
+func NewGinTicketHandler(usecase usecase.TicketUseCase) *GinTicketHandler {
+	return &GinTicketHandler{usecase: usecase}
 }
 
 // @Summary      Create a new ticket
@@ -39,7 +39,7 @@ func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 
 	ticket := req.ToTicket()
 
-	ret, err := h.controller.CreateTicket(ticket)
+	ret, err := h.usecase.CreateTicket(ticket)
 
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
@@ -86,7 +86,7 @@ func (h *GinTicketHandler) GetTicketByCode(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.controller.GetTicketByCode(code)
+	ret, err := h.usecase.GetTicketByCode(code)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -136,7 +136,57 @@ func (h *GinTicketHandler) UpdateTicket(c *gin.Context) {
 
 	updates := req.ToUpdateMap()
 
-	ticket, err := h.controller.UpdateTicket(code, updates)
+	ticket, err := h.usecase.UpdateTicket(code, updates)
+
+	var validationErr *domain.ValidationError
+	var notFoundErr *domain.NotFoundError
+	if errors.As(err, &validationErr) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if errors.As(err, &notFoundErr) {
+		c.JSON(http.StatusNotFound, gin.H{"error": notFoundErr.Error()})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+		return
+	}
+
+	resp := httpdto.ToHttpResponseTicket(ticket)
+	c.JSON(http.StatusOK, resp)
+}
+
+// @Summary      Replace a ticket (full update)
+// @Description  Fully replaces an existing ticket by its code. Validates seat availability when reassigning to a different event or packet.
+// @Tags         tickets
+// @Accept       json
+// @Produce      json
+// @Param        code   path      string  true  "Ticket Code (UUID)"
+// @Param        ticket body httpdto.HttpUpdateTicket true "Ticket replacement data (event_id and packet_id)"
+// @Success      200  {object}  httpdto.HttpResponseTicket "Ticket replaced successfully"
+// @Failure      400  {object}  map[string]interface{} "Invalid ticket code format, request body, or validation error"
+// @Failure      404  {object}  map[string]interface{} "Ticket not found"
+// @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
+// @Router       /tickets/{code} [put]
+func (h *GinTicketHandler) ReplaceTicket(c *gin.Context) {
+	code := c.Param("code")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ticket code is required"})
+		return
+	}
+
+	var req httpdto.HttpUpdateTicket
+	if err := middleware.StrictBindJSON(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updates := req.ToUpdateMap()
+
+	ticket, err := h.usecase.UpdateTicket(code, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -177,7 +227,7 @@ func (h *GinTicketHandler) DeleteTicket(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.controller.DeleteTicket(code)
+	ret, err := h.usecase.DeleteTicket(code)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {

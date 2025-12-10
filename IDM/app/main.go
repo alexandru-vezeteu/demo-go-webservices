@@ -5,9 +5,12 @@ import (
 	"log"
 	"net"
 
+	"idmService/infrastructure/blacklist"
 	"idmService/infrastructure/persistence"
 	pb "idmService/proto"
 	"idmService/server"
+	"idmService/service"
+	"idmService/usecase"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -33,7 +36,19 @@ func main() {
 	}
 	fmt.Println("Database migrations completed")
 
-	idmServer := server.NewIdentityServer(userRepo)
+	// Initialize blacklist
+	tokenBlacklist := blacklist.NewInMemoryBlacklist()
+
+	// Initialize services
+	tokenService := service.NewTokenService()
+
+	// Initialize use cases
+	loginUseCase := usecase.NewLoginUseCase(userRepo, tokenService)
+	verifyTokenUseCase := usecase.NewVerifyTokenUseCase(userRepo, tokenService, tokenBlacklist)
+	revokeTokenUseCase := usecase.NewRevokeTokenUseCase(tokenBlacklist)
+
+	// Initialize gRPC server with use cases
+	idmServer := server.NewIdentityServer(loginUseCase, verifyTokenUseCase, revokeTokenUseCase)
 
 	listener, err := net.Listen("tcp", port)
 	if err != nil {

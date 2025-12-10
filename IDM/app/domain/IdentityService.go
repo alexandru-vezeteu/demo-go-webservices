@@ -5,7 +5,7 @@ import (
 	pb "idmService/proto"
 )
 
-type IIdentityService interface {
+type IdentityService interface {
 	Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error)
 
 	VerifyToken(ctx context.Context, req *pb.VerifyTokenRequest) (*pb.VerifyTokenResponse, error)

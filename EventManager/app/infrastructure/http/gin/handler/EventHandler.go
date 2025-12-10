@@ -2,7 +2,7 @@ package handler
 
 import (
 	"errors"
-	"eventManager/application/controller"
+	"eventManager/application/usecase"
 	"eventManager/application/domain"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
@@ -12,11 +12,11 @@ import (
 )
 
 type GinEventHandler struct {
-	controller controller.IEventController
+	usecase usecase.EventUseCase
 }
 
-func NewGinEventHandler(controller controller.IEventController) *GinEventHandler {
-	return &GinEventHandler{controller: controller}
+func NewGinEventHandler(usecase usecase.EventUseCase) *GinEventHandler {
+	return &GinEventHandler{usecase: usecase}
 }
 
 // @Summary      Create a new event
@@ -39,7 +39,7 @@ func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 
 	event := req.ToEvent()
 
-	ret, err := h.controller.CreateEvent(event)
+	ret, err := h.usecase.CreateEvent(event)
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -80,7 +80,7 @@ func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.controller.GetEventByID(id)
+	ret, err := h.usecase.GetEventByID(id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -133,7 +133,7 @@ func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 
 	updates := req.ToUpdateMap()
 
-	event, err := h.controller.UpdateEvent(id, updates)
+	event, err := h.usecase.UpdateEvent(id, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -179,7 +179,7 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.controller.DeleteEvent(id)
+	ret, err := h.usecase.DeleteEvent(id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -226,7 +226,7 @@ func (h *GinEventHandler) FilterEvents(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	events, err := h.controller.FilterEvents(domainFilter)
+	events, err := h.usecase.FilterEvents(domainFilter)
 
 	var internalErr *domain.InternalError
 	if errors.As(err, &internalErr) {

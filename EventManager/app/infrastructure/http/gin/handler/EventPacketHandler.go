@@ -2,7 +2,7 @@ package handler
 
 import (
 	"errors"
-	"eventManager/application/controller"
+	"eventManager/application/usecase"
 	"eventManager/application/domain"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
@@ -12,11 +12,11 @@ import (
 )
 
 type GinEventPacketHandler struct {
-	controller controller.IEventPacketController
+	usecase usecase.EventPacketUseCase
 }
 
-func NewGinEventPacketHandler(controller controller.IEventPacketController) *GinEventPacketHandler {
-	return &GinEventPacketHandler{controller: controller}
+func NewGinEventPacketHandler(usecase usecase.EventPacketUseCase) *GinEventPacketHandler {
+	return &GinEventPacketHandler{usecase: usecase}
 }
 
 // @Summary      Create a new event packet
@@ -39,7 +39,7 @@ func (h *GinEventPacketHandler) CreateEventPacket(c *gin.Context) {
 
 	eventPacket := req.ToEventPacket()
 
-	ret, err := h.controller.CreateEventPacket(eventPacket)
+	ret, err := h.usecase.CreateEventPacket(eventPacket)
 
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
@@ -81,7 +81,7 @@ func (h *GinEventPacketHandler) GetEventPacketByID(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.controller.GetEventPacketByID(id)
+	ret, err := h.usecase.GetEventPacketByID(id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -134,7 +134,7 @@ func (h *GinEventPacketHandler) UpdateEventPacket(c *gin.Context) {
 
 	updates := req.ToUpdateMap()
 
-	event, err := h.controller.UpdateEventPacket(id, updates)
+	event, err := h.usecase.UpdateEventPacket(id, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -180,7 +180,7 @@ func (h *GinEventPacketHandler) DeleteEventPacket(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.controller.DeleteEventPacket(id)
+	ret, err := h.usecase.DeleteEventPacket(id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {

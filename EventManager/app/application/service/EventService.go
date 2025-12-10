@@ -6,13 +6,21 @@ import (
 	"fmt"
 )
 
+type EventService interface {
+	CreateEvent(event *domain.Event) (*domain.Event, error)
+	GetEventByID(id int) (*domain.Event, error)
+	UpdateEvent(id int, updates map[string]interface{}) (*domain.Event, error)
+	DeleteEvent(id int) (*domain.Event, error)
+	FilterEvents(filter *domain.EventFilter) ([]*domain.Event, error)
+}
+
 // nu poate fi utilizat direct trb initializat cu NewEventService:p
 type eventService struct {
 	repo          repository.EventRepository
 	inclusionRepo repository.EventPacketInclusionRepository
 }
 
-func NewEventService(repo repository.EventRepository, inclusionRepo repository.EventPacketInclusionRepository) *eventService {
+func NewEventService(repo repository.EventRepository, inclusionRepo repository.EventPacketInclusionRepository) EventService {
 	return &eventService{
 		repo:          repo,
 		inclusionRepo: inclusionRepo,

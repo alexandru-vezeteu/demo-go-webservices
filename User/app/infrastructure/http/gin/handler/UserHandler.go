@@ -12,10 +12,10 @@ import (
 )
 
 type GinUserHandler struct {
-	usecase usecase.IUserUsecase
+	usecase usecase.UserUsecase
 }
 
-func NewGinUserHandler(usecase usecase.IUserUsecase) *GinUserHandler {
+func NewGinUserHandler(usecase usecase.UserUsecase) *GinUserHandler {
 	return &GinUserHandler{usecase: usecase}
 }
 
