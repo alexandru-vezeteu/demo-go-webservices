@@ -1,6 +1,25 @@
-FROM golang:latest
+FROM golang:1.23-alpine AS deps
 
 WORKDIR /app
 
+COPY app/go.mod app/go.sum ./
 
-CMD ["/bin/bash"]
+RUN go mod download
+
+
+FROM deps AS build
+
+WORKDIR /app
+
+COPY app/ ./
+
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /idmService .
+
+
+FROM alpine:latest AS runtime
+
+WORKDIR /
+
+COPY --from=build /idmService /idmService
+
+CMD ["/idmService"]

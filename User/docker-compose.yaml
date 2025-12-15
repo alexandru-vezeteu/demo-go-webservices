@@ -2,7 +2,7 @@ services:
   userService:
     build:
       context: .
-      dockerfile: authentification.dockerfile
+      dockerfile: user.dockerfile
     image: user_service_image
     container_name: ${USER_HOST}
     network_mode: host
@@ -19,9 +19,6 @@ services:
       USER_DB_NAME: ${USER_DB_NAME}
       USER_DB_PORT: ${USER_DB_PORT}
     restart: always
-    #ca sa pot sa intru in el
-    stdin_open: true
-    tty: true
 
   userDB:
     image: mongo:latest

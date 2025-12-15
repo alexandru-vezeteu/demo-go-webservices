@@ -22,18 +22,14 @@ services:
     restart: always
     networks:
       - POSnetwork
-    #ca sa pot sa intru in el
-    stdin_open: true
-    tty: true 
-  
+
   eventManagerDB:
     image: postgres:16.10-alpine3.22
     container_name: ${EVENT_MANAGER_DB_HOST}
-    ports:
-      - "5432:${EVENT_MANAGER_DB_PORT}"
+
     volumes:
       - event_db:/var/lib/postgresql/data
-    
+
     environment:
       POSTGRES_PASSWORD: ${EVENT_MANAGER_DB_PASSWORD}
       POSTGRES_USER: ${EVENT_MANAGER_DB_USER}
