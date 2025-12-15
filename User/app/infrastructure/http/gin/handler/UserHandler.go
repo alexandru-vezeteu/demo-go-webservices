@@ -193,3 +193,80 @@ func (h *GinUserHandler) DeleteUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+// @Summary      Create a ticket for a user
+// @Description  Creates a ticket for a user by verifying their token, validating email, generating a ticket code, and creating it in EventManager
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        user_id path int true "User ID"
+// @Param        Authorization header string true "Bearer token"
+// @Param        ticket body httpdto.HttpCreateTicketForUser true "Ticket details (packet_id or event_id)"
+// @Success      201  {object}  httpdto.HttpCreateTicketResponse "Ticket created successfully"
+// @Failure      400  {object}  map[string]interface{} "Invalid request"
+// @Failure      403  {object}  map[string]interface{} "Token email does not match user email"
+// @Failure      404  {object}  map[string]interface{} "User not found"
+// @Failure      500  {object}  map[string]interface{} "Internal error or service unavailable"
+// @Router       /clients/{user_id}/tickets [post]
+func (h *GinUserHandler) CreateTicketForUser(c *gin.Context) {
+	userID, err := middleware.ParseIDParam(c, "user_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Extract token from Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization header is required"})
+		return
+	}
+
+	// Remove "Bearer " prefix if present
+	token := authHeader
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		token = authHeader[7:]
+	}
+
+	var req httpdto.HttpCreateTicketForUser
+	if err := middleware.StrictBindJSON(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ticketCode, err := h.usecase.CreateTicketForUser(userID, token, req.PacketID, req.EventID)
+
+	var validationErr *domain.ValidationError
+	if errors.As(err, &validationErr) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var forbiddenErr *domain.ForbiddenError
+	if errors.As(err, &forbiddenErr) {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	var notFoundErr2 *domain.NotFoundError
+	if errors.As(err, &notFoundErr2) {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	var internalErr *domain.InternalError
+	if errors.As(err, &internalErr) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+		return
+	}
+
+	resp := &httpdto.HttpCreateTicketResponse{
+		TicketCode: ticketCode,
+	}
+	c.JSON(http.StatusCreated, resp)
+}

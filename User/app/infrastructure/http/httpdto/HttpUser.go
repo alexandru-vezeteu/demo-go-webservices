@@ -99,3 +99,12 @@ func (user *HttpUpdateUser) ToUpdateMap() map[string]interface{} {
 
 	return updates
 }
+
+type HttpCreateTicketForUser struct {
+	PacketID *int `json:"packet_id"`
+	EventID  *int `json:"event_id"`
+}
+
+type HttpCreateTicketResponse struct {
+	TicketCode string `json:"ticket_code"`
+}

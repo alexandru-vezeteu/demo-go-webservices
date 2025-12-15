@@ -1,10 +1,15 @@
 package usecase
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"userService/application/domain"
 	"userService/application/repository"
+	"userService/infrastructure/grpc"
+	"userService/infrastructure/http"
+
+	"github.com/google/uuid"
 )
 
 type UserUsecase interface {
@@ -12,14 +17,21 @@ type UserUsecase interface {
 	GetUserByID(id int) (*domain.User, error)
 	UpdateUser(id int, updates map[string]interface{}) (*domain.User, error)
 	DeleteUser(id int) (*domain.User, error)
+	CreateTicketForUser(userID int, token string, packetID *int, eventID *int) (string, error)
 }
 
 type userUsecase struct {
-	repo repository.UserRepository
+	repo               repository.UserRepository
+	idmClient          *grpc.IDMClient
+	eventManagerClient *http.EventManagerClient
 }
 
-func NewUserUsecase(repo repository.UserRepository) UserUsecase {
-	return &userUsecase{repo: repo}
+func NewUserUsecase(repo repository.UserRepository, idmClient *grpc.IDMClient, eventManagerClient *http.EventManagerClient) UserUsecase {
+	return &userUsecase{
+		repo:               repo,
+		idmClient:          idmClient,
+		eventManagerClient: eventManagerClient,
+	}
 }
 
 func (uc *userUsecase) validateEmail(email string) bool {
@@ -121,4 +133,62 @@ func (uc *userUsecase) UpdateUser(id int, updates map[string]interface{}) (*doma
 
 func (uc *userUsecase) DeleteUser(id int) (*domain.User, error) {
 	return uc.repo.Delete(id)
+}
+
+func (uc *userUsecase) CreateTicketForUser(userID int, token string, packetID *int, eventID *int) (string, error) {
+	// a) Validate token
+	tokenResp, err := uc.idmClient.VerifyToken(token)
+	if err != nil {
+		return "", &domain.InternalError{Msg: "failed to verify token", Err: err}
+	}
+
+	// Check if token is valid
+	if !tokenResp.Valid {
+		return "", &domain.ValidationError{Field: "token", Reason: fmt.Sprintf("invalid token: %s", tokenResp.Message)}
+	}
+
+	// b) EMAIL FROM TOKEN CLAIMS
+	tokenEmail := tokenResp.Email
+
+	// c) EMAIL FROM DB BASED ON user_id
+	user, err := uc.repo.GetByID(userID)
+	if err != nil {
+		return "", err
+	}
+
+	// d) EMAIL TOKEN == EMAIL DB => IF NOT 403
+	if user.Email != tokenEmail {
+		return "", &domain.ForbiddenError{Reason: "token email does not match user email"}
+	}
+
+	// e) GENERATE UUID FOR TICKET CODE
+	ticketCode := uuid.New().String()
+
+	// f) PUT /TICKETS/{CODE} -> IF 201 -> APPEND TO TICKETS LIST ELSE => FAIL
+	_, statusCode, err := uc.eventManagerClient.CreateTicket(ticketCode, packetID, eventID)
+	if err != nil || statusCode != 201 {
+		if statusCode >= 500 {
+			return "", &domain.InternalError{Msg: "event manager service unavailable", Err: err}
+		}
+		return "", &domain.InternalError{Msg: "failed to create ticket", Err: err}
+	}
+
+	// Append ticket code to user's ticket_list
+	var newTicketList string
+	if user.TicketList == nil || strings.TrimSpace(*user.TicketList) == "" {
+		newTicketList = ticketCode
+	} else {
+		newTicketList = *user.TicketList + "," + ticketCode
+	}
+
+	updates := map[string]interface{}{
+		"ticket_list": newTicketList,
+	}
+
+	_, err = uc.repo.Update(userID, updates)
+	if err != nil {
+		return "", &domain.InternalError{Msg: "failed to update user ticket list", Err: err}
+	}
+
+	return ticketCode, nil
 }

@@ -17,4 +17,9 @@ func RegisterUserRoutes(router *gin.RouterGroup, handler *handler.GinUserHandler
 
 		usersGroup.DELETE("/:id", handler.DeleteUser)
 	}
+
+	clientsGroup := router.Group("/clients")
+	{
+		clientsGroup.POST("/:user_id/tickets", handler.CreateTicketForUser)
+	}
 }

@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 	"userService/application/usecase"
+	"userService/infrastructure/grpc"
+	"userService/infrastructure/http"
 	"userService/infrastructure/http/gin/handler"
 	"userService/infrastructure/http/gin/router"
 	"userService/infrastructure/persistence/mongodb"
@@ -31,8 +34,18 @@ func main() {
 		fmt.Printf("Warning: Failed to create indexes: %v\n", err)
 	}
 
+	// Initialize IDM gRPC client
+	idmClient, err2 := grpc.NewIDMClient()
+	if err2 != nil {
+		log.Fatalf("Failed to create IDM client: %v", err2)
+	}
+	defer idmClient.Close()
+
+	// Initialize EventManager HTTP client
+	eventManagerClient := http.NewEventManagerClient()
+
 	// Initialize usecases
-	userUsecase := usecase.NewUserUsecase(userRepo)
+	userUsecase := usecase.NewUserUsecase(userRepo, idmClient, eventManagerClient)
 
 	// Initialize handlers
 	userHandler := handler.NewGinUserHandler(userUsecase)
