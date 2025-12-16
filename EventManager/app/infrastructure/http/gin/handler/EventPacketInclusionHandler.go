@@ -19,20 +19,20 @@ func NewGinEventPacketInclusionHandler(usecase usecase.EventPacketInclusionUseCa
 	return &GinEventPacketInclusionHandler{usecase: usecase}
 }
 
-// @Summary      Create an event packet inclusion
-// @Description  Adds an event to an event packet. Validates that the event has enough seats to meet the packet's allocated_seats requirement.
-// @Tags         event-packet-inclusions
-// @Accept       json
-// @Produce      json
-// @Param        event_id   path      int  true  "Event ID"
-// @Param        packet_id  path      int  true  "Event Packet ID"
-// @Param        inclusion body httpdto.HttpCreateEventPacketInclusion true "Inclusion data"
-// @Success      201  {object}  httpdto.HttpResponseEventPacketInclusion  "Inclusion created successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid request format or validation error"
-// @Failure      404  {object}  map[string]interface{} "Event or packet not found (foreign key error)"
-// @Failure      409  {object}  map[string]interface{} "Inclusion already exists"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /event-packet-inclusions/event/{event_id}/packet/{packet_id} [post]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -56,7 +56,7 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 	inclusion.EventID = eventID
 	inclusion.PacketID = packetID
 
-	created, err := h.usecase.CreateEventPacketInclusion(inclusion)
+	created, err := h.usecase.CreateEventPacketInclusion(c.Request.Context(), inclusion)
 	if err != nil {
 		var validationErr *domain.ValidationError
 		var alreadyExistsErr *domain.AlreadyExistsError
@@ -80,17 +80,17 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 	c.JSON(http.StatusCreated, httpdto.ToHttpResponseEventPacketInclusion(created))
 }
 
-// @Summary      Get event packets by event ID
-// @Description  Retrieves all event packets that include a specific event
-// @Tags         event-packet-inclusions
-// @Accept       json
-// @Produce      json
-// @Param        event_id   path      int  true  "Event ID"
-// @Success      200  {array}   httpdto.HttpResponseEventPacket  "List of event packets"
-// @Failure      400  {object}  map[string]interface{} "Invalid event ID format"
-// @Failure      404  {object}  map[string]interface{} "Not found"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /event-packet-inclusions/event/{event_id} [get]
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -98,7 +98,7 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 		return
 	}
 
-	packets, err := h.usecase.GetEventPacketsByEventID(eventID)
+	packets, err := h.usecase.GetEventPacketsByEventID(c.Request.Context(), eventID)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var internalErr *domain.InternalError
@@ -121,17 +121,17 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 	c.JSON(http.StatusOK, response)
 }
 
-// @Summary      Get events by packet ID
-// @Description  Retrieves all events that are included in a specific event packet
-// @Tags         event-packet-inclusions
-// @Accept       json
-// @Produce      json
-// @Param        packet_id   path      int  true  "Event Packet ID"
-// @Success      200  {array}   httpdto.HttpResponseEvent  "List of events"
-// @Failure      400  {object}  map[string]interface{} "Invalid packet ID format"
-// @Failure      404  {object}  map[string]interface{} "Not found"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /event-packet-inclusions/packet/{packet_id} [get]
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
@@ -139,7 +139,7 @@ func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 		return
 	}
 
-	events, err := h.usecase.GetEventsByPacketID(packetID)
+	events, err := h.usecase.GetEventsByPacketID(c.Request.Context(), packetID)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var internalErr *domain.InternalError
@@ -162,19 +162,19 @@ func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// @Summary      Update an event packet inclusion
-// @Description  Updates an existing inclusion relationship between an event and a packet
-// @Tags         event-packet-inclusions
-// @Accept       json
-// @Produce      json
-// @Param        event_id   path      int  true  "Event ID"
-// @Param        packet_id  path      int  true  "Event Packet ID"
-// @Param        updates body httpdto.HttpUpdateEventPacketInclusion true "Fields to update"
-// @Success      200  {object}  httpdto.HttpResponseEventPacketInclusion  "Inclusion updated successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid IDs, request body, or validation error"
-// @Failure      404  {object}  map[string]interface{} "Inclusion not found or foreign key error"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /event-packet-inclusions/event/{event_id}/packet/{packet_id} [patch]
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -195,7 +195,7 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 	}
 
 	updates := dto.ToUpdateMap()
-	updated, err := h.usecase.Update(eventID, packetID, updates)
+	updated, err := h.usecase.Update(c.Request.Context(), eventID, packetID, updates)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var validationErr *domain.ValidationError
@@ -219,18 +219,18 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 	c.JSON(http.StatusOK, httpdto.ToHttpResponseEventPacketInclusion(updated))
 }
 
-// @Summary      Delete an event packet inclusion
-// @Description  Removes an event from an event packet by deleting the inclusion relationship
-// @Tags         event-packet-inclusions
-// @Accept       json
-// @Produce      json
-// @Param        event_id   path      int  true  "Event ID"
-// @Param        packet_id  path      int  true  "Event Packet ID"
-// @Success      200  {object}  httpdto.HttpResponseEventPacketInclusion  "Inclusion deleted successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid event or packet ID format"
-// @Failure      404  {object}  map[string]interface{} "Inclusion not found"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /event-packet-inclusions/event/{event_id}/packet/{packet_id} [delete]
+
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -244,7 +244,7 @@ func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Conte
 		return
 	}
 
-	deleted, err := h.usecase.DeleteEventPacketInclusion(eventID, packetID)
+	deleted, err := h.usecase.DeleteEventPacketInclusion(c.Request.Context(), eventID, packetID)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var internalErr *domain.InternalError

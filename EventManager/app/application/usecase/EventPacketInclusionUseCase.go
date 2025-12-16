@@ -1,53 +1,115 @@
 package usecase
 
 import (
+	"context"
 	"eventManager/application/domain"
 	"eventManager/application/repository"
-	"eventManager/application/service"
+	"fmt"
+	"strings"
 )
 
 type EventPacketInclusionUseCase interface {
-	CreateEventPacketInclusion(inclusion *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error)
-	GetEventsByPacketID(packetID int) ([]*domain.Event, error)
-	GetEventPacketsByEventID(eventID int) ([]*domain.EventPacket, error)
-	Update(eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error)
-	DeleteEventPacketInclusion(eventID, packetID int) (*domain.EventPacketInclusion, error)
+	CreateEventPacketInclusion(ctx context.Context, inclusion *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error)
+	GetEventsByPacketID(ctx context.Context, packetID int) ([]*domain.Event, error)
+	GetEventPacketsByEventID(ctx context.Context, eventID int) ([]*domain.EventPacket, error)
+	Update(ctx context.Context, eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error)
+	DeleteEventPacketInclusion(ctx context.Context, eventID, packetID int) (*domain.EventPacketInclusion, error)
 }
 
 type eventPacketInclusionUseCase struct {
-	repo                         repository.EventPacketInclusionRepository
-	eventPacketInclusionService  service.EventPacketInclusionService // For complex constraint validation
+	repo       repository.EventPacketInclusionRepository
+	eventRepo  repository.EventRepository
+	packetRepo repository.EventPacketRepository
 }
 
-func NewEventPacketInclusionUseCase(repo repository.EventPacketInclusionRepository, eventPacketInclusionService service.EventPacketInclusionService) *eventPacketInclusionUseCase {
+func NewEventPacketInclusionUseCase(
+	repo repository.EventPacketInclusionRepository,
+	eventRepo repository.EventRepository,
+	packetRepo repository.EventPacketRepository,
+) *eventPacketInclusionUseCase {
 	return &eventPacketInclusionUseCase{
-		repo:                        repo,
-		eventPacketInclusionService: eventPacketInclusionService,
+		repo:       repo,
+		eventRepo:  eventRepo,
+		packetRepo: packetRepo,
 	}
 }
 
-func (uc *eventPacketInclusionUseCase) CreateEventPacketInclusion(inclusion *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error) {
-	// CreateEventPacketInclusion has complex constraint validation
-	// (validates event and packet exist, checks seat constraints)
-	// Delegate to service
-	return uc.eventPacketInclusionService.CreateEventPacketInclusion(inclusion)
+func (uc *eventPacketInclusionUseCase) CreateEventPacketInclusion(ctx context.Context, inclusion *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error) {
+	if inclusion == nil {
+		return nil, &domain.ValidationError{Reason: "invalid object"}
+	}
+	if inclusion.EventID < 0 {
+		return nil, &domain.ValidationError{Reason: "event id must be >= 0"}
+	}
+	if inclusion.PacketID < 0 {
+		return nil, &domain.ValidationError{Reason: "packet id must be >= 0"}
+	}
+
+	
+	if err := uc.validateInclusionConstraints(ctx, inclusion.EventID, inclusion.PacketID); err != nil {
+		return nil, err
+	}
+
+	return uc.repo.Create(ctx, inclusion)
 }
 
-func (uc *eventPacketInclusionUseCase) GetEventsByPacketID(packetID int) ([]*domain.Event, error) {
+
+func (uc *eventPacketInclusionUseCase) validateInclusionConstraints(ctx context.Context, eventID int, packetID int) error {
+	
+	event, err := uc.eventRepo.GetByID(ctx, eventID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return &domain.NotFoundError{ID: eventID}
+		}
+		return err
+	}
+
+	
+	packet, err := uc.packetRepo.GetByID(ctx, packetID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return &domain.NotFoundError{ID: packetID}
+		}
+		return err
+	}
+
+	
+	if packet.AllocatedSeats == nil {
+		return nil
+	}
+
+	
+	if event.Seats == nil {
+		return &domain.ValidationError{
+			Reason: fmt.Sprintf("event %d doesn't have seats defined, cannot be added to packet requiring %d seats", event.ID, *packet.AllocatedSeats),
+		}
+	}
+
+	
+	if *event.Seats < *packet.AllocatedSeats {
+		return &domain.ValidationError{
+			Reason: fmt.Sprintf("event has %d seats but packet requires %d allocated seats", *event.Seats, *packet.AllocatedSeats),
+		}
+	}
+
+	return nil
+}
+
+func (uc *eventPacketInclusionUseCase) GetEventsByPacketID(ctx context.Context, packetID int) ([]*domain.Event, error) {
 	if packetID < 0 {
 		return nil, &domain.ValidationError{Reason: "packet id must be >= 0"}
 	}
-	return uc.repo.GetEventsByPacketID(packetID)
+	return uc.repo.GetEventsByPacketID(ctx, packetID)
 }
 
-func (uc *eventPacketInclusionUseCase) GetEventPacketsByEventID(eventID int) ([]*domain.EventPacket, error) {
+func (uc *eventPacketInclusionUseCase) GetEventPacketsByEventID(ctx context.Context, eventID int) ([]*domain.EventPacket, error) {
 	if eventID < 0 {
 		return nil, &domain.ValidationError{Reason: "event id must be >= 0"}
 	}
-	return uc.repo.GetEventPacketsByEventID(eventID)
+	return uc.repo.GetEventPacketsByEventID(ctx, eventID)
 }
 
-func (uc *eventPacketInclusionUseCase) Update(eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error) {
+func (uc *eventPacketInclusionUseCase) Update(ctx context.Context, eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error) {
 	if eventID < 0 {
 		return nil, &domain.ValidationError{Reason: "event id must be >= 0"}
 	}
@@ -57,15 +119,15 @@ func (uc *eventPacketInclusionUseCase) Update(eventID, packetID int, updates map
 	if len(updates) == 0 {
 		return nil, &domain.ValidationError{Reason: "update must contain at least one field"}
 	}
-	return uc.repo.Update(eventID, packetID, updates)
+	return uc.repo.Update(ctx, eventID, packetID, updates)
 }
 
-func (uc *eventPacketInclusionUseCase) DeleteEventPacketInclusion(eventID, packetID int) (*domain.EventPacketInclusion, error) {
+func (uc *eventPacketInclusionUseCase) DeleteEventPacketInclusion(ctx context.Context, eventID, packetID int) (*domain.EventPacketInclusion, error) {
 	if eventID < 0 {
 		return nil, &domain.ValidationError{Reason: "event id must be >= 0"}
 	}
 	if packetID < 0 {
 		return nil, &domain.ValidationError{Reason: "packet id must be >= 0"}
 	}
-	return uc.repo.Delete(eventID, packetID)
+	return uc.repo.Delete(ctx, eventID, packetID)
 }

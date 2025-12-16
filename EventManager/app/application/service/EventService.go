@@ -1,20 +1,21 @@
 package service
 
 import (
+	"context"
 	"eventManager/application/domain"
 	"eventManager/application/repository"
 	"fmt"
 )
 
 type EventService interface {
-	CreateEvent(event *domain.Event) (*domain.Event, error)
-	GetEventByID(id int) (*domain.Event, error)
-	UpdateEvent(id int, updates map[string]interface{}) (*domain.Event, error)
-	DeleteEvent(id int) (*domain.Event, error)
-	FilterEvents(filter *domain.EventFilter) ([]*domain.Event, error)
+	CreateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error)
+	GetEventByID(ctx context.Context, id int) (*domain.Event, error)
+	UpdateEvent(ctx context.Context, id int, updates map[string]interface{}) (*domain.Event, error)
+	DeleteEvent(ctx context.Context, id int) (*domain.Event, error)
+	FilterEvents(ctx context.Context, filter *domain.EventFilter) ([]*domain.Event, error)
 }
 
-// nu poate fi utilizat direct trb initializat cu NewEventService:p
+
 type eventService struct {
 	repo          repository.EventRepository
 	inclusionRepo repository.EventPacketInclusionRepository
@@ -42,21 +43,21 @@ func (service *eventService) validateEvent(event *domain.Event) error {
 	return nil
 }
 
-func (service *eventService) CreateEvent(event *domain.Event) (*domain.Event, error) {
+func (service *eventService) CreateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error) {
 	if err := service.validateEvent(event); err != nil {
 		return nil, err
 	}
-	return service.repo.Create(event)
+	return service.repo.Create(ctx, event)
 }
 
-func (service *eventService) GetEventByID(id int) (*domain.Event, error) {
+func (service *eventService) GetEventByID(ctx context.Context, id int) (*domain.Event, error) {
 	if id < 1 {
 		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
 	}
-	return service.repo.GetByID(id)
+	return service.repo.GetByID(ctx, id)
 }
 
-func (service *eventService) UpdateEvent(id int, updates map[string]interface{}) (*domain.Event, error) {
+func (service *eventService) UpdateEvent(ctx context.Context, id int, updates map[string]interface{}) (*domain.Event, error) {
 
 	if len(updates) == 0 {
 		return nil, &domain.ValidationError{Reason: "no fields to update"}
@@ -67,8 +68,8 @@ func (service *eventService) UpdateEvent(id int, updates map[string]interface{})
 			if seatsPtr < 0 {
 				return nil, &domain.ValidationError{Reason: "seats cannot be negative"}
 			}
-			// Validate that reducing seats doesn't break packet constraints
-			if err := service.validateSeatsAgainstPackets(id, seatsPtr); err != nil {
+			
+			if err := service.validateSeatsAgainstPackets(ctx, id, seatsPtr); err != nil {
 				return nil, err
 			}
 		}
@@ -87,18 +88,18 @@ func (service *eventService) UpdateEvent(id int, updates map[string]interface{})
 		}
 	}
 
-	return service.repo.Update(id, updates)
+	return service.repo.Update(ctx, id, updates)
 }
 
-// validateSeatsAgainstPackets validates that reducing event seats doesn't violate packet constraints
-func (service *eventService) validateSeatsAgainstPackets(eventID int, newSeats int) error {
-	// Get all packets this event is included in
-	packets, err := service.inclusionRepo.GetEventPacketsByEventID(eventID)
+
+func (service *eventService) validateSeatsAgainstPackets(ctx context.Context, eventID int, newSeats int) error {
+	
+	packets, err := service.inclusionRepo.GetEventPacketsByEventID(ctx, eventID)
 	if err != nil {
 		return err
 	}
 
-	// Check each packet's allocated seats constraint
+	
 	for _, packet := range packets {
 		if packet.AllocatedSeats != nil && newSeats < *packet.AllocatedSeats {
 			return &domain.ValidationError{
@@ -110,13 +111,13 @@ func (service *eventService) validateSeatsAgainstPackets(eventID int, newSeats i
 	return nil
 }
 
-func (service *eventService) DeleteEvent(id int) (*domain.Event, error) {
+func (service *eventService) DeleteEvent(ctx context.Context, id int) (*domain.Event, error) {
 	if id < 1 {
 		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
 	}
-	return service.repo.Delete(id)
+	return service.repo.Delete(ctx, id)
 }
 
-func (service *eventService) FilterEvents(filter *domain.EventFilter) ([]*domain.Event, error) {
-	return service.repo.FilterEvents(filter)
+func (service *eventService) FilterEvents(ctx context.Context, filter *domain.EventFilter) ([]*domain.Event, error) {
+	return service.repo.FilterEvents(ctx, filter)
 }

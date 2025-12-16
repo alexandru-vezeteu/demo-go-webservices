@@ -1,11 +1,14 @@
 package repository
 
-import "eventManager/application/domain"
+import (
+	"context"
+	"eventManager/application/domain"
+)
 
 type EventPacketRepository interface {
-	Create(event *domain.EventPacket) (*domain.EventPacket, error)
-	GetByID(id int) (*domain.EventPacket, error)
-	Update(id int, updates map[string]interface{}) (*domain.EventPacket, error)
-	Delete(id int) (*domain.EventPacket, error)
-	CountSoldTickets(id int) (int, error)
+	Create(ctx context.Context, event *domain.EventPacket) (*domain.EventPacket, error)
+	GetByID(ctx context.Context, id int) (*domain.EventPacket, error)
+	Update(ctx context.Context, id int, updates map[string]interface{}) (*domain.EventPacket, error)
+	Delete(ctx context.Context, id int) (*domain.EventPacket, error)
+	CountSoldTickets(ctx context.Context, id int) (int, error)
 }

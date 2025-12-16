@@ -17,32 +17,31 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// @title           Event Service API
-// @version         1.0
 
-// @BasePath  /api/event-manager
+
+
+
 func main() {
 	db := postgres.InitDB()
 
-	// Initialize repositories
+	
 	eventRepo := &gormrepository.GormEventRepository{DB: db}
 	eventPacketRepo := &gormrepository.GormEventPacketRepository{DB: db}
 	eventPacketInclusionRepo := &gormrepository.GormEventPacketInclusionRepository{DB: db}
 	ticketRepo := &gormrepository.GormTicketRepository{DB: db}
 
-	// Initialize services with dependencies
+	
 	eventService := service.NewEventService(eventRepo, eventPacketInclusionRepo)
 	eventPacketService := service.NewEventPacketService(eventPacketRepo, eventPacketInclusionRepo)
-	eventPacketInclusionService := service.NewEventPacketInclusionService(eventPacketInclusionRepo, eventRepo, eventPacketRepo)
 	ticketService := service.NewTicketService(ticketRepo, eventRepo, eventPacketRepo, eventPacketInclusionRepo)
 
-	// Initialize use cases
+	
 	eventUseCase := usecase.NewEventUseCase(eventRepo, eventService)
 	eventPacketUseCase := usecase.NewEventPacketUseCase(eventPacketRepo, eventPacketService)
-	eventPacketInclusionUseCase := usecase.NewEventPacketInclusionUseCase(eventPacketInclusionRepo, eventPacketInclusionService)
+	eventPacketInclusionUseCase := usecase.NewEventPacketInclusionUseCase(eventPacketInclusionRepo, eventRepo, eventPacketRepo)
 	ticketUseCase := usecase.NewTicketUseCase(ticketRepo, ticketService)
 
-	// Initialize handlers
+	
 	eventHandler := handler.NewGinEventHandler(eventUseCase)
 	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketUseCase)
 	eventPacketInclusionHandler := handler.NewGinEventPacketInclusionHandler(eventPacketInclusionUseCase)

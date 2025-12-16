@@ -9,8 +9,8 @@ type Event struct {
 	Seats       *int
 }
 
-// GetState returns the computed state for HATEOAS link generation
-// For now, all events are "active" - customize this based on your business logic
+
+
 func (e *Event) GetState() string {
 	return "active"
 }

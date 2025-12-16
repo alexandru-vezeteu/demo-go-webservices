@@ -1,16 +1,17 @@
 package service
 
 import (
+	"context"
 	"eventManager/application/domain"
 	"eventManager/application/repository"
 	"fmt"
 )
 
 type EventPacketService interface {
-	CreateEventPacket(event *domain.EventPacket) (*domain.EventPacket, error)
-	GetEventPacketByID(id int) (*domain.EventPacket, error)
-	UpdateEventPacket(id int, updates map[string]interface{}) (*domain.EventPacket, error)
-	DeleteEventPacket(id int) (*domain.EventPacket, error)
+	CreateEventPacket(ctx context.Context, event *domain.EventPacket) (*domain.EventPacket, error)
+	GetEventPacketByID(ctx context.Context, id int) (*domain.EventPacket, error)
+	UpdateEventPacket(ctx context.Context, id int, updates map[string]interface{}) (*domain.EventPacket, error)
+	DeleteEventPacket(ctx context.Context, id int) (*domain.EventPacket, error)
 }
 
 type eventPacketService struct {
@@ -25,22 +26,22 @@ func NewEventPacketService(repo repository.EventPacketRepository, inclusionRepo 
 	}
 }
 
-func (service *eventPacketService) CreateEventPacket(event *domain.EventPacket) (*domain.EventPacket, error) {
+func (service *eventPacketService) CreateEventPacket(ctx context.Context, event *domain.EventPacket) (*domain.EventPacket, error) {
 	if err := service.validateEventPacket(event); err != nil {
 		return nil, err
 	}
-	// Note: At creation time, no events are included yet, so no constraint validation needed
-	return service.repo.Create(event)
+	
+	return service.repo.Create(ctx, event)
 }
 
-func (service *eventPacketService) GetEventPacketByID(id int) (*domain.EventPacket, error) {
+func (service *eventPacketService) GetEventPacketByID(ctx context.Context, id int) (*domain.EventPacket, error) {
 	if id < 1 {
 		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
 	}
-	return service.repo.GetByID(id)
+	return service.repo.GetByID(ctx, id)
 }
 
-func (service *eventPacketService) UpdateEventPacket(id int, updates map[string]interface{}) (*domain.EventPacket, error) {
+func (service *eventPacketService) UpdateEventPacket(ctx context.Context, id int, updates map[string]interface{}) (*domain.EventPacket, error) {
 
 	if len(updates) == 0 {
 		return nil, &domain.ValidationError{Reason: "no fields to update"}
@@ -59,26 +60,26 @@ func (service *eventPacketService) UpdateEventPacket(id int, updates map[string]
 		}
 	}
 
-	// Validate allocated_seats constraint
+	
 	if allocatedSeats, ok := updates["allocated_seats"]; ok {
 		if seatsPtr, ok := allocatedSeats.(int); ok {
 			if seatsPtr < 0 {
 				return nil, &domain.ValidationError{Reason: "allocated_seats must be non-negative"}
 			}
-			// Validate against included events' seats
-			if err := service.validateAllocatedSeatsConstraint(id, seatsPtr); err != nil {
+			
+			if err := service.validateAllocatedSeatsConstraint(ctx, id, seatsPtr); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	return service.repo.Update(id, updates)
+	return service.repo.Update(ctx, id, updates)
 }
-func (service *eventPacketService) DeleteEventPacket(id int) (*domain.EventPacket, error) {
+func (service *eventPacketService) DeleteEventPacket(ctx context.Context, id int) (*domain.EventPacket, error) {
 	if id < 1 {
 		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
 	}
-	return service.repo.Delete(id)
+	return service.repo.Delete(ctx, id)
 }
 
 func (service *eventPacketService) validateEventPacket(event *domain.EventPacket) error {
@@ -101,8 +102,8 @@ func (service *eventPacketService) validateEventPacket(event *domain.EventPacket
 	return nil
 }
 
-// findMinSeats finds the minimum seats among a list of events
-// Returns nil if any event has nil seats
+
+
 func findMinSeats(events []*domain.Event) *int {
 	var min *int
 	for _, event := range events {
@@ -116,30 +117,30 @@ func findMinSeats(events []*domain.Event) *int {
 	return min
 }
 
-// validateAllocatedSeatsConstraint validates that allocated seats doesn't exceed minimum event seats
-func (service *eventPacketService) validateAllocatedSeatsConstraint(packetID int, requestedSeats int) error {
-	// Get all events in this packet
-	events, err := service.inclusionRepo.GetEventsByPacketID(packetID)
+
+func (service *eventPacketService) validateAllocatedSeatsConstraint(ctx context.Context, packetID int, requestedSeats int) error {
+	
+	events, err := service.inclusionRepo.GetEventsByPacketID(ctx, packetID)
 	if err != nil {
 		return err
 	}
 
-	// If no events included, any value is OK
+	
 	if len(events) == 0 {
 		return nil
 	}
 
-	// Find minimum seats among included events
+	
 	minSeats := findMinSeats(events)
 
-	// If any event has nil seats, we can't validate
+	
 	if minSeats == nil {
 		return &domain.ValidationError{
 			Reason: "cannot set allocated_seats: some included events don't have seats defined",
 		}
 	}
 
-	// Validate constraint
+	
 	if requestedSeats > *minSeats {
 		return &domain.ValidationError{
 			Reason: fmt.Sprintf("allocated_seats (%d) cannot exceed minimum seats of included events (%d)", requestedSeats, *minSeats),

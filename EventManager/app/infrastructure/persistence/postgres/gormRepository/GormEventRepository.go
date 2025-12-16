@@ -1,6 +1,7 @@
 package gormrepository
 
 import (
+	"context"
 	"errors"
 	"eventManager/application/domain"
 	gormmodel "eventManager/infrastructure/persistence/postgres/gormModel"
@@ -14,11 +15,11 @@ type GormEventRepository struct {
 	DB *gorm.DB
 }
 
-func (r *GormEventRepository) Create(event *domain.Event) (*domain.Event, error) {
+func (r *GormEventRepository) Create(ctx context.Context, event *domain.Event) (*domain.Event, error) {
 	gormEvent := gormmodel.FromEvent(event)
 
-	if err := r.DB.Create(gormEvent).Error; err != nil {
-		//postgres err code
+	if err := r.DB.WithContext(ctx).Create(gormEvent).Error; err != nil {
+		
 		if strings.Contains(err.Error(), "duplicate key") ||
 			strings.Contains(err.Error(), "23505") {
 			return nil, &domain.AlreadyExistsError{Name: gormEvent.Name}
@@ -30,10 +31,10 @@ func (r *GormEventRepository) Create(event *domain.Event) (*domain.Event, error)
 	return gormEvent.ToDomain(), nil
 }
 
-func (r *GormEventRepository) GetByID(id int) (*domain.Event, error) {
+func (r *GormEventRepository) GetByID(ctx context.Context, id int) (*domain.Event, error) {
 
 	var ret gormmodel.GormEvent
-	result := r.DB.Where("id = ?", id).First(&ret)
+	result := r.DB.WithContext(ctx).Where("id = ?", id).First(&ret)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -47,9 +48,9 @@ func (r *GormEventRepository) GetByID(id int) (*domain.Event, error) {
 	return retDomain, nil
 }
 
-func (r *GormEventRepository) Update(id int, updates map[string]interface{}) (*domain.Event, error) {
+func (r *GormEventRepository) Update(ctx context.Context, id int, updates map[string]interface{}) (*domain.Event, error) {
 
-	result := r.DB.Model(&gormmodel.GormEvent{}).Clauses(clause.Returning{}).
+	result := r.DB.WithContext(ctx).Model(&gormmodel.GormEvent{}).Clauses(clause.Returning{}).
 		Where("id = ?", id).
 		Updates(updates)
 
@@ -67,14 +68,14 @@ func (r *GormEventRepository) Update(id int, updates map[string]interface{}) (*d
 		return nil, &domain.NotFoundError{ID: id}
 	}
 
-	return r.GetByID(id)
+	return r.GetByID(ctx, id)
 }
 
-func (r *GormEventRepository) Delete(id int) (*domain.Event, error) {
+func (r *GormEventRepository) Delete(ctx context.Context, id int) (*domain.Event, error) {
 	var ret gormmodel.GormEvent
 	var retDomain *domain.Event
 
-	err := r.DB.Transaction(func(tx *gorm.DB) error {
+	err := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 
 		result := tx.Where("id = ?", id).First(&ret)
 
@@ -101,7 +102,7 @@ func (r *GormEventRepository) Delete(id int) (*domain.Event, error) {
 	return retDomain, nil
 }
 
-func (r *GormEventRepository) FilterEvents(filter *domain.EventFilter) ([]*domain.Event, error) {
+func (r *GormEventRepository) FilterEvents(ctx context.Context, filter *domain.EventFilter) ([]*domain.Event, error) {
 	if filter == nil {
 		return nil, &domain.ValidationError{Reason: "filter cannot be nil"}
 	}
@@ -117,7 +118,7 @@ func (r *GormEventRepository) FilterEvents(filter *domain.EventFilter) ([]*domai
 	}
 
 	var gormEvents []gormmodel.GormEvent
-	query := r.DB.Model(&gormmodel.GormEvent{})
+	query := r.DB.WithContext(ctx).Model(&gormmodel.GormEvent{})
 
 	if filter.Name != nil {
 		query = query.Where("name LIKE ?", "%"+*filter.Name+"%")
@@ -172,9 +173,9 @@ func (r *GormEventRepository) FilterEvents(filter *domain.EventFilter) ([]*domai
 
 }
 
-func (r *GormEventRepository) CountSoldTickets(eventID int) (int, error) {
+func (r *GormEventRepository) CountSoldTickets(ctx context.Context, eventID int) (int, error) {
 	var count int64
-	err := r.DB.Model(&gormmodel.GormTicket{}).Where("event_id = ?", eventID).Count(&count).Error
+	err := r.DB.WithContext(ctx).Model(&gormmodel.GormTicket{}).Where("event_id = ?", eventID).Count(&count).Error
 	if err != nil {
 		return 0, &domain.InternalError{Msg: "failed to count tickets", Err: err}
 	}

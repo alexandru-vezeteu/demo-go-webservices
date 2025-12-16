@@ -1,6 +1,7 @@
 package gormrepository
 
 import (
+	"context"
 	"errors"
 	"eventManager/application/domain"
 	gormmodel "eventManager/infrastructure/persistence/postgres/gormModel"
@@ -12,9 +13,9 @@ type GormEventPacketInclusionRepository struct {
 	DB *gorm.DB
 }
 
-func (r *GormEventPacketInclusionRepository) Create(event *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error) {
+func (r *GormEventPacketInclusionRepository) Create(ctx context.Context, event *domain.EventPacketInclusion) (*domain.EventPacketInclusion, error) {
 	gormModel := gormmodel.FromEventPacketInclusion(event)
-	if err := r.DB.Create(gormModel).Error; err != nil {
+	if err := r.DB.WithContext(ctx).Create(gormModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrForeignKeyViolated) {
 			return nil, &domain.ForeignKeyError{}
 		}
@@ -24,7 +25,7 @@ func (r *GormEventPacketInclusionRepository) Create(event *domain.EventPacketInc
 		return nil, &domain.InternalError{Msg: "failed to create event-packet inclusion", Err: err}
 	}
 
-	if err := r.DB.Preload("Event").Preload("Packet").
+	if err := r.DB.WithContext(ctx).Preload("Event").Preload("Packet").
 		First(gormModel, "event_id = ? AND packet_id = ?", gormModel.EventID, gormModel.PacketID).Error; err != nil {
 		return nil, &domain.InternalError{Msg: "failed to load created event-packet inclusion", Err: err}
 	}
@@ -32,10 +33,10 @@ func (r *GormEventPacketInclusionRepository) Create(event *domain.EventPacketInc
 	return gormModel.ToDomain(), nil
 }
 
-func (r *GormEventPacketInclusionRepository) GetEventsByPacketID(packetID int) ([]*domain.Event, error) {
+func (r *GormEventPacketInclusionRepository) GetEventsByPacketID(ctx context.Context, packetID int) ([]*domain.Event, error) {
 	var gormInclusions []gormmodel.GormEventPacketInclusion
 
-	if err := r.DB.Preload("Event").
+	if err := r.DB.WithContext(ctx).Preload("Event").
 		Where("packet_id = ?", packetID).
 		Find(&gormInclusions).Error; err != nil {
 		return nil, &domain.InternalError{Msg: "failed to get events by packet ID", Err: err}
@@ -49,10 +50,10 @@ func (r *GormEventPacketInclusionRepository) GetEventsByPacketID(packetID int) (
 	return result, nil
 }
 
-func (r *GormEventPacketInclusionRepository) GetEventPacketsByEventID(eventID int) ([]*domain.EventPacket, error) {
+func (r *GormEventPacketInclusionRepository) GetEventPacketsByEventID(ctx context.Context, eventID int) ([]*domain.EventPacket, error) {
 	var gormInclusions []gormmodel.GormEventPacketInclusion
 
-	if err := r.DB.Preload("Packet").
+	if err := r.DB.WithContext(ctx).Preload("Packet").
 		Where("event_id = ?", eventID).
 		Find(&gormInclusions).Error; err != nil {
 		return nil, &domain.InternalError{Msg: "failed to get event packets by event ID", Err: err}
@@ -66,8 +67,8 @@ func (r *GormEventPacketInclusionRepository) GetEventPacketsByEventID(eventID in
 	return result, nil
 }
 
-func (r *GormEventPacketInclusionRepository) Update(eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error) {
-	result := r.DB.Model(&gormmodel.GormEventPacketInclusion{}).
+func (r *GormEventPacketInclusionRepository) Update(ctx context.Context, eventID, packetID int, updates map[string]interface{}) (*domain.EventPacketInclusion, error) {
+	result := r.DB.WithContext(ctx).Model(&gormmodel.GormEventPacketInclusion{}).
 		Where("event_id = ? AND packet_id = ?", eventID, packetID).
 		Updates(updates)
 
@@ -80,7 +81,7 @@ func (r *GormEventPacketInclusionRepository) Update(eventID, packetID int, updat
 	}
 
 	var gormInclusion gormmodel.GormEventPacketInclusion
-	if err := r.DB.Preload("Event").Preload("Packet").
+	if err := r.DB.WithContext(ctx).Preload("Event").Preload("Packet").
 		Where("event_id = ? AND packet_id = ?", eventID, packetID).
 		First(&gormInclusion).Error; err != nil {
 		return nil, &domain.InternalError{Msg: "failed to load updated event-packet inclusion", Err: err}
@@ -89,9 +90,9 @@ func (r *GormEventPacketInclusionRepository) Update(eventID, packetID int, updat
 	return gormInclusion.ToDomain(), nil
 }
 
-func (r *GormEventPacketInclusionRepository) Delete(eventID, packetID int) (*domain.EventPacketInclusion, error) {
+func (r *GormEventPacketInclusionRepository) Delete(ctx context.Context, eventID, packetID int) (*domain.EventPacketInclusion, error) {
 	var gormInclusion gormmodel.GormEventPacketInclusion
-	if err := r.DB.Preload("Event").Preload("Packet").
+	if err := r.DB.WithContext(ctx).Preload("Event").Preload("Packet").
 		Where("event_id = ? AND packet_id = ?", eventID, packetID).
 		First(&gormInclusion).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -100,7 +101,7 @@ func (r *GormEventPacketInclusionRepository) Delete(eventID, packetID int) (*dom
 		return nil, &domain.InternalError{Msg: "failed to find event-packet inclusion", Err: err}
 	}
 
-	if err := r.DB.Delete(&gormInclusion).Error; err != nil {
+	if err := r.DB.WithContext(ctx).Delete(&gormInclusion).Error; err != nil {
 		return nil, &domain.InternalError{Msg: "failed to delete event-packet inclusion", Err: err}
 	}
 

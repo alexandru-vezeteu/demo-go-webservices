@@ -19,17 +19,17 @@ func NewGinTicketHandler(usecase usecase.TicketUseCase) *GinTicketHandler {
 	return &GinTicketHandler{usecase: usecase}
 }
 
-// @Summary      Create a new ticket
-// @Description  Creates a new ticket for either an event or an event packet. The ticket code is automatically generated as a UUID. Validates seat availability before creation.
-// @Tags         tickets
-// @Accept       json
-// @Produce      json
-// @Param        ticket body httpdto.HttpCreateTicket true "Ticket to create (must specify either event_id or packet_id, not both)"
-// @Success      201  {object}  httpdto.HttpResponseTicket  "Ticket created successfully with auto-generated code"
-// @Failure      400  {object}  map[string]interface{} "Invalid request format, validation error, or no seats available"
-// @Failure      409  {object}  map[string]interface{} "Ticket already exists"
-// @Failure      500  {object}  map[string]interface{} "Internal error or unexpected error occurred"
-// @Router       /tickets [post]
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 	var req httpdto.HttpCreateTicket
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
@@ -39,7 +39,7 @@ func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 
 	ticket := req.ToTicket()
 
-	ret, err := h.usecase.CreateTicket(ticket)
+	ret, err := h.usecase.CreateTicket(c.Request.Context(), ticket)
 
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
@@ -68,17 +68,17 @@ func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
-// @Summary      Get a ticket by code
-// @Description  Retrieves a single ticket using its unique UUID code
-// @Tags         tickets
-// @Accept       json
-// @Produce      json
-// @Param        code   path      string  true  "Ticket Code (UUID)"
-// @Success      200  {object}  httpdto.HttpResponseTicket  "The requested ticket"
-// @Failure      400  {object}  map[string]interface{} "Invalid ticket code format or validation error"
-// @Failure      404  {object}  map[string]interface{} "Ticket not found"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /tickets/{code} [get]
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinTicketHandler) GetTicketByCode(c *gin.Context) {
 	code := c.Param("code")
 	if code == "" {
@@ -86,7 +86,7 @@ func (h *GinTicketHandler) GetTicketByCode(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.GetTicketByCode(code)
+	ret, err := h.usecase.GetTicketByCode(c.Request.Context(), code)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -109,18 +109,18 @@ func (h *GinTicketHandler) GetTicketByCode(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// @Summary      Update a ticket
-// @Description  Partially updates an existing ticket by its code. Validates seat availability when reassigning to a different event or packet.
-// @Tags         tickets
-// @Accept       json
-// @Produce      json
-// @Param        code   path      string  true  "Ticket Code (UUID)"
-// @Param        updates body httpdto.HttpUpdateTicket true "Fields to update (event_id or packet_id)"
-// @Success      200  {object}  httpdto.HttpResponseTicket "Ticket updated successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid ticket code format, request body, or validation error (e.g., no seats available)"
-// @Failure      404  {object}  map[string]interface{} "Ticket not found"
-// @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
-// @Router       /tickets/{code} [patch]
+
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinTicketHandler) UpdateTicket(c *gin.Context) {
 	code := c.Param("code")
 	if code == "" {
@@ -136,7 +136,7 @@ func (h *GinTicketHandler) UpdateTicket(c *gin.Context) {
 
 	updates := req.ToUpdateMap()
 
-	ticket, err := h.usecase.UpdateTicket(code, updates)
+	ticket, err := h.usecase.UpdateTicket(c.Request.Context(), code, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -159,18 +159,18 @@ func (h *GinTicketHandler) UpdateTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// @Summary      Replace a ticket (full update)
-// @Description  Fully replaces an existing ticket by its code. Validates seat availability when reassigning to a different event or packet.
-// @Tags         tickets
-// @Accept       json
-// @Produce      json
-// @Param        code   path      string  true  "Ticket Code (UUID)"
-// @Param        ticket body httpdto.HttpUpdateTicket true "Ticket replacement data (event_id and packet_id)"
-// @Success      200  {object}  httpdto.HttpResponseTicket "Ticket replaced successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid ticket code format, request body, or validation error"
-// @Failure      404  {object}  map[string]interface{} "Ticket not found"
-// @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
-// @Router       /tickets/{code} [put]
+
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinTicketHandler) ReplaceTicket(c *gin.Context) {
 	code := c.Param("code")
 	if code == "" {
@@ -186,7 +186,7 @@ func (h *GinTicketHandler) ReplaceTicket(c *gin.Context) {
 
 	updates := req.ToUpdateMap()
 
-	ticket, err := h.usecase.UpdateTicket(code, updates)
+	ticket, err := h.usecase.UpdateTicket(c.Request.Context(), code, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -209,17 +209,17 @@ func (h *GinTicketHandler) ReplaceTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// @Summary      Delete a ticket
-// @Description  Deletes a ticket by its code and returns the deleted ticket.
-// @Tags         tickets
-// @Accept       json
-// @Produce      json
-// @Param        code   path      string  true  "Ticket Code (UUID)"
-// @Success      200  {object}  httpdto.HttpResponseTicket "Ticket deleted successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid ticket code format"
-// @Failure      404  {object}  map[string]interface{} "Ticket not found"
-// @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
-// @Router       /tickets/{code} [delete]
+
+
+
+
+
+
+
+
+
+
+
 func (h *GinTicketHandler) DeleteTicket(c *gin.Context) {
 	code := c.Param("code")
 	if code == "" {
@@ -227,7 +227,7 @@ func (h *GinTicketHandler) DeleteTicket(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.DeleteTicket(code)
+	ret, err := h.usecase.DeleteTicket(c.Request.Context(), code)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {

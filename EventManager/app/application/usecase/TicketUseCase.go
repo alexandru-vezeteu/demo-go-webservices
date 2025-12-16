@@ -1,21 +1,22 @@
 package usecase
 
 import (
+	"context"
 	"eventManager/application/domain"
 	"eventManager/application/repository"
 	"eventManager/application/service"
 )
 
 type TicketUseCase interface {
-	CreateTicket(ticket *domain.Ticket) (*domain.Ticket, error)
-	GetTicketByCode(code string) (*domain.Ticket, error)
-	UpdateTicket(code string, updates map[string]interface{}) (*domain.Ticket, error)
-	DeleteTicket(code string) (*domain.Ticket, error)
+	CreateTicket(ctx context.Context, ticket *domain.Ticket) (*domain.Ticket, error)
+	GetTicketByCode(ctx context.Context, code string) (*domain.Ticket, error)
+	UpdateTicket(ctx context.Context, code string, updates map[string]interface{}) (*domain.Ticket, error)
+	DeleteTicket(ctx context.Context, code string) (*domain.Ticket, error)
 }
 
 type ticketUseCase struct {
 	repo          repository.TicketRepository
-	ticketService service.TicketService // For complex business logic (UUID generation, seat availability, constraint validation)
+	ticketService service.TicketService 
 }
 
 func NewTicketUseCase(repo repository.TicketRepository, ticketService service.TicketService) *ticketUseCase {
@@ -25,30 +26,30 @@ func NewTicketUseCase(repo repository.TicketRepository, ticketService service.Ti
 	}
 }
 
-func (uc *ticketUseCase) CreateTicket(ticket *domain.Ticket) (*domain.Ticket, error) {
-	// CreateTicket has complex business logic:
-	// - UUID generation
-	// - Complex seat availability validation (cross-entity calculations)
-	// Delegate to service
-	return uc.ticketService.CreateTicket(ticket)
+func (uc *ticketUseCase) CreateTicket(ctx context.Context, ticket *domain.Ticket) (*domain.Ticket, error) {
+	
+	
+	
+	
+	return uc.ticketService.CreateTicket(ctx, ticket)
 }
 
-func (uc *ticketUseCase) GetTicketByCode(code string) (*domain.Ticket, error) {
+func (uc *ticketUseCase) GetTicketByCode(ctx context.Context, code string) (*domain.Ticket, error) {
 	if code == "" {
 		return nil, &domain.ValidationError{Reason: "ticket code is required"}
 	}
-	return uc.repo.GetTicketByCode(code)
+	return uc.repo.GetTicketByCode(ctx, code)
 }
 
-func (uc *ticketUseCase) UpdateTicket(code string, updates map[string]interface{}) (*domain.Ticket, error) {
-	// UpdateTicket has complex constraint validation when moving tickets between events/packets
-	// Delegate to service
-	return uc.ticketService.UpdateTicket(code, updates)
+func (uc *ticketUseCase) UpdateTicket(ctx context.Context, code string, updates map[string]interface{}) (*domain.Ticket, error) {
+	
+	
+	return uc.ticketService.UpdateTicket(ctx, code, updates)
 }
 
-func (uc *ticketUseCase) DeleteTicket(code string) (*domain.Ticket, error) {
+func (uc *ticketUseCase) DeleteTicket(ctx context.Context, code string) (*domain.Ticket, error) {
 	if code == "" {
 		return nil, &domain.ValidationError{Reason: "ticket code is required"}
 	}
-	return uc.repo.DeleteEvent(code)
+	return uc.repo.DeleteEvent(ctx, code)
 }
