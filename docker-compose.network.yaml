@@ -1,0 +1,4 @@
+networks:
+  pos-network:
+    name: pos-network
+    driver: bridge
