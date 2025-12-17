@@ -1,11 +1,13 @@
 package usecase
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"userService/application/domain"
 	"userService/application/repository"
+	"userService/application/service"
 	"userService/infrastructure/grpc"
 	"userService/infrastructure/http"
 
@@ -13,24 +15,34 @@ import (
 )
 
 type UserUsecase interface {
-	CreateUser(user *domain.User) (*domain.User, error)
-	GetUserByID(id int) (*domain.User, error)
-	UpdateUser(id int, updates map[string]interface{}) (*domain.User, error)
-	DeleteUser(id int) (*domain.User, error)
-	CreateTicketForUser(userID int, token string, packetID *int, eventID *int) (string, error)
+	CreateUser(ctx context.Context, token string, user *domain.User) (*domain.User, error)
+	GetUserByID(ctx context.Context, token string, id int) (*domain.User, error)
+	UpdateUser(ctx context.Context, token string, id int, updates map[string]interface{}) (*domain.User, error)
+	DeleteUser(ctx context.Context, token string, id int) (*domain.User, error)
+	CreateTicketForUser(ctx context.Context, userID int, token string, packetID *int, eventID *int) (string, error)
 }
 
 type userUsecase struct {
 	repo               repository.UserRepository
 	idmClient          *grpc.IDMClient
 	eventManagerClient *http.EventManagerClient
+	authNService       service.AuthenticationService
+	authZService       service.AuthorizationService
 }
 
-func NewUserUsecase(repo repository.UserRepository, idmClient *grpc.IDMClient, eventManagerClient *http.EventManagerClient) UserUsecase {
+func NewUserUsecase(
+	repo repository.UserRepository,
+	idmClient *grpc.IDMClient,
+	eventManagerClient *http.EventManagerClient,
+	authNService service.AuthenticationService,
+	authZService service.AuthorizationService,
+) UserUsecase {
 	return &userUsecase{
 		repo:               repo,
 		idmClient:          idmClient,
 		eventManagerClient: eventManagerClient,
+		authNService:       authNService,
+		authZService:       authZService,
 	}
 }
 
@@ -73,18 +85,48 @@ func (uc *userUsecase) validateUser(user *domain.User) error {
 	return nil
 }
 
-func (uc *userUsecase) CreateUser(user *domain.User) (*domain.User, error) {
+func (uc *userUsecase) CreateUser(ctx context.Context, token string, user *domain.User) (*domain.User, error) {
+	// Authenticate user
+	_, err := uc.authNService.WhoIsUser(ctx, token)
+	if err != nil {
+		return nil, &domain.ValidationError{Field: "token", Reason: "authentication failed"}
+	}
+
 	if err := uc.validateUser(user); err != nil {
 		return nil, err
 	}
 	return uc.repo.Create(user)
 }
 
-func (uc *userUsecase) GetUserByID(id int) (*domain.User, error) {
+func (uc *userUsecase) GetUserByID(ctx context.Context, token string, id int) (*domain.User, error) {
+	// Authenticate user
+	userInfo, err := uc.authNService.WhoIsUser(ctx, token)
+	if err != nil {
+		return nil, &domain.ValidationError{Field: "token", Reason: "authentication failed"}
+	}
+
+	// Authorize user to see this user
+	canSee, err := uc.authZService.CanUserSeeUser(ctx, userInfo.UserID, fmt.Sprintf("%d", id))
+	if err != nil || !canSee {
+		return nil, &domain.ForbiddenError{Reason: "user not authorized to view this user"}
+	}
+
 	return uc.repo.GetByID(id)
 }
 
-func (uc *userUsecase) UpdateUser(id int, updates map[string]interface{}) (*domain.User, error) {
+func (uc *userUsecase) UpdateUser(ctx context.Context, token string, id int, updates map[string]interface{}) (*domain.User, error) {
+	// Authenticate user
+	userInfo, err := uc.authNService.WhoIsUser(ctx, token)
+	if err != nil {
+		return nil, &domain.ValidationError{Field: "token", Reason: "authentication failed"}
+	}
+
+	// Authorize user to update this user
+	canUpdate, err := uc.authZService.CanUserUpdateUser(ctx, userInfo.UserID, fmt.Sprintf("%d", id))
+	if err != nil || !canUpdate {
+		return nil, &domain.ForbiddenError{Reason: "user not authorized to update this user"}
+	}
+
 	// Validate partial updates
 	if email, ok := updates["email"]; ok {
 		emailStr, isString := email.(string)
@@ -131,7 +173,19 @@ func (uc *userUsecase) UpdateUser(id int, updates map[string]interface{}) (*doma
 	return uc.repo.Update(id, updates)
 }
 
-func (uc *userUsecase) DeleteUser(id int) (*domain.User, error) {
+func (uc *userUsecase) DeleteUser(ctx context.Context, token string, id int) (*domain.User, error) {
+	// Authenticate user
+	userInfo, err := uc.authNService.WhoIsUser(ctx, token)
+	if err != nil {
+		return nil, &domain.ValidationError{Field: "token", Reason: "authentication failed"}
+	}
+
+	// Authorize user to delete this user
+	canDelete, err := uc.authZService.CanUserDeleteUser(ctx, userInfo.UserID, fmt.Sprintf("%d", id))
+	if err != nil || !canDelete {
+		return nil, &domain.ForbiddenError{Reason: "user not authorized to delete this user"}
+	}
+
 	return uc.repo.Delete(id)
 }
 
