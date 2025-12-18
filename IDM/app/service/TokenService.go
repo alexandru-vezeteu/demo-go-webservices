@@ -79,7 +79,7 @@ func (s *tokenService) ParseToken(tokenString string) (*TokenClaims, error) {
 	expirationTime := time.Unix(int64(exp), 0)
 	isExpired := time.Now().After(expirationTime)
 
-	// Check for missing required claims
+	
 	if userIDStr == "" || role == "" || issuer == "" {
 		return nil, fmt.Errorf("missing required claims")
 	}

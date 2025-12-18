@@ -33,31 +33,25 @@ func InitDB() *mongo.Database {
 	var uri string
 	var clientOptions *options.ClientOptions
 
-	// If username and password are provided, use authenticated connection
 	if user != "" && password != "" {
-		// Construct MongoDB connection string with authentication
-		// Using the database name as authSource by default (where the user was created)
 		authSource := os.Getenv("USER_DB_AUTH_SOURCE")
 		if authSource == "" {
-			authSource = dbName // Use the target database as auth source
+			authSource = dbName
 		}
 
-		uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=%s", user, password, host, port, dbName, dbName)
+		uri = fmt.Sprintf("mongodb:%s%s%s:%s@%s:%s/%s?authSource=%s", "/", "/", user, password, host, port, dbName, authSource)
 
 		clientOptions = options.Client().ApplyURI(uri)
 	} else {
-		// No authentication (for local development)
-		uri = fmt.Sprintf("mongodb://%s:%s", host, port)
+		uri = fmt.Sprintf("mongodb:%s%s%s:%s/%s", "/", "/", host, port, dbName)
 		clientOptions = options.Client().ApplyURI(uri)
 		log.Println("Warning: Connecting to MongoDB without authentication")
 	}
 
-	// Set additional client options
 	clientOptions.SetMaxPoolSize(100).
 		SetMinPoolSize(10).
 		SetMaxConnIdleTime(5 * time.Minute)
 
-	// Connect to MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -66,13 +60,12 @@ func InitDB() *mongo.Database {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 
-	// Ping the database to verify connection
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	err = client.Ping(ctx, nil)
 	if err != nil {
-		log.Fatalf("Failed to ping MongoDB: %v\nURI pattern: mongodb://%s:%s (check credentials and auth source)", err, host, port)
+		log.Fatalf("Failed to ping MongoDB: %v\nURI pattern: mongodb:%s%s<host>:<port>", err, "/", "/")
 	}
 
 	log.Printf("Successfully connected to MongoDB at %s:%s", host, port)

@@ -2,8 +2,8 @@ package handler
 
 import (
 	"errors"
-	"eventManager/application/usecase"
 	"eventManager/application/domain"
+	"eventManager/application/usecase"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
 	"net/http"
@@ -18,20 +18,6 @@ type GinEventPacketInclusionHandler struct {
 func NewGinEventPacketInclusionHandler(usecase usecase.EventPacketInclusionUseCase) *GinEventPacketInclusionHandler {
 	return &GinEventPacketInclusionHandler{usecase: usecase}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
@@ -55,8 +41,9 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 	inclusion := dto.ToEventPacketInclusion()
 	inclusion.EventID = eventID
 	inclusion.PacketID = packetID
+	token := getTokenFromHeader(c)
 
-	created, err := h.usecase.CreateEventPacketInclusion(c.Request.Context(), inclusion)
+	created, err := h.usecase.CreateEventPacketInclusion(c.Request.Context(), token, inclusion)
 	if err != nil {
 		var validationErr *domain.ValidationError
 		var alreadyExistsErr *domain.AlreadyExistsError
@@ -80,17 +67,6 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 	c.JSON(http.StatusCreated, httpdto.ToHttpResponseEventPacketInclusion(created))
 }
 
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -98,7 +74,8 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 		return
 	}
 
-	packets, err := h.usecase.GetEventPacketsByEventID(c.Request.Context(), eventID)
+	token := getTokenFromHeader(c)
+	packets, err := h.usecase.GetEventPacketsByEventID(c.Request.Context(), token, eventID)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var internalErr *domain.InternalError
@@ -121,17 +98,6 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 	c.JSON(http.StatusOK, response)
 }
 
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
@@ -139,7 +105,8 @@ func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 		return
 	}
 
-	events, err := h.usecase.GetEventsByPacketID(c.Request.Context(), packetID)
+	token := getTokenFromHeader(c)
+	events, err := h.usecase.GetEventsByPacketID(c.Request.Context(), token, packetID)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var internalErr *domain.InternalError
@@ -162,19 +129,6 @@ func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -195,7 +149,8 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 	}
 
 	updates := dto.ToUpdateMap()
-	updated, err := h.usecase.Update(c.Request.Context(), eventID, packetID, updates)
+	token := getTokenFromHeader(c)
+	updated, err := h.usecase.Update(c.Request.Context(), token, eventID, packetID, updates)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var validationErr *domain.ValidationError
@@ -219,18 +174,6 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 	c.JSON(http.StatusOK, httpdto.ToHttpResponseEventPacketInclusion(updated))
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
@@ -244,7 +187,8 @@ func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Conte
 		return
 	}
 
-	deleted, err := h.usecase.DeleteEventPacketInclusion(c.Request.Context(), eventID, packetID)
+	token := getTokenFromHeader(c)
+	deleted, err := h.usecase.DeleteEventPacketInclusion(c.Request.Context(), token, eventID, packetID)
 	if err != nil {
 		var notFoundErr *domain.NotFoundError
 		var internalErr *domain.InternalError

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	"idmService/infrastructure/authorization"
 	"idmService/infrastructure/blacklist"
 	"idmService/infrastructure/persistence"
 	pb "idmService/proto"
@@ -36,19 +37,34 @@ func main() {
 	}
 	fmt.Println("Database migrations completed")
 
-	// Initialize blacklist
+
 	tokenBlacklist := blacklist.NewInMemoryBlacklist()
 
-	// Initialize services
+
 	tokenService := service.NewTokenService()
 
-	// Initialize use cases
+
 	loginUseCase := usecase.NewLoginUseCase(userRepo, tokenService)
 	verifyTokenUseCase := usecase.NewVerifyTokenUseCase(userRepo, tokenService, tokenBlacklist)
 	revokeTokenUseCase := usecase.NewRevokeTokenUseCase(tokenBlacklist)
 
-	// Initialize gRPC server with use cases
-	idmServer := server.NewIdentityServer(loginUseCase, verifyTokenUseCase, revokeTokenUseCase)
+
+	relationshipRepo := authorization.NewInMemoryRelationshipRepository()
+
+
+	checkPermissionUseCase := usecase.NewCheckPermissionUseCase(relationshipRepo)
+	writeRelationshipsUseCase := usecase.NewWriteRelationshipsUseCase(relationshipRepo)
+	readRelationshipsUseCase := usecase.NewReadRelationshipsUseCase(relationshipRepo)
+
+
+	idmServer := server.NewIdentityServer(
+		loginUseCase,
+		verifyTokenUseCase,
+		revokeTokenUseCase,
+		checkPermissionUseCase,
+		writeRelationshipsUseCase,
+		readRelationshipsUseCase,
+	)
 
 	listener, err := net.Listen("tcp", port)
 	if err != nil {

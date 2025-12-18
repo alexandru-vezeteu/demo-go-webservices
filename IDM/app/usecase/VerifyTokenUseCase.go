@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -22,7 +23,7 @@ type VerifyTokenResult struct {
 }
 
 type VerifyTokenUseCase interface {
-	Execute(token string) (*VerifyTokenResult, error)
+	Execute(ctx context.Context, token string) (*VerifyTokenResult, error)
 }
 
 type verifyTokenUseCase struct {
@@ -39,8 +40,8 @@ func NewVerifyTokenUseCase(userRepo domain.UserRepository, tokenService service.
 	}
 }
 
-func (uc *verifyTokenUseCase) Execute(token string) (*VerifyTokenResult, error) {
-	// Check if token is blacklisted
+func (uc *verifyTokenUseCase) Execute(ctx context.Context, token string) (*VerifyTokenResult, error) {
+	
 	if isBlacklisted, reason := uc.blacklist.IsBlacklisted(token); isBlacklisted {
 		return &VerifyTokenResult{
 			Valid:       false,
@@ -50,10 +51,10 @@ func (uc *verifyTokenUseCase) Execute(token string) (*VerifyTokenResult, error) 
 		}, nil
 	}
 
-	// Parse and validate token
+	
 	claims, err := uc.tokenService.ParseToken(token)
 	if err != nil {
-		// Token is corrupted, add to blacklist
+		
 		uc.blacklist.Add(token, fmt.Sprintf("corrupted: %v", err))
 		return &VerifyTokenResult{
 			Valid:       false,
@@ -63,19 +64,19 @@ func (uc *verifyTokenUseCase) Execute(token string) (*VerifyTokenResult, error) 
 		}, nil
 	}
 
-	// Get user email
+	
 	email := ""
 	if claims.UserID != "" {
 		userID, err := strconv.ParseUint(claims.UserID, 10, 32)
 		if err == nil {
-			user, err := uc.userRepo.FindByID(uint(userID))
+			user, err := uc.userRepo.FindByID(ctx, uint(userID))
 			if err == nil && user != nil {
 				email = user.Email
 			}
 		}
 	}
 
-	// Check if token is expired
+	
 	if claims.IsExpired {
 		uc.blacklist.Add(token, "expired")
 		return &VerifyTokenResult{
@@ -91,7 +92,7 @@ func (uc *verifyTokenUseCase) Execute(token string) (*VerifyTokenResult, error) 
 		}, nil
 	}
 
-	// Token is valid
+	
 	return &VerifyTokenResult{
 		Valid:       true,
 		Email:       email,

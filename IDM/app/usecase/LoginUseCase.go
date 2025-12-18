@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"fmt"
 	"idmService/domain"
 	"idmService/service"
@@ -16,7 +17,7 @@ type LoginResult struct {
 }
 
 type LoginUseCase interface {
-	Execute(email, password string) (*LoginResult, error)
+	Execute(ctx context.Context, email, password string) (*LoginResult, error)
 }
 
 type loginUseCase struct {
@@ -31,9 +32,9 @@ func NewLoginUseCase(userRepo domain.UserRepository, tokenService service.TokenS
 	}
 }
 
-func (uc *loginUseCase) Execute(email, password string) (*LoginResult, error) {
-	// Find user by email
-	user, err := uc.userRepo.FindByEmail(email)
+func (uc *loginUseCase) Execute(ctx context.Context, email, password string) (*LoginResult, error) {
+	
+	user, err := uc.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		return &LoginResult{
 			Success: false,
@@ -42,7 +43,7 @@ func (uc *loginUseCase) Execute(email, password string) (*LoginResult, error) {
 		}, nil
 	}
 
-	// Validate credentials
+	
 	if user == nil || user.Parola != password {
 		return &LoginResult{
 			Success: false,
@@ -51,7 +52,7 @@ func (uc *loginUseCase) Execute(email, password string) (*LoginResult, error) {
 		}, nil
 	}
 
-	// Generate JWT token
+	
 	token, err := uc.tokenService.GenerateJWT(user)
 	if err != nil {
 		return &LoginResult{

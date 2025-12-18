@@ -19,16 +19,13 @@ func NewGinEventHandler(usecase usecase.EventUseCase) *GinEventHandler {
 	return &GinEventHandler{usecase: usecase}
 }
 
-
-
-
-
-
-
-
-
-
-
+func getTokenFromHeader(c *gin.Context) string {
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		token = "dummy-token"
+	}
+	return token
+}
 
 func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 	var req httpdto.HttpCreateEvent
@@ -38,8 +35,9 @@ func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 	}
 
 	event := req.ToEvent()
+	token := getTokenFromHeader(c)
 
-	ret, err := h.usecase.CreateEvent(c.Request.Context(), event)
+	ret, err := h.usecase.CreateEvent(c.Request.Context(), token, event)
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -62,17 +60,6 @@ func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
@@ -80,7 +67,8 @@ func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.GetEventByID(c.Request.Context(), id)
+	token := getTokenFromHeader(c)
+	ret, err := h.usecase.GetEventByID(c.Request.Context(), token, id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -105,19 +93,6 @@ func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
@@ -132,8 +107,9 @@ func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 	}
 
 	updates := req.ToUpdateMap()
+	token := getTokenFromHeader(c)
 
-	event, err := h.usecase.UpdateEvent(c.Request.Context(), id, updates)
+	event, err := h.usecase.UpdateEvent(c.Request.Context(), token, id, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -161,17 +137,6 @@ func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
@@ -179,7 +144,8 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.DeleteEvent(c.Request.Context(), id)
+	token := getTokenFromHeader(c)
+	ret, err := h.usecase.DeleteEvent(c.Request.Context(), token, id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -195,23 +161,6 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinEventHandler) FilterEvents(c *gin.Context) {
 	var filter httpdto.HttpFilterEvent
 	allowedParams := []string{"name", "location", "description", "min_seats", "max_seats", "page", "per_page", "order_by"}
@@ -226,7 +175,9 @@ func (h *GinEventHandler) FilterEvents(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	events, err := h.usecase.FilterEvents(c.Request.Context(), domainFilter)
+
+	token := getTokenFromHeader(c)
+	events, err := h.usecase.FilterEvents(c.Request.Context(), token, domainFilter)
 
 	var internalErr *domain.InternalError
 	if errors.As(err, &internalErr) {

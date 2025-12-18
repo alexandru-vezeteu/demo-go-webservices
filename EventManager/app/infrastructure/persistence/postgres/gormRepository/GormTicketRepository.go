@@ -18,7 +18,7 @@ func (r *GormTicketRepository) CreateTicket(ctx context.Context, ticket *domain.
 	gormTicket := gormmodel.FromTicket(ticket)
 
 	if err := r.DB.WithContext(ctx).Create(gormTicket).Error; err != nil {
-		
+
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return nil, &domain.AlreadyExistsError{Name: gormTicket.Code}
 		}
@@ -33,7 +33,7 @@ func (r *GormTicketRepository) GetTicketByCode(ctx context.Context, code string)
 	result := r.DB.WithContext(ctx).Where("code = ?", code).First(&ret)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, &domain.NotFoundError{ID: 0} 
+		return nil, &domain.NotFoundError{ID: 0}
 	} else if result.Error != nil {
 		return nil, &domain.InternalError{Msg: "could not find the ticket", Err: result.Error}
 	}
@@ -56,6 +56,18 @@ func (r *GormTicketRepository) UpdateTicket(ctx context.Context, code string, up
 	}
 
 	return r.GetTicketByCode(ctx, code)
+}
+
+func (r *GormTicketRepository) ReplaceTicket(ctx context.Context, ticket *domain.Ticket) (*domain.Ticket, error) {
+	gormTicket := gormmodel.FromTicket(ticket)
+
+	// Use Save which will update if exists (based on primary key - code) or create if not
+	// This is the proper PUT semantics
+	if err := r.DB.WithContext(ctx).Save(gormTicket).Error; err != nil {
+		return nil, &domain.InternalError{Msg: "failed to replace ticket", Err: err}
+	}
+
+	return gormTicket.ToDomain(), nil
 }
 
 func (r *GormTicketRepository) DeleteEvent(ctx context.Context, code string) (*domain.Ticket, error) {

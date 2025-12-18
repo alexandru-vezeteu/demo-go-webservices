@@ -1,16 +1,16 @@
 package service
 
-import "context"
+import (
+	"context"
+)
 
-// UserInfo represents the authenticated user information
-type UserInfo struct {
-	UserID string
-	Email  string
-	Role   string
+type UserIdentity struct {
+	UserID    uint
+	Email     string
+	Role      string
+	ExpiresAt int64
 }
 
-// AuthenticationService defines methods for user authentication
 type AuthenticationService interface {
-	// WhoIsUser extracts and validates the token, returning user information
-	WhoIsUser(ctx context.Context, token string) (*UserInfo, error)
+	WhoIsUser(ctx context.Context, token string) (*UserIdentity, error)
 }

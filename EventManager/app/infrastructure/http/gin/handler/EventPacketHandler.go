@@ -38,8 +38,9 @@ func (h *GinEventPacketHandler) CreateEventPacket(c *gin.Context) {
 	}
 
 	eventPacket := req.ToEventPacket()
+	token := getTokenFromHeader(c)
 
-	ret, err := h.usecase.CreateEventPacket(c.Request.Context(), eventPacket)
+	ret, err := h.usecase.CreateEventPacket(c.Request.Context(), token, eventPacket)
 
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
@@ -81,7 +82,8 @@ func (h *GinEventPacketHandler) GetEventPacketByID(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.GetEventPacketByID(c.Request.Context(), id)
+	token := getTokenFromHeader(c)
+	ret, err := h.usecase.GetEventPacketByID(c.Request.Context(), token, id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -133,8 +135,9 @@ func (h *GinEventPacketHandler) UpdateEventPacket(c *gin.Context) {
 	}
 
 	updates := req.ToUpdateMap()
+	token := getTokenFromHeader(c)
 
-	event, err := h.usecase.UpdateEventPacket(c.Request.Context(), id, updates)
+	event, err := h.usecase.UpdateEventPacket(c.Request.Context(), token, id, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -180,7 +183,8 @@ func (h *GinEventPacketHandler) DeleteEventPacket(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.DeleteEventPacket(c.Request.Context(), id)
+	token := getTokenFromHeader(c)
+	ret, err := h.usecase.DeleteEventPacket(c.Request.Context(), token, id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {

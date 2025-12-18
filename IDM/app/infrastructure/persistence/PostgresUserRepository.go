@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"errors"
 	"idmService/domain"
 
@@ -15,9 +16,9 @@ func NewPostgresUserRepository(db *gorm.DB) *PostgresUserRepository {
 	return &PostgresUserRepository{db: db}
 }
 
-func (r *PostgresUserRepository) FindByEmail(email string) (*domain.User, error) {
+func (r *PostgresUserRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
-	result := r.db.Where("email = ?", email).First(&user)
+	result := r.db.WithContext(ctx).Where("email = ?", email).First(&user)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -29,9 +30,9 @@ func (r *PostgresUserRepository) FindByEmail(email string) (*domain.User, error)
 	return &user, nil
 }
 
-func (r *PostgresUserRepository) FindByID(id uint) (*domain.User, error) {
+func (r *PostgresUserRepository) FindByID(ctx context.Context, id uint) (*domain.User, error) {
 	var user domain.User
-	result := r.db.First(&user, id)
+	result := r.db.WithContext(ctx).First(&user, id)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -43,18 +44,18 @@ func (r *PostgresUserRepository) FindByID(id uint) (*domain.User, error) {
 	return &user, nil
 }
 
-func (r *PostgresUserRepository) Create(user *domain.User) error {
-	result := r.db.Create(user)
+func (r *PostgresUserRepository) Create(ctx context.Context, user *domain.User) error {
+	result := r.db.WithContext(ctx).Create(user)
 	return result.Error
 }
 
-func (r *PostgresUserRepository) Update(user *domain.User) error {
-	result := r.db.Save(user)
+func (r *PostgresUserRepository) Update(ctx context.Context, user *domain.User) error {
+	result := r.db.WithContext(ctx).Save(user)
 	return result.Error
 }
 
-func (r *PostgresUserRepository) Delete(id uint) error {
-	result := r.db.Delete(&domain.User{}, id)
+func (r *PostgresUserRepository) Delete(ctx context.Context, id uint) error {
+	result := r.db.WithContext(ctx).Delete(&domain.User{}, id)
 	return result.Error
 }
 

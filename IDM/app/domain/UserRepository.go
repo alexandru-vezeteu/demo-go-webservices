@@ -1,15 +1,17 @@
 package domain
 
+import "context"
+
 type UserRepository interface {
-	FindByEmail(email string) (*User, error)
+	FindByEmail(ctx context.Context, email string) (*User, error)
 
-	FindByID(id uint) (*User, error)
+	FindByID(ctx context.Context, id uint) (*User, error)
 
-	Create(user *User) error
+	Create(ctx context.Context, user *User) error
 
-	Update(user *User) error
+	Update(ctx context.Context, user *User) error
 
-	Delete(id uint) error
+	Delete(ctx context.Context, id uint) error
 
 	MigrateSchema() error
 }

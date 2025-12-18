@@ -1,3 +1,6 @@
+include:
+  - path: ../docker-compose.network.yaml
+
 services:
   eventManager:
     build:
@@ -5,12 +8,9 @@ services:
       dockerfile: app.dockerfile
     image: event_manager_image
     container_name: ${EVENT_MANAGER_HOST}
-    ports:
-      - "${EVENT_MANAGER_PORT}:${EVENT_MANAGER_PORT}"
-    volumes:
-      - "./app:/app"
     depends_on:
-      - eventManagerDB
+      eventManagerDB:
+        condition: service_healthy
     environment:
       EVENT_MANAGER_PORT: ${EVENT_MANAGER_PORT}
 
@@ -21,12 +21,12 @@ services:
       EVENT_MANAGER_DB_PORT: ${EVENT_MANAGER_DB_PORT}
     restart: always
     networks:
-      - POSnetwork
+      - event-network
+      - pos-network
 
   eventManagerDB:
     image: postgres:16.10-alpine3.22
     container_name: ${EVENT_MANAGER_DB_HOST}
-
     volumes:
       - event_db:/var/lib/postgresql/data
 
@@ -36,10 +36,17 @@ services:
       POSTGRES_DB: ${EVENT_MANAGER_DB_NAME}
     restart: always
     networks:
-      - POSnetwork
+      - event-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${EVENT_MANAGER_DB_USER} -d ${EVENT_MANAGER_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 networks:
-  POSnetwork:
+  event-network:
+    name: event-network
     driver: bridge
 
 volumes:

@@ -1,33 +1,31 @@
 package service
 
-import "context"
+import (
+	"context"
+	"eventManager/application/domain"
+)
 
-// AuthorizationService defines methods for authorization checks
 type AuthorizationService interface {
-	// CanUserSeeEvent checks if a user can view a specific event
-	CanUserSeeEvent(ctx context.Context, userID string, eventID string) (bool, error)
+	CanUserCreateEvent(ctx context.Context, userID uint) (bool, error)
+	CanUserViewEvent(ctx context.Context, userID uint, event *domain.Event) (bool, error)
+	CanUserViewEvents(ctx context.Context, userID uint, events []*domain.Event) ([]bool, error)
+	CanUserEditEvent(ctx context.Context, userID uint, event *domain.Event) (bool, error)
+	CanUserDeleteEvent(ctx context.Context, userID uint, event *domain.Event) (bool, error)
 
-	// CanUserSeeTicket checks if a user can view a specific ticket
-	CanUserSeeTicket(ctx context.Context, userID string, ticketID string) (bool, error)
+	CanUserViewTicket(ctx context.Context, userID uint, ticket *domain.Ticket) (bool, error)
+	CanUserViewTickets(ctx context.Context, userID uint, tickets []*domain.Ticket) ([]bool, error)
+	CanUserEditTicket(ctx context.Context, userID uint, ticket *domain.Ticket) (bool, error)
+	CanUserDeleteTicket(ctx context.Context, userID uint, ticket *domain.Ticket) (bool, error)
+	CanUserBuyTicket(ctx context.Context, userID uint, event *domain.Event) (bool, error)
 
-	// CanUserCreateEvent checks if a user can create events
-	CanUserCreateEvent(ctx context.Context, userID string) (bool, error)
+	CanUserCreateEventPacket(ctx context.Context, userID uint) (bool, error)
+	CanUserViewEventPacket(ctx context.Context, userID uint, packet *domain.EventPacket) (bool, error)
+	CanUserViewEventPackets(ctx context.Context, userID uint, packets []*domain.EventPacket) ([]bool, error)
+	CanUserEditEventPacket(ctx context.Context, userID uint, packet *domain.EventPacket) (bool, error)
+	CanUserDeleteEventPacket(ctx context.Context, userID uint, packet *domain.EventPacket) (bool, error)
 
-	// CanUserUpdateEvent checks if a user can update a specific event
-	CanUserUpdateEvent(ctx context.Context, userID string, eventID string) (bool, error)
-
-	// CanUserDeleteEvent checks if a user can delete a specific event
-	CanUserDeleteEvent(ctx context.Context, userID string, eventID string) (bool, error)
-
-	// CanUserSeeEventPacket checks if a user can view a specific event packet
-	CanUserSeeEventPacket(ctx context.Context, userID string, packetID string) (bool, error)
-
-	// CanUserCreateEventPacket checks if a user can create event packets
-	CanUserCreateEventPacket(ctx context.Context, userID string) (bool, error)
-
-	// CanUserUpdateEventPacket checks if a user can update a specific event packet
-	CanUserUpdateEventPacket(ctx context.Context, userID string, packetID string) (bool, error)
-
-	// CanUserDeleteEventPacket checks if a user can delete a specific event packet
-	CanUserDeleteEventPacket(ctx context.Context, userID string, packetID string) (bool, error)
+	CanUserCreateEventPacketInclusion(ctx context.Context, userID uint, eventID int, packetID int) (bool, error)
+	CanUserViewEventPacketInclusion(ctx context.Context, userID uint, eventID int, packetID int) (bool, error)
+	CanUserUpdateEventPacketInclusion(ctx context.Context, userID uint, eventID int, packetID int) (bool, error)
+	CanUserDeleteEventPacketInclusion(ctx context.Context, userID uint, eventID int, packetID int) (bool, error)
 }

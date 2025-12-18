@@ -19,17 +19,14 @@ func NewGinUserHandler(usecase usecase.UserUsecase) *GinUserHandler {
 	return &GinUserHandler{usecase: usecase}
 }
 
-// @Summary      Create a new user
-// @Description  Adds a new user to the system.
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        user body httpdto.HttpCreateUser true "User to create"
-// @Success      201  {object}  httpdto.HttpResponseUser  "User created successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid request format or validation error"
-// @Failure      409  {object}  map[string]interface{} "User already exists"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /users [post]
+func getTokenFromHeader(c *gin.Context) string {
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		token = "dummy-token"
+	}
+	return token
+}
+
 func (h *GinUserHandler) CreateUser(c *gin.Context) {
 	var req httpdto.HttpCreateUser
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
@@ -38,8 +35,9 @@ func (h *GinUserHandler) CreateUser(c *gin.Context) {
 	}
 
 	user := req.ToUser()
+	token := getTokenFromHeader(c)
 
-	ret, err := h.usecase.CreateUser(user)
+	ret, err := h.usecase.CreateUser(c.Request.Context(), token, user)
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -62,17 +60,6 @@ func (h *GinUserHandler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
-// @Summary      Get a user by ID
-// @Description  Retrieves a single user using its unique integer ID
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        id   path      int  true  "User ID"
-// @Success      200  {object}  httpdto.HttpResponseUser  "The requested user"
-// @Failure      400  {object}  map[string]interface{} "Invalid user ID format or validation error"
-// @Failure      404  {object}  map[string]interface{} "User not found"
-// @Failure      500  {object}  map[string]interface{} "Internal error"
-// @Router       /users/{id} [get]
 func (h *GinUserHandler) GetUserByID(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
@@ -80,7 +67,8 @@ func (h *GinUserHandler) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.GetUserByID(id)
+	token := getTokenFromHeader(c)
+	ret, err := h.usecase.GetUserByID(c.Request.Context(), token, id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -104,19 +92,6 @@ func (h *GinUserHandler) GetUserByID(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// @Summary      Update a user
-// @Description  Partially updates an existing user by its ID.
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        id   path      int  true  "User ID"
-// @Param        updates body httpdto.HttpUpdateUser true "Fields to update"
-// @Success      200  {object}  httpdto.HttpResponseUser "User updated successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid user ID format or request body"
-// @Failure      404  {object}  map[string]interface{} "User not found"
-// @Failure      409  {object}  map[string]interface{} "Resource already exists (e.g., email already taken)"
-// @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
-// @Router       /users/{id} [patch]
 func (h *GinUserHandler) UpdateUser(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
@@ -131,8 +106,9 @@ func (h *GinUserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	updates := req.ToUpdateMap()
+	token := getTokenFromHeader(c)
 
-	user, err := h.usecase.UpdateUser(id, updates)
+	user, err := h.usecase.UpdateUser(c.Request.Context(), token, id, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -160,17 +136,6 @@ func (h *GinUserHandler) UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// @Summary      Delete a user
-// @Description  Deletes a user by its ID and returns the deleted user.
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        id   path      int  true  "User ID"
-// @Success      200  {object}  httpdto.HttpResponseUser "User deleted successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid user ID format"
-// @Failure      404  {object}  map[string]interface{} "User not found"
-// @Failure      500  {object}  map[string]interface{} "An unexpected error occurred"
-// @Router       /users/{id} [delete]
 func (h *GinUserHandler) DeleteUser(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
@@ -178,7 +143,8 @@ func (h *GinUserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.DeleteUser(id)
+	token := getTokenFromHeader(c)
+	ret, err := h.usecase.DeleteUser(c.Request.Context(), token, id)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -194,20 +160,6 @@ func (h *GinUserHandler) DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// @Summary      Create a ticket for a user
-// @Description  Creates a ticket for a user by verifying their token, validating email, generating a ticket code, and creating it in EventManager
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        user_id path int true "User ID"
-// @Param        Authorization header string true "Bearer token"
-// @Param        ticket body httpdto.HttpCreateTicketForUser true "Ticket details (packet_id or event_id)"
-// @Success      201  {object}  httpdto.HttpCreateTicketResponse "Ticket created successfully"
-// @Failure      400  {object}  map[string]interface{} "Invalid request"
-// @Failure      403  {object}  map[string]interface{} "Token email does not match user email"
-// @Failure      404  {object}  map[string]interface{} "User not found"
-// @Failure      500  {object}  map[string]interface{} "Internal error or service unavailable"
-// @Router       /clients/{user_id}/tickets [post]
 func (h *GinUserHandler) CreateTicketForUser(c *gin.Context) {
 	userID, err := middleware.ParseIDParam(c, "user_id")
 	if err != nil {
@@ -215,14 +167,12 @@ func (h *GinUserHandler) CreateTicketForUser(c *gin.Context) {
 		return
 	}
 
-	// Extract token from Authorization header
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization header is required"})
 		return
 	}
 
-	// Remove "Bearer " prefix if present
 	token := authHeader
 	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
 		token = authHeader[7:]
@@ -234,7 +184,7 @@ func (h *GinUserHandler) CreateTicketForUser(c *gin.Context) {
 		return
 	}
 
-	ticketCode, err := h.usecase.CreateTicketForUser(userID, token, req.PacketID, req.EventID)
+	ticketCode, err := h.usecase.CreateTicketForUser(c.Request.Context(), userID, token, req.PacketID, req.EventID)
 
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {

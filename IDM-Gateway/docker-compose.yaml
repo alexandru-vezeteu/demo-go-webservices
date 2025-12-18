@@ -1,0 +1,33 @@
+include:
+  - path: ../docker-compose.network.yaml
+
+services:
+  idm-gateway:
+    build:
+      context: ..
+      dockerfile: IDM-Gateway/Dockerfile
+    image: idm_gateway_image
+    container_name: ${IDM_GATEWAY_HOST}
+    environment:
+      IDM_GATEWAY_HOST: ${IDM_GATEWAY_HOST}
+      IDM_GATEWAY_PORT: ${IDM_GATEWAY_PORT}
+      IDM_GRPC_HOST: ${IDM_GRPC_HOST}
+      IDM_GRPC_PORT: ${IDM_GRPC_PORT}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "${IDM_GATEWAY_PORT}:8000"
+    restart: always
+    networks:
+      - idm-network
+      - pos-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  idm-network:
+    external: true
+    name: idm-network

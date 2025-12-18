@@ -3,54 +3,51 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
 	"userService/application/usecase"
-	"userService/infrastructure/grpc"
 	"userService/infrastructure/http"
 	"userService/infrastructure/http/gin/handler"
 	"userService/infrastructure/http/gin/router"
 	"userService/infrastructure/persistence/mongodb"
 	mongorepository "userService/infrastructure/persistence/mongodb/repository"
+	infrastructureservice "userService/infrastructure/service"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-// @title           User Service API
-// @version         1.0
-
-// @BasePath  /api/user-manager
 func main() {
 	db := mongodb.InitDB()
 
-	// Initialize repositories
 	userRepo := mongorepository.NewMongoUserRepository(db)
 
-	// Create indexes for MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := userRepo.CreateIndexes(ctx); err != nil {
 		fmt.Printf("Warning: Failed to create indexes: %v\n", err)
 	}
 
-	// Initialize IDM gRPC client
-	idmClient, err2 := grpc.NewIDMClient()
-	if err2 != nil {
-		log.Fatalf("Failed to create IDM client: %v", err2)
-	}
-	defer idmClient.Close()
-
-	// Initialize EventManager HTTP client
 	eventManagerClient := http.NewEventManagerClient()
+	eventManagerService := infrastructureservice.NewEventManagerHTTPAdapter(eventManagerClient)
 
-	// Initialize usecases
-	userUsecase := usecase.NewUserUsecase(userRepo, idmClient, eventManagerClient)
+	authenService := infrastructureservice.NewDummyAuthenticationService()
+	authzService := infrastructureservice.NewDummyAuthorizationService()
 
-	// Initialize handlers
+	userUsecase := usecase.NewUserUsecase(userRepo, eventManagerService, authenService, authzService)
+
 	userHandler := handler.NewGinUserHandler(userUsecase)
 
 	r := gin.Default()
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
 	userAPI := r.Group("/api/user-manager")
 	router.RegisterUserRoutes(userAPI, userHandler)
 

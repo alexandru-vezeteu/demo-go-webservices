@@ -2,8 +2,8 @@ package handler
 
 import (
 	"errors"
-	"eventManager/application/usecase"
 	"eventManager/application/domain"
+	"eventManager/application/usecase"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
 	"net/http"
@@ -19,17 +19,6 @@ func NewGinTicketHandler(usecase usecase.TicketUseCase) *GinTicketHandler {
 	return &GinTicketHandler{usecase: usecase}
 }
 
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 	var req httpdto.HttpCreateTicket
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
@@ -38,8 +27,9 @@ func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 	}
 
 	ticket := req.ToTicket()
+	token := getTokenFromHeader(c)
 
-	ret, err := h.usecase.CreateTicket(c.Request.Context(), ticket)
+	ret, err := h.usecase.CreateTicket(c.Request.Context(), token, ticket)
 
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
@@ -68,16 +58,50 @@ func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
+func (h *GinTicketHandler) PutTicket(c *gin.Context) {
+	code := c.Param("code")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ticket code is required"})
+		return
+	}
 
+	var req httpdto.HttpCreateTicket
+	if err := middleware.StrictBindJSON(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
+	ticket := req.ToTicket()
+	token := getTokenFromHeader(c)
 
+	ret, err := h.usecase.PutTicket(c.Request.Context(), token, code, ticket)
 
+	var validationErr *domain.ValidationError
+	if errors.As(err, &validationErr) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
+	var existsErr *domain.AlreadyExistsError
+	if errors.As(err, &existsErr) {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
 
+	var internalErr *domain.InternalError
+	if errors.As(err, &internalErr) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		return
+	}
 
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+		return
+	}
 
-
-
+	resp := httpdto.ToHttpResponseTicket(ret)
+	c.JSON(http.StatusOK, resp)
+}
 
 func (h *GinTicketHandler) GetTicketByCode(c *gin.Context) {
 	code := c.Param("code")
@@ -86,7 +110,8 @@ func (h *GinTicketHandler) GetTicketByCode(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.GetTicketByCode(c.Request.Context(), code)
+	token := getTokenFromHeader(c)
+	ret, err := h.usecase.GetTicketByCode(c.Request.Context(), token, code)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {
@@ -109,18 +134,6 @@ func (h *GinTicketHandler) GetTicketByCode(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinTicketHandler) UpdateTicket(c *gin.Context) {
 	code := c.Param("code")
 	if code == "" {
@@ -135,8 +148,9 @@ func (h *GinTicketHandler) UpdateTicket(c *gin.Context) {
 	}
 
 	updates := req.ToUpdateMap()
+	token := getTokenFromHeader(c)
 
-	ticket, err := h.usecase.UpdateTicket(c.Request.Context(), code, updates)
+	ticket, err := h.usecase.UpdateTicket(c.Request.Context(), token, code, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -158,18 +172,6 @@ func (h *GinTicketHandler) UpdateTicket(c *gin.Context) {
 	resp := httpdto.ToHttpResponseTicket(ticket)
 	c.JSON(http.StatusOK, resp)
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 func (h *GinTicketHandler) ReplaceTicket(c *gin.Context) {
 	code := c.Param("code")
@@ -185,8 +187,9 @@ func (h *GinTicketHandler) ReplaceTicket(c *gin.Context) {
 	}
 
 	updates := req.ToUpdateMap()
+	token := getTokenFromHeader(c)
 
-	ticket, err := h.usecase.UpdateTicket(c.Request.Context(), code, updates)
+	ticket, err := h.usecase.UpdateTicket(c.Request.Context(), token, code, updates)
 
 	var validationErr *domain.ValidationError
 	var notFoundErr *domain.NotFoundError
@@ -209,17 +212,6 @@ func (h *GinTicketHandler) ReplaceTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-
-
-
-
-
-
-
-
-
-
-
 func (h *GinTicketHandler) DeleteTicket(c *gin.Context) {
 	code := c.Param("code")
 	if code == "" {
@@ -227,7 +219,8 @@ func (h *GinTicketHandler) DeleteTicket(c *gin.Context) {
 		return
 	}
 
-	ret, err := h.usecase.DeleteTicket(c.Request.Context(), code)
+	token := getTokenFromHeader(c)
+	ret, err := h.usecase.DeleteTicket(c.Request.Context(), token, code)
 
 	var notFoundErr *domain.NotFoundError
 	if errors.As(err, &notFoundErr) {

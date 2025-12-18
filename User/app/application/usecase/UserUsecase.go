@@ -8,8 +8,6 @@ import (
 	"userService/application/domain"
 	"userService/application/repository"
 	"userService/application/service"
-	"userService/infrastructure/grpc"
-	"userService/infrastructure/http"
 
 	"github.com/google/uuid"
 )
@@ -23,27 +21,32 @@ type UserUsecase interface {
 }
 
 type userUsecase struct {
-	repo               repository.UserRepository
-	idmClient          *grpc.IDMClient
-	eventManagerClient *http.EventManagerClient
-	authNService       service.AuthenticationService
-	authZService       service.AuthorizationService
+	repo                repository.UserRepository
+	eventManagerService service.EventManagerService
+	authNService        service.AuthenticationService
+	authZService        service.AuthorizationService
 }
 
 func NewUserUsecase(
 	repo repository.UserRepository,
-	idmClient *grpc.IDMClient,
-	eventManagerClient *http.EventManagerClient,
+	eventManagerService service.EventManagerService,
 	authNService service.AuthenticationService,
 	authZService service.AuthorizationService,
 ) UserUsecase {
 	return &userUsecase{
-		repo:               repo,
-		idmClient:          idmClient,
-		eventManagerClient: eventManagerClient,
-		authNService:       authNService,
-		authZService:       authZService,
+		repo:                repo,
+		eventManagerService: eventManagerService,
+		authNService:        authNService,
+		authZService:        authZService,
 	}
+}
+
+func (uc *userUsecase) authenticate(ctx context.Context, token string) (*service.UserIdentity, error) {
+	identity, err := uc.authNService.WhoIsUser(ctx, token)
+	if err != nil {
+		return nil, &domain.ValidationError{Field: "token", Reason: "invalid or expired token"}
+	}
+	return identity, nil
 }
 
 func (uc *userUsecase) validateEmail(email string) bool {
@@ -86,48 +89,58 @@ func (uc *userUsecase) validateUser(user *domain.User) error {
 }
 
 func (uc *userUsecase) CreateUser(ctx context.Context, token string, user *domain.User) (*domain.User, error) {
-	// Authenticate user
-	_, err := uc.authNService.WhoIsUser(ctx, token)
+	_, err := uc.authenticate(ctx, token)
 	if err != nil {
-		return nil, &domain.ValidationError{Field: "token", Reason: "authentication failed"}
+		return nil, err
 	}
 
 	if err := uc.validateUser(user); err != nil {
 		return nil, err
 	}
-	return uc.repo.Create(user)
+	return uc.repo.Create(ctx, user)
 }
 
 func (uc *userUsecase) GetUserByID(ctx context.Context, token string, id int) (*domain.User, error) {
-	// Authenticate user
-	userInfo, err := uc.authNService.WhoIsUser(ctx, token)
+	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
-		return nil, &domain.ValidationError{Field: "token", Reason: "authentication failed"}
+		return nil, err
 	}
 
-	// Authorize user to see this user
-	canSee, err := uc.authZService.CanUserSeeUser(ctx, userInfo.UserID, fmt.Sprintf("%d", id))
-	if err != nil || !canSee {
-		return nil, &domain.ForbiddenError{Reason: "user not authorized to view this user"}
+	user, err := uc.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
-	return uc.repo.GetByID(id)
+	allowed, err := uc.authZService.CanUserViewUser(ctx, identity.UserID, user)
+	if err != nil {
+		return nil, &domain.ForbiddenError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+	}
+	if !allowed {
+		return nil, &domain.ForbiddenError{Reason: "user not authorized to view user"}
+	}
+
+	return user, nil
 }
 
 func (uc *userUsecase) UpdateUser(ctx context.Context, token string, id int, updates map[string]interface{}) (*domain.User, error) {
-	// Authenticate user
-	userInfo, err := uc.authNService.WhoIsUser(ctx, token)
+	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
-		return nil, &domain.ValidationError{Field: "token", Reason: "authentication failed"}
+		return nil, err
 	}
 
-	// Authorize user to update this user
-	canUpdate, err := uc.authZService.CanUserUpdateUser(ctx, userInfo.UserID, fmt.Sprintf("%d", id))
-	if err != nil || !canUpdate {
-		return nil, &domain.ForbiddenError{Reason: "user not authorized to update this user"}
+	user, err := uc.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
-	// Validate partial updates
+	allowed, err := uc.authZService.CanUserEditUser(ctx, identity.UserID, user)
+	if err != nil {
+		return nil, &domain.ForbiddenError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+	}
+	if !allowed {
+		return nil, &domain.ForbiddenError{Reason: "user not authorized to edit user"}
+	}
+
 	if email, ok := updates["email"]; ok {
 		emailStr, isString := email.(string)
 		if !isString || strings.TrimSpace(emailStr) == "" {
@@ -170,64 +183,57 @@ func (uc *userUsecase) UpdateUser(ctx context.Context, token string, id int, upd
 		}
 	}
 
-	return uc.repo.Update(id, updates)
+	return uc.repo.Update(ctx, id, updates)
 }
 
 func (uc *userUsecase) DeleteUser(ctx context.Context, token string, id int) (*domain.User, error) {
-	// Authenticate user
-	userInfo, err := uc.authNService.WhoIsUser(ctx, token)
+	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
-		return nil, &domain.ValidationError{Field: "token", Reason: "authentication failed"}
+		return nil, err
 	}
 
-	// Authorize user to delete this user
-	canDelete, err := uc.authZService.CanUserDeleteUser(ctx, userInfo.UserID, fmt.Sprintf("%d", id))
-	if err != nil || !canDelete {
-		return nil, &domain.ForbiddenError{Reason: "user not authorized to delete this user"}
+	user, err := uc.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
-	return uc.repo.Delete(id)
+	allowed, err := uc.authZService.CanUserDeleteUser(ctx, identity.UserID, user)
+	if err != nil {
+		return nil, &domain.ForbiddenError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+	}
+	if !allowed {
+		return nil, &domain.ForbiddenError{Reason: "user not authorized to delete user"}
+	}
+
+	return uc.repo.Delete(ctx, id)
 }
 
-func (uc *userUsecase) CreateTicketForUser(userID int, token string, packetID *int, eventID *int) (string, error) {
-	// a) Validate token
-	tokenResp, err := uc.idmClient.VerifyToken(token)
+func (uc *userUsecase) CreateTicketForUser(ctx context.Context, userID int, token string, packetID *int, eventID *int) (string, error) {
+	// Use existing authentication service instead of duplicate IDM service
+	identity, err := uc.authNService.WhoIsUser(ctx, token)
 	if err != nil {
-		return "", &domain.InternalError{Msg: "failed to verify token", Err: err}
+		return "", &domain.ValidationError{Field: "token", Reason: "invalid or expired token"}
 	}
 
-	// Check if token is valid
-	if !tokenResp.Valid {
-		return "", &domain.ValidationError{Field: "token", Reason: fmt.Sprintf("invalid token: %s", tokenResp.Message)}
-	}
-
-	// b) EMAIL FROM TOKEN CLAIMS
-	tokenEmail := tokenResp.Email
-
-	// c) EMAIL FROM DB BASED ON user_id
-	user, err := uc.repo.GetByID(userID)
+	user, err := uc.repo.GetByID(ctx, userID)
 	if err != nil {
 		return "", err
 	}
 
-	// d) EMAIL TOKEN == EMAIL DB => IF NOT 403
-	if user.Email != tokenEmail {
+	// Verify token email matches user email
+	if user.Email != identity.Email {
 		return "", &domain.ForbiddenError{Reason: "token email does not match user email"}
 	}
 
-	// e) GENERATE UUID FOR TICKET CODE
 	ticketCode := uuid.New().String()
 
-	// f) PUT /TICKETS/{CODE} -> IF 201 -> APPEND TO TICKETS LIST ELSE => FAIL
-	_, statusCode, err := uc.eventManagerClient.CreateTicket(ticketCode, packetID, eventID)
-	if err != nil || statusCode != 201 {
-		if statusCode >= 500 {
-			return "", &domain.InternalError{Msg: "event manager service unavailable", Err: err}
-		}
-		return "", &domain.InternalError{Msg: "failed to create ticket", Err: err}
+	// Client now returns domain errors directly - no HTTP status code checking needed
+	_, err = uc.eventManagerService.CreateTicket(ticketCode, packetID, eventID)
+	if err != nil {
+		// Error is already a domain error from the client
+		return "", err
 	}
 
-	// Append ticket code to user's ticket_list
 	var newTicketList string
 	if user.TicketList == nil || strings.TrimSpace(*user.TicketList) == "" {
 		newTicketList = ticketCode
@@ -239,7 +245,7 @@ func (uc *userUsecase) CreateTicketForUser(userID int, token string, packetID *i
 		"ticket_list": newTicketList,
 	}
 
-	_, err = uc.repo.Update(userID, updates)
+	_, err = uc.repo.Update(ctx, userID, updates)
 	if err != nil {
 		return "", &domain.InternalError{Msg: "failed to update user ticket list", Err: err}
 	}

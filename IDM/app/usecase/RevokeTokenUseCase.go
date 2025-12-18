@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"fmt"
 
 	"idmService/infrastructure/blacklist"
@@ -12,7 +13,7 @@ type RevokeTokenResult struct {
 }
 
 type RevokeTokenUseCase interface {
-	Execute(token string) (*RevokeTokenResult, error)
+	Execute(ctx context.Context, token string) (*RevokeTokenResult, error)
 }
 
 type revokeTokenUseCase struct {
@@ -25,8 +26,8 @@ func NewRevokeTokenUseCase(blacklist *blacklist.InMemoryBlacklist) RevokeTokenUs
 	}
 }
 
-func (uc *revokeTokenUseCase) Execute(token string) (*RevokeTokenResult, error) {
-	// Check if already blacklisted
+func (uc *revokeTokenUseCase) Execute(ctx context.Context, token string) (*RevokeTokenResult, error) {
+	
 	if isBlacklisted, _ := uc.blacklist.IsBlacklisted(token); isBlacklisted {
 		return &RevokeTokenResult{
 			Success: true,
@@ -34,7 +35,7 @@ func (uc *revokeTokenUseCase) Execute(token string) (*RevokeTokenResult, error) 
 		}, nil
 	}
 
-	// Add to blacklist
+	
 	err := uc.blacklist.Add(token, "manually revoked")
 	if err != nil {
 		return &RevokeTokenResult{
