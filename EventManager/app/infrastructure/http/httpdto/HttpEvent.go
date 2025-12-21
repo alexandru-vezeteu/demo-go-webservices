@@ -2,25 +2,32 @@ package httpdto
 
 import (
 	"eventManager/application/domain"
+	"eventManager/infrastructure/http/config"
+	"eventManager/infrastructure/http/hateoas"
+	"fmt"
 )
 
 type httpResponseEvent struct {
-	ID          int     `json:"id"`
-	OwnerID     int     `json:"id_owner"`
-	Name        string  `json:"name"`
-	Location    *string `json:"location,omitempty"`
-	Description *string `json:"description,omitempty"`
-	Seats       *int    `json:"seats,omitempty"`
+	ID          int                       `json:"id"`
+	OwnerID     int                       `json:"id_owner"`
+	Name        string                    `json:"name"`
+	Location    *string                   `json:"location,omitempty"`
+	Description *string                   `json:"description,omitempty"`
+	Seats       *int                      `json:"seats,omitempty"`
+	Links       map[string]hateoas.Link   `json:"_links"`
 }
 
 type HttpResponseEvent struct {
 	Event *httpResponseEvent `json:"event"`
 }
 
-func ToHttpResponseEvent(event *domain.Event) *HttpResponseEvent {
+func ToHttpResponseEvent(event *domain.Event, serviceURLs *config.ServiceURLs) *HttpResponseEvent {
 	if event == nil {
 		return &HttpResponseEvent{}
 	}
+
+	resourcePath := fmt.Sprintf("/events/%d", event.ID)
+
 	dto := &httpResponseEvent{
 		ID:          event.ID,
 		OwnerID:     event.OwnerID,
@@ -28,23 +35,55 @@ func ToHttpResponseEvent(event *domain.Event) *HttpResponseEvent {
 		Location:    event.Location,
 		Description: event.Description,
 		Seats:       event.Seats,
+		Links: map[string]hateoas.Link{
+			"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+			"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
+			"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
+			"owner": hateoas.BuildRelatedLink(
+				fmt.Sprintf("%s/users/%d", serviceURLs.UserManager, event.OwnerID),
+				"owner",
+				"GET",
+				"Get event owner",
+			),
+			"packets": hateoas.BuildRelatedLink(
+				fmt.Sprintf("%s/packets?event_id=%d", serviceURLs.EventManager, event.ID),
+				"packets",
+				"GET",
+				"Get packets for this event",
+			),
+			"tickets": hateoas.BuildRelatedLink(
+				fmt.Sprintf("%s/tickets?event_id=%d", serviceURLs.EventManager, event.ID),
+				"tickets",
+				"GET",
+				"Get tickets for this event",
+			),
+		},
 	}
+
 	return &HttpResponseEvent{
 		Event: dto,
 	}
 }
 
 type HttpResponseEventList struct {
-	Events []*httpResponseEvent `json:"events"`
+	Events []*httpResponseEvent  `json:"events"`
+	Links  map[string]hateoas.Link `json:"_links"`
 }
 
-func ToHttpResponseEventList(events []*domain.Event) *HttpResponseEventList {
+func ToHttpResponseEventList(events []*domain.Event, serviceURLs *config.ServiceURLs) *HttpResponseEventList {
 	if events == nil {
-		return &HttpResponseEventList{Events: []*httpResponseEvent{}}
+		return &HttpResponseEventList{
+			Events: []*httpResponseEvent{},
+			Links: map[string]hateoas.Link{
+				"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, "/events"),
+				"create": hateoas.BuildCreateLink(serviceURLs.EventManager, "/events"),
+			},
+		}
 	}
 	httpEvents := make([]*httpResponseEvent, 0, len(events))
 
 	for _, event := range events {
+		resourcePath := fmt.Sprintf("/events/%d", event.ID)
 		httpEvents = append(httpEvents, &httpResponseEvent{
 			ID:          event.ID,
 			OwnerID:     event.OwnerID,
@@ -52,10 +91,27 @@ func ToHttpResponseEventList(events []*domain.Event) *HttpResponseEventList {
 			Location:    event.Location,
 			Description: event.Description,
 			Seats:       event.Seats,
+			Links: map[string]hateoas.Link{
+				"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+				"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
+				"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
+				"owner": hateoas.BuildRelatedLink(
+					fmt.Sprintf("%s/users/%d", serviceURLs.UserManager, event.OwnerID),
+					"owner",
+					"GET",
+					"Get event owner",
+				),
+			},
 		})
 	}
 
-	return &HttpResponseEventList{Events: httpEvents}
+	return &HttpResponseEventList{
+		Events: httpEvents,
+		Links: map[string]hateoas.Link{
+			"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, "/events"),
+			"create": hateoas.BuildCreateLink(serviceURLs.EventManager, "/events"),
+		},
+	}
 }
 
 type HttpCreateEvent struct {

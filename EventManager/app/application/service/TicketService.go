@@ -77,12 +77,10 @@ func (service *ticketService) ReplaceTicket(ctx context.Context, ticket *domain.
 		return nil, &domain.ValidationError{Reason: "ticket code is required for replacement"}
 	}
 
-	// Validate seat availability for the new ticket data
 	if err := service.validateSeatAvailability(ctx, ticket); err != nil {
 		return nil, err
 	}
 
-	// Use repository ReplaceTicket method (doesn't generate new UUID)
 	return service.repo.ReplaceTicket(ctx, ticket)
 }
 

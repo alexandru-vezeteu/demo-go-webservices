@@ -4,6 +4,7 @@ import (
 	"errors"
 	"eventManager/application/domain"
 	"eventManager/application/usecase"
+	"eventManager/infrastructure/http/config"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
 	"net/http"
@@ -12,11 +13,15 @@ import (
 )
 
 type GinTicketHandler struct {
-	usecase usecase.TicketUseCase
+	usecase     usecase.TicketUseCase
+	serviceURLs *config.ServiceURLs
 }
 
-func NewGinTicketHandler(usecase usecase.TicketUseCase) *GinTicketHandler {
-	return &GinTicketHandler{usecase: usecase}
+func NewGinTicketHandler(usecase usecase.TicketUseCase, serviceURLs *config.ServiceURLs) *GinTicketHandler {
+	return &GinTicketHandler{
+		usecase:     usecase,
+		serviceURLs: serviceURLs,
+	}
 }
 
 func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
@@ -54,7 +59,7 @@ func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseTicket(ret)
+	resp := httpdto.ToHttpResponseTicket(ret, h.serviceURLs)
 	c.JSON(http.StatusCreated, resp)
 }
 
@@ -99,7 +104,7 @@ func (h *GinTicketHandler) PutTicket(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseTicket(ret)
+	resp := httpdto.ToHttpResponseTicket(ret, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -130,7 +135,7 @@ func (h *GinTicketHandler) GetTicketByCode(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseTicket(ret)
+	resp := httpdto.ToHttpResponseTicket(ret, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -169,7 +174,7 @@ func (h *GinTicketHandler) UpdateTicket(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseTicket(ticket)
+	resp := httpdto.ToHttpResponseTicket(ticket, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -208,7 +213,7 @@ func (h *GinTicketHandler) ReplaceTicket(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseTicket(ticket)
+	resp := httpdto.ToHttpResponseTicket(ticket, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -233,6 +238,6 @@ func (h *GinTicketHandler) DeleteTicket(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseTicket(ret)
+	resp := httpdto.ToHttpResponseTicket(ret, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }

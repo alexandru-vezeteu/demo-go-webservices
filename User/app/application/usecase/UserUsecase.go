@@ -209,7 +209,6 @@ func (uc *userUsecase) DeleteUser(ctx context.Context, token string, id int) (*d
 }
 
 func (uc *userUsecase) CreateTicketForUser(ctx context.Context, userID int, token string, packetID *int, eventID *int) (string, error) {
-	// Use existing authentication service instead of duplicate IDM service
 	identity, err := uc.authNService.WhoIsUser(ctx, token)
 	if err != nil {
 		return "", &domain.ValidationError{Field: "token", Reason: "invalid or expired token"}
@@ -220,17 +219,14 @@ func (uc *userUsecase) CreateTicketForUser(ctx context.Context, userID int, toke
 		return "", err
 	}
 
-	// Verify token email matches user email
 	if user.Email != identity.Email {
 		return "", &domain.ForbiddenError{Reason: "token email does not match user email"}
 	}
 
 	ticketCode := uuid.New().String()
 
-	// Client now returns domain errors directly - no HTTP status code checking needed
 	_, err = uc.eventManagerService.CreateTicket(ticketCode, packetID, eventID)
 	if err != nil {
-		// Error is already a domain error from the client
 		return "", err
 	}
 

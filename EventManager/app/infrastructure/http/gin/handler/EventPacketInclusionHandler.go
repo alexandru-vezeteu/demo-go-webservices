@@ -4,6 +4,7 @@ import (
 	"errors"
 	"eventManager/application/domain"
 	"eventManager/application/usecase"
+	"eventManager/infrastructure/http/config"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
 	"net/http"
@@ -12,11 +13,15 @@ import (
 )
 
 type GinEventPacketInclusionHandler struct {
-	usecase usecase.EventPacketInclusionUseCase
+	usecase     usecase.EventPacketInclusionUseCase
+	serviceURLs *config.ServiceURLs
 }
 
-func NewGinEventPacketInclusionHandler(usecase usecase.EventPacketInclusionUseCase) *GinEventPacketInclusionHandler {
-	return &GinEventPacketInclusionHandler{usecase: usecase}
+func NewGinEventPacketInclusionHandler(usecase usecase.EventPacketInclusionUseCase, serviceURLs *config.ServiceURLs) *GinEventPacketInclusionHandler {
+	return &GinEventPacketInclusionHandler{
+		usecase:     usecase,
+		serviceURLs: serviceURLs,
+	}
 }
 
 func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Context) {
@@ -64,7 +69,7 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 		return
 	}
 
-	c.JSON(http.StatusCreated, httpdto.ToHttpResponseEventPacketInclusion(created))
+	c.JSON(http.StatusCreated, httpdto.ToHttpResponseEventPacketInclusion(created, h.serviceURLs))
 }
 
 func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context) {
@@ -92,7 +97,7 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 
 	response := make([]*httpdto.HttpResponseEventPacket, len(packets))
 	for i, packet := range packets {
-		response[i] = httpdto.ToHttpResponseEventPacket(packet)
+		response[i] = httpdto.ToHttpResponseEventPacket(packet, h.serviceURLs)
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -123,7 +128,7 @@ func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 
 	response := make([]*httpdto.HttpResponseEvent, len(events))
 	for i, event := range events {
-		response[i] = httpdto.ToHttpResponseEvent(event)
+		response[i] = httpdto.ToHttpResponseEvent(event, h.serviceURLs)
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -171,7 +176,7 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 		return
 	}
 
-	c.JSON(http.StatusOK, httpdto.ToHttpResponseEventPacketInclusion(updated))
+	c.JSON(http.StatusOK, httpdto.ToHttpResponseEventPacketInclusion(updated, h.serviceURLs))
 }
 
 func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Context) {
@@ -203,5 +208,5 @@ func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Conte
 		return
 	}
 
-	c.JSON(http.StatusOK, httpdto.ToHttpResponseEventPacketInclusion(deleted))
+	c.JSON(http.StatusOK, httpdto.ToHttpResponseEventPacketInclusion(deleted, h.serviceURLs))
 }

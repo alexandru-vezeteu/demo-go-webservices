@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"userService/application/usecase"
 	"userService/application/domain"
+	"userService/infrastructure/http/config"
 	"userService/infrastructure/http/gin/middleware"
 	"userService/infrastructure/http/httpdto"
 
@@ -12,11 +13,15 @@ import (
 )
 
 type GinUserHandler struct {
-	usecase usecase.UserUsecase
+	usecase     usecase.UserUsecase
+	serviceURLs *config.ServiceURLs
 }
 
-func NewGinUserHandler(usecase usecase.UserUsecase) *GinUserHandler {
-	return &GinUserHandler{usecase: usecase}
+func NewGinUserHandler(usecase usecase.UserUsecase, serviceURLs *config.ServiceURLs) *GinUserHandler {
+	return &GinUserHandler{
+		usecase:     usecase,
+		serviceURLs: serviceURLs,
+	}
 }
 
 func getTokenFromHeader(c *gin.Context) string {
@@ -56,7 +61,7 @@ func (h *GinUserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseUser(ret)
+	resp := httpdto.ToHttpResponseUser(ret, h.serviceURLs)
 	c.JSON(http.StatusCreated, resp)
 }
 
@@ -87,7 +92,7 @@ func (h *GinUserHandler) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseUser(ret)
+	resp := httpdto.ToHttpResponseUser(ret, h.serviceURLs)
 
 	c.JSON(http.StatusOK, resp)
 }
@@ -132,7 +137,7 @@ func (h *GinUserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseUser(user)
+	resp := httpdto.ToHttpResponseUser(user, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -155,7 +160,7 @@ func (h *GinUserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseUser(ret)
+	resp := httpdto.ToHttpResponseUser(ret, h.serviceURLs)
 
 	c.JSON(http.StatusOK, resp)
 }

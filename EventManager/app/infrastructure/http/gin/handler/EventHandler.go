@@ -4,6 +4,7 @@ import (
 	"errors"
 	"eventManager/application/usecase"
 	"eventManager/application/domain"
+	"eventManager/infrastructure/http/config"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
 	"net/http"
@@ -12,11 +13,15 @@ import (
 )
 
 type GinEventHandler struct {
-	usecase usecase.EventUseCase
+	usecase     usecase.EventUseCase
+	serviceURLs *config.ServiceURLs
 }
 
-func NewGinEventHandler(usecase usecase.EventUseCase) *GinEventHandler {
-	return &GinEventHandler{usecase: usecase}
+func NewGinEventHandler(usecase usecase.EventUseCase, serviceURLs *config.ServiceURLs) *GinEventHandler {
+	return &GinEventHandler{
+		usecase:     usecase,
+		serviceURLs: serviceURLs,
+	}
 }
 
 func getTokenFromHeader(c *gin.Context) string {
@@ -56,7 +61,7 @@ func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEvent(ret)
+	resp := httpdto.ToHttpResponseEvent(ret, h.serviceURLs)
 	c.JSON(http.StatusCreated, resp)
 }
 
@@ -87,7 +92,7 @@ func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEvent(ret)
+	resp := httpdto.ToHttpResponseEvent(ret, h.serviceURLs)
 
 	c.JSON(http.StatusOK, resp)
 
@@ -133,7 +138,7 @@ func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEvent(event)
+	resp := httpdto.ToHttpResponseEvent(event, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -156,7 +161,7 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEvent(ret)
+	resp := httpdto.ToHttpResponseEvent(ret, h.serviceURLs)
 
 	c.JSON(http.StatusOK, resp)
 }
@@ -190,7 +195,7 @@ func (h *GinEventHandler) FilterEvents(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEventList(events)
+	resp := httpdto.ToHttpResponseEventList(events, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 
 }

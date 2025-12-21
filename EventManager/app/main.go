@@ -3,6 +3,7 @@ package main
 import (
 	"eventManager/application/service"
 	"eventManager/application/usecase"
+	"eventManager/infrastructure/http/config"
 	"eventManager/infrastructure/http/gin/handler"
 	"eventManager/infrastructure/http/gin/router"
 	"eventManager/infrastructure/persistence/postgres"
@@ -39,10 +40,12 @@ func main() {
 	eventPacketInclusionUseCase := usecase.NewEventPacketInclusionUseCase(eventPacketInclusionRepo, eventRepo, eventPacketRepo, authenService, authzService)
 	ticketUseCase := usecase.NewTicketUseCase(ticketRepo, ticketService, authenService, authzService)
 
-	eventHandler := handler.NewGinEventHandler(eventUseCase)
-	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketUseCase)
-	eventPacketInclusionHandler := handler.NewGinEventPacketInclusionHandler(eventPacketInclusionUseCase)
-	ticketHandler := handler.NewGinTicketHandler(ticketUseCase)
+	serviceURLs := config.NewServiceURLs()
+
+	eventHandler := handler.NewGinEventHandler(eventUseCase, serviceURLs)
+	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketUseCase, serviceURLs)
+	eventPacketInclusionHandler := handler.NewGinEventPacketInclusionHandler(eventPacketInclusionUseCase, serviceURLs)
+	ticketHandler := handler.NewGinTicketHandler(ticketUseCase, serviceURLs)
 
 	r := gin.Default()
 

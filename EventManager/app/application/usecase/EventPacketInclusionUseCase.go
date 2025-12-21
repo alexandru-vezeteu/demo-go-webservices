@@ -131,13 +131,11 @@ func (uc *eventPacketInclusionUseCase) GetEventsByPacketID(ctx context.Context, 
 		return nil, err
 	}
 
-	// Batch authorization check - filter events user can view
 	permissions, err := uc.authZService.CanUserViewEvents(ctx, identity.UserID, events)
 	if err != nil {
 		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 
-	// Filter to only include events user is authorized to view
 	authorizedEvents := make([]*domain.Event, 0, len(events))
 	for i, event := range events {
 		if permissions[i] {
@@ -163,13 +161,11 @@ func (uc *eventPacketInclusionUseCase) GetEventPacketsByEventID(ctx context.Cont
 		return nil, err
 	}
 
-	// Batch authorization check - filter packets user can view
 	permissions, err := uc.authZService.CanUserViewEventPackets(ctx, identity.UserID, packets)
 	if err != nil {
 		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 
-	// Filter to only include packets user is authorized to view
 	authorizedPackets := make([]*domain.EventPacket, 0, len(packets))
 	for i, packet := range packets {
 		if permissions[i] {

@@ -1,26 +1,28 @@
 package httpdto
 
-import "eventManager/application/domain"
-
+import (
+	"eventManager/application/domain"
+	"eventManager/infrastructure/http/config"
+	"eventManager/infrastructure/http/hateoas"
+	"fmt"
+)
 
 type HttpCreateTicket struct {
 	PacketID *int `json:"packet_id"`
 	EventID  *int `json:"event_id"`
 }
 
-
 type HttpResponseTicket struct {
-	Code     string `json:"code"`
-	PacketID *int   `json:"packet_id"`
-	EventID  *int   `json:"event_id"`
+	Code     string                  `json:"code"`
+	PacketID *int                    `json:"packet_id"`
+	EventID  *int                    `json:"event_id"`
+	Links    map[string]hateoas.Link `json:"_links"`
 }
-
 
 type HttpUpdateTicket struct {
 	PacketID *int `json:"packet_id"`
 	EventID  *int `json:"event_id"`
 }
-
 
 func (dto *HttpCreateTicket) ToTicket() *domain.Ticket {
 	return &domain.Ticket{
@@ -29,15 +31,40 @@ func (dto *HttpCreateTicket) ToTicket() *domain.Ticket {
 	}
 }
 
+func ToHttpResponseTicket(ticket *domain.Ticket, serviceURLs *config.ServiceURLs) *HttpResponseTicket {
+	resourcePath := fmt.Sprintf("/tickets/%s", ticket.Code)
 
-func ToHttpResponseTicket(ticket *domain.Ticket) *HttpResponseTicket {
+	links := map[string]hateoas.Link{
+		"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+		"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
+		"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
+	}
+
+	if ticket.EventID != nil {
+		links["event"] = hateoas.BuildRelatedLink(
+			fmt.Sprintf("%s/events/%d", serviceURLs.EventManager, *ticket.EventID),
+			"event",
+			"GET",
+			"Get event for this ticket",
+		)
+	}
+
+	if ticket.PacketID != nil {
+		links["packet"] = hateoas.BuildRelatedLink(
+			fmt.Sprintf("%s/packets/%d", serviceURLs.EventManager, *ticket.PacketID),
+			"packet",
+			"GET",
+			"Get packet for this ticket",
+		)
+	}
+
 	return &HttpResponseTicket{
 		Code:     ticket.Code,
 		PacketID: ticket.PacketID,
 		EventID:  ticket.EventID,
+		Links:    links,
 	}
 }
-
 
 func (dto *HttpUpdateTicket) ToUpdateMap() map[string]interface{} {
 	updates := make(map[string]interface{})

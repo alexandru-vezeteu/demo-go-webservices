@@ -47,8 +47,6 @@ func NewEventManagerClient() *EventManagerClient {
 	}
 }
 
-// CreateTicket creates a ticket in the Event Manager service
-// Returns domain errors - no HTTP status codes exposed to use case layer
 func (c *EventManagerClient) CreateTicket(code string, packetID *int, eventID *int) (*TicketResponse, error) {
 	url := fmt.Sprintf("%s/api/event-manager/tickets/%s", c.baseURL, code)
 
@@ -80,13 +78,11 @@ func (c *EventManagerClient) CreateTicket(code string, packetID *int, eventID *i
 		return nil, &domain.InternalError{Msg: "failed to read response", Err: err}
 	}
 
-	// Translate HTTP status codes to domain errors (infrastructure layer responsibility)
 	if resp.StatusCode >= 500 {
 		return nil, &domain.InternalError{Msg: "event manager service error", Err: fmt.Errorf("status %d: %s", resp.StatusCode, string(body))}
 	}
 
 	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-		// Client errors - could be validation, not found, forbidden, etc.
 		return nil, &domain.ValidationError{Field: "ticket", Reason: fmt.Sprintf("failed to create ticket: %s", string(body))}
 	}
 

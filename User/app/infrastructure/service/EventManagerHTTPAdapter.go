@@ -5,7 +5,6 @@ import (
 	"userService/infrastructure/http"
 )
 
-// EventManagerHTTPAdapter adapts the HTTP client to the service interface
 type EventManagerHTTPAdapter struct {
 	client *http.EventManagerClient
 }

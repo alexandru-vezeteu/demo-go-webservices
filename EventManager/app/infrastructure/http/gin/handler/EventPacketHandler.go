@@ -4,6 +4,7 @@ import (
 	"errors"
 	"eventManager/application/usecase"
 	"eventManager/application/domain"
+	"eventManager/infrastructure/http/config"
 	"eventManager/infrastructure/http/gin/middleware"
 	"eventManager/infrastructure/http/httpdto"
 	"net/http"
@@ -12,11 +13,15 @@ import (
 )
 
 type GinEventPacketHandler struct {
-	usecase usecase.EventPacketUseCase
+	usecase     usecase.EventPacketUseCase
+	serviceURLs *config.ServiceURLs
 }
 
-func NewGinEventPacketHandler(usecase usecase.EventPacketUseCase) *GinEventPacketHandler {
-	return &GinEventPacketHandler{usecase: usecase}
+func NewGinEventPacketHandler(usecase usecase.EventPacketUseCase, serviceURLs *config.ServiceURLs) *GinEventPacketHandler {
+	return &GinEventPacketHandler{
+		usecase:     usecase,
+		serviceURLs: serviceURLs,
+	}
 }
 
 
@@ -60,7 +65,7 @@ func (h *GinEventPacketHandler) CreateEventPacket(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEventPacket(ret)
+	resp := httpdto.ToHttpResponseEventPacket(ret, h.serviceURLs)
 	c.JSON(http.StatusCreated, resp)
 }
 
@@ -102,7 +107,7 @@ func (h *GinEventPacketHandler) GetEventPacketByID(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEventPacket(ret)
+	resp := httpdto.ToHttpResponseEventPacket(ret, h.serviceURLs)
 
 	c.JSON(http.StatusOK, resp)
 
@@ -161,7 +166,7 @@ func (h *GinEventPacketHandler) UpdateEventPacket(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEventPacket(event)
+	resp := httpdto.ToHttpResponseEventPacket(event, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -195,7 +200,7 @@ func (h *GinEventPacketHandler) DeleteEventPacket(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEventPacket(ret)
+	resp := httpdto.ToHttpResponseEventPacket(ret, h.serviceURLs)
 
 	c.JSON(http.StatusOK, resp)
 }

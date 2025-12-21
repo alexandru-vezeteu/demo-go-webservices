@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"userService/application/domain"
 	"userService/infrastructure/http"
+	"userService/infrastructure/http/config"
+	"userService/infrastructure/http/hateoas"
 )
 
 type httpResponseUser struct {
@@ -20,10 +22,13 @@ type HttpResponseUser struct {
 	User *httpResponseUser `json:"user"`
 }
 
-func ToHttpResponseUser(user *domain.User) *HttpResponseUser {
+func ToHttpResponseUser(user *domain.User, serviceURLs *config.ServiceURLs) *HttpResponseUser {
 	if user == nil {
 		return &HttpResponseUser{}
 	}
+
+	resourcePath := fmt.Sprintf("/users/%d", user.ID)
+
 	dto := &httpResponseUser{
 		ID:               user.ID,
 		Email:            user.Email,
@@ -31,22 +36,31 @@ func ToHttpResponseUser(user *domain.User) *HttpResponseUser {
 		LastName:         user.LastName,
 		SocialMediaLinks: user.SocialMediaLinks,
 		TicketList:       user.TicketList,
+		Links: map[string]http.Link{
+			"self":   hateoas.BuildSelfLink(serviceURLs.UserManager, resourcePath),
+			"update": hateoas.BuildUpdateLink(serviceURLs.UserManager, resourcePath),
+			"delete": hateoas.BuildDeleteLink(serviceURLs.UserManager, resourcePath),
+			"events": hateoas.BuildRelatedLink(
+				fmt.Sprintf("%s/events?owner_id=%d", serviceURLs.EventManager, user.ID),
+				"events",
+				"GET",
+				"Get events owned by this user",
+			),
+			"packets": hateoas.BuildRelatedLink(
+				fmt.Sprintf("%s/packets?owner_id=%d", serviceURLs.EventManager, user.ID),
+				"packets",
+				"GET",
+				"Get packets owned by this user",
+			),
+			"create-ticket": hateoas.BuildRelatedLink(
+				fmt.Sprintf("%s/clients/%d/tickets", serviceURLs.UserManager, user.ID),
+				"create-ticket",
+				"POST",
+				"Create a ticket for this user",
+			),
+		},
 	}
-	prefix := "/api/user-manager"
-	dto.Links = map[string]http.Link{
-		"self": {
-			Href: fmt.Sprintf("%s/users/%d", prefix, user.ID),
-			Type: "GET",
-		},
-		"update": {
-			Href: fmt.Sprintf("%s/users/%d", prefix, user.ID),
-			Type: "PATCH",
-		},
-		"delete": {
-			Href: fmt.Sprintf("%s/users/%d", prefix, user.ID),
-			Type: "DELETE",
-		},
-	}
+
 	return &HttpResponseUser{
 		User: dto,
 	}

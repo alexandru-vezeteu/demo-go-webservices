@@ -7,6 +7,7 @@ import (
 	"time"
 	"userService/application/usecase"
 	"userService/infrastructure/http"
+	"userService/infrastructure/http/config"
 	"userService/infrastructure/http/gin/handler"
 	"userService/infrastructure/http/gin/router"
 	"userService/infrastructure/persistence/mongodb"
@@ -36,7 +37,9 @@ func main() {
 
 	userUsecase := usecase.NewUserUsecase(userRepo, eventManagerService, authenService, authzService)
 
-	userHandler := handler.NewGinUserHandler(userUsecase)
+	serviceURLs := config.NewServiceURLs()
+
+	userHandler := handler.NewGinUserHandler(userUsecase, serviceURLs)
 
 	r := gin.Default()
 

@@ -61,8 +61,6 @@ func (r *GormTicketRepository) UpdateTicket(ctx context.Context, code string, up
 func (r *GormTicketRepository) ReplaceTicket(ctx context.Context, ticket *domain.Ticket) (*domain.Ticket, error) {
 	gormTicket := gormmodel.FromTicket(ticket)
 
-	// Use Save which will update if exists (based on primary key - code) or create if not
-	// This is the proper PUT semantics
 	if err := r.DB.WithContext(ctx).Save(gormTicket).Error; err != nil {
 		return nil, &domain.InternalError{Msg: "failed to replace ticket", Err: err}
 	}
