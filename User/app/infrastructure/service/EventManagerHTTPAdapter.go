@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"userService/application/service"
 	"userService/infrastructure/http"
 )
@@ -15,8 +16,8 @@ func NewEventManagerHTTPAdapter(client *http.EventManagerClient) service.EventMa
 	}
 }
 
-func (a *EventManagerHTTPAdapter) CreateTicket(code string, packetID *int, eventID *int) (*service.TicketResponse, error) {
-	resp, err := a.client.CreateTicket(code, packetID, eventID)
+func (a *EventManagerHTTPAdapter) CreateTicket(ctx context.Context, code string, packetID *int, eventID *int) (*service.TicketResponse, error) {
+	resp, err := a.client.CreateTicket(ctx, code, packetID, eventID)
 	if err != nil {
 		return nil, err
 	}

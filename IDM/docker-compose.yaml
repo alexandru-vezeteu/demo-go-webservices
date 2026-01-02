@@ -11,14 +11,20 @@ services:
     depends_on:
       idmDB:
         condition: service_healthy
+      idmRedis:
+        condition: service_healthy
     environment:
       IDM_PORT: ${IDM_PORT}
+      IDM_SERVICE_URL: http://${IDM_HOST}:${IDM_PORT}
 
-      IDM_DB_HOST: ${IDM_DB_HOST}
-      IDM_DB_USER: ${IDM_DB_USER}
-      IDM_DB_PASSWORD: ${IDM_DB_PASSWORD}
-      IDM_DB_NAME: ${IDM_DB_NAME}
-      IDM_DB_PORT: ${IDM_DB_PORT}
+      DB_HOST: ${IDM_DB_HOST}
+      DB_USER: ${IDM_DB_USER}
+      DB_PASSWORD: ${IDM_DB_PASSWORD}
+      DB_NAME: ${IDM_DB_NAME}
+      DB_PORT: ${IDM_DB_PORT}
+
+      REDIS_ADDR: ${IDM_REDIS_HOST}:${IDM_REDIS_PORT}
+      REDIS_PASSWORD: ${IDM_REDIS_PASSWORD}
     restart: always
     networks:
       - idm-network
@@ -43,6 +49,22 @@ services:
       retries: 5
       start_period: 30s
 
+  idmRedis:
+    image: redis:7-alpine
+    container_name: ${IDM_REDIS_HOST}
+    command: redis-server --appendonly yes
+    volumes:
+      - idm_redis:/data
+    restart: always
+    networks:
+      - idm-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 networks:
   idm-network:
     name: idm-network
@@ -50,4 +72,6 @@ networks:
 
 volumes:
   idm_db:
+    driver: local
+  idm_redis:
     driver: local

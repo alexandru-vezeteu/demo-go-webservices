@@ -1,6 +1,6 @@
 module userService
 
-go 1.25.4
+go 1.24
 
 require (
 	github.com/gin-contrib/cors v1.7.6
@@ -49,4 +49,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace idmService => ../../IDM/app
+replace idmService => /IDM/app

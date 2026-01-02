@@ -1,9 +1,10 @@
 package blacklist
 
 import (
-	"fmt"
 	"sync"
 	"time"
+
+	"idmService/application/domain"
 )
 
 type BlacklistedToken struct {
@@ -23,7 +24,7 @@ func NewInMemoryBlacklist() *InMemoryBlacklist {
 	}
 }
 
-func (b *InMemoryBlacklist) Add(token string, reason string) error {
+func (b *InMemoryBlacklist) Add(token string, reason string, expiresAt time.Time) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -32,6 +33,16 @@ func (b *InMemoryBlacklist) Add(token string, reason string) error {
 		Reason:  reason,
 		AddedAt: time.Now(),
 	}
+
+	go func() {
+		ttl := time.Until(expiresAt)
+		if ttl > 0 {
+			time.Sleep(ttl)
+			b.mu.Lock()
+			delete(b.tokens, token)
+			b.mu.Unlock()
+		}
+	}()
 
 	return nil
 }
@@ -52,7 +63,7 @@ func (b *InMemoryBlacklist) Remove(token string) error {
 	defer b.mu.Unlock()
 
 	if _, exists := b.tokens[token]; !exists {
-		return fmt.Errorf("token not found in blacklist")
+		return &domain.NotFoundError{Resource: "token", ID: ""}
 	}
 
 	delete(b.tokens, token)

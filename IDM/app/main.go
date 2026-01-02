@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"time"
 
-	"idmService/infrastructure/authorization"
+	"idmService/application/domain"
+	"idmService/application/usecase"
 	"idmService/infrastructure/blacklist"
 	"idmService/infrastructure/persistence"
+	"idmService/infrastructure/service"
 	pb "idmService/proto"
 	"idmService/server"
-	"idmService/service"
-	"idmService/usecase"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -37,33 +39,46 @@ func main() {
 	}
 	fmt.Println("Database migrations completed")
 
+	serviceEmail := "clients_service@system.local"
+	servicePassword := "service_secret_password"
+	if err := userRepo.SeedServiceAccount(serviceEmail, servicePassword); err != nil {
+		log.Printf("Warning: Failed to seed service account: %v", err)
+	} else {
+		fmt.Println("Service account seeded successfully")
+	}
 
-	tokenBlacklist := blacklist.NewInMemoryBlacklist()
-
+	var tokenBlacklist domain.TokenBlacklist
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr != "" {
+		fmt.Println("Connecting to Redis for token blacklist...")
+		redisBlacklist, err := blacklist.NewRedisBlacklist(&blacklist.RedisConfig{
+			Addr:     redisAddr,
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB:       0,
+			TTL:      24 * time.Hour,
+		})
+		if err != nil {
+			log.Printf("Warning: Failed to connect to Redis, falling back to in-memory blacklist: %v", err)
+			tokenBlacklist = blacklist.NewInMemoryBlacklist()
+		} else {
+			fmt.Println("Redis blacklist connected successfully")
+			tokenBlacklist = redisBlacklist
+		}
+	} else {
+		fmt.Println("Using in-memory token blacklist (set REDIS_ADDR for distributed blacklist)")
+		tokenBlacklist = blacklist.NewInMemoryBlacklist()
+	}
 
 	tokenService := service.NewTokenService()
 
-
 	loginUseCase := usecase.NewLoginUseCase(userRepo, tokenService)
 	verifyTokenUseCase := usecase.NewVerifyTokenUseCase(userRepo, tokenService, tokenBlacklist)
-	revokeTokenUseCase := usecase.NewRevokeTokenUseCase(tokenBlacklist)
-
-
-	relationshipRepo := authorization.NewInMemoryRelationshipRepository()
-
-
-	checkPermissionUseCase := usecase.NewCheckPermissionUseCase(relationshipRepo)
-	writeRelationshipsUseCase := usecase.NewWriteRelationshipsUseCase(relationshipRepo)
-	readRelationshipsUseCase := usecase.NewReadRelationshipsUseCase(relationshipRepo)
-
+	revokeTokenUseCase := usecase.NewRevokeTokenUseCase(tokenBlacklist, tokenService)
 
 	idmServer := server.NewIdentityServer(
 		loginUseCase,
 		verifyTokenUseCase,
 		revokeTokenUseCase,
-		checkPermissionUseCase,
-		writeRelationshipsUseCase,
-		readRelationshipsUseCase,
 	)
 
 	listener, err := net.Listen("tcp", port)

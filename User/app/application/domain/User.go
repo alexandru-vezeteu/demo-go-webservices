@@ -5,13 +5,20 @@ import (
 	"strings"
 )
 
+type Ticket struct {
+	Code string
+}
+
 type User struct {
 	ID               int
 	Email            string
 	FirstName        string
 	LastName         string
 	SocialMediaLinks *string
-	TicketList       *string
+	TicketList       []Ticket
+
+	FirstNamePrivate bool
+	LastNamePrivate  bool
 }
 
 func validateEmail(email string) bool {
@@ -28,11 +35,6 @@ func validateSocialMediaLinks(links *string) bool {
 	return trimmed != ""
 }
 
-func validateTicketList(tickets *string) bool {
-	if tickets == nil {
-		return true
-	}
-
-	trimmed := strings.TrimSpace(*tickets)
-	return trimmed != ""
+func validateTicketList(tickets []Ticket) bool {
+	return true
 }

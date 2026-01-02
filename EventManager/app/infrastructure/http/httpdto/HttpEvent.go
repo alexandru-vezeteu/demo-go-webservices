@@ -5,6 +5,8 @@ import (
 	"eventManager/infrastructure/http/config"
 	"eventManager/infrastructure/http/hateoas"
 	"fmt"
+	"net/url"
+	"strconv"
 )
 
 type httpResponseEvent struct {
@@ -66,8 +68,51 @@ func ToHttpResponseEvent(event *domain.Event, serviceURLs *config.ServiceURLs) *
 }
 
 type HttpResponseEventList struct {
-	Events []*httpResponseEvent  `json:"events"`
-	Links  map[string]hateoas.Link `json:"_links"`
+	Events   []*httpResponseEvent    `json:"events"`
+	Links    map[string]hateoas.Link `json:"_links"`
+	Metadata *PaginationMetadata     `json:"_metadata,omitempty"`
+}
+
+type PaginationMetadata struct {
+	Page       int `json:"page"`
+	PerPage    int `json:"per_page"`
+	TotalItems int `json:"total_items,omitempty"`
+	TotalPages int `json:"total_pages,omitempty"`
+}
+
+func buildEventFilterQuery(filter *domain.EventFilter, page int) string {
+	if filter == nil {
+		return ""
+	}
+
+	params := url.Values{}
+
+	if filter.Name != nil {
+		params.Add("name", *filter.Name)
+	}
+	if filter.Location != nil {
+		params.Add("location", *filter.Location)
+	}
+	if filter.Description != nil {
+		params.Add("description", *filter.Description)
+	}
+	if filter.MinSeats != nil {
+		params.Add("min_seats", strconv.Itoa(*filter.MinSeats))
+	}
+	if filter.MaxSeats != nil {
+		params.Add("max_seats", strconv.Itoa(*filter.MaxSeats))
+	}
+	if filter.OrderBy != nil {
+		params.Add("order_by", *filter.OrderBy)
+	}
+
+	if filter.PerPage != nil {
+		params.Add("per_page", strconv.Itoa(*filter.PerPage))
+	}
+
+	params.Add("page", strconv.Itoa(page))
+
+	return params.Encode()
 }
 
 func ToHttpResponseEventList(events []*domain.Event, serviceURLs *config.ServiceURLs) *HttpResponseEventList {
@@ -111,6 +156,115 @@ func ToHttpResponseEventList(events []*domain.Event, serviceURLs *config.Service
 			"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, "/events"),
 			"create": hateoas.BuildCreateLink(serviceURLs.EventManager, "/events"),
 		},
+	}
+}
+
+func ToHttpResponseEventListCustom(events []*domain.Event, selfPath string, serviceURLs *config.ServiceURLs) *HttpResponseEventList {
+	if events == nil {
+		events = []*domain.Event{}
+	}
+
+	httpEvents := make([]*httpResponseEvent, 0, len(events))
+
+	for _, event := range events {
+		resourcePath := fmt.Sprintf("/events/%d", event.ID)
+		httpEvents = append(httpEvents, &httpResponseEvent{
+			ID:          event.ID,
+			OwnerID:     event.OwnerID,
+			Name:        event.Name,
+			Location:    event.Location,
+			Description: event.Description,
+			Seats:       event.Seats,
+			Links: map[string]hateoas.Link{
+				"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+				"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
+				"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
+				"owner": hateoas.BuildRelatedLink(
+					fmt.Sprintf("%s/users/%d", serviceURLs.UserManager, event.OwnerID),
+					"owner",
+					"GET",
+					"Get event owner",
+				),
+			},
+		})
+	}
+
+	return &HttpResponseEventList{
+		Events: httpEvents,
+		Links: map[string]hateoas.Link{
+			"self": hateoas.BuildSelfLink(serviceURLs.EventManager, selfPath),
+		},
+	}
+}
+
+func ToHttpResponseEventListWithPagination(events []*domain.Event, filter *domain.EventFilter, serviceURLs *config.ServiceURLs) *HttpResponseEventList {
+	if events == nil {
+		events = []*domain.Event{}
+	}
+
+	httpEvents := make([]*httpResponseEvent, 0, len(events))
+
+	for _, event := range events {
+		resourcePath := fmt.Sprintf("/events/%d", event.ID)
+		httpEvents = append(httpEvents, &httpResponseEvent{
+			ID:          event.ID,
+			OwnerID:     event.OwnerID,
+			Name:        event.Name,
+			Location:    event.Location,
+			Description: event.Description,
+			Seats:       event.Seats,
+			Links: map[string]hateoas.Link{
+				"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+				"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
+				"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
+				"owner": hateoas.BuildRelatedLink(
+					fmt.Sprintf("%s/users/%d", serviceURLs.UserManager, event.OwnerID),
+					"owner",
+					"GET",
+					"Get event owner",
+				),
+			},
+		})
+	}
+
+	links := map[string]hateoas.Link{
+		"create": hateoas.BuildCreateLink(serviceURLs.EventManager, "/events"),
+	}
+
+	currentPage := 1
+	perPage := 10
+	if filter != nil && filter.Page != nil {
+		currentPage = *filter.Page
+	}
+	if filter != nil && filter.PerPage != nil {
+		perPage = *filter.PerPage
+	}
+
+	selfQuery := buildEventFilterQuery(filter, currentPage)
+	links["self"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/events", selfQuery, "self", "Current page")
+
+	firstQuery := buildEventFilterQuery(filter, 1)
+	links["first"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/events", firstQuery, "first", "First page")
+
+	if currentPage > 1 {
+		prevQuery := buildEventFilterQuery(filter, currentPage-1)
+		links["prev"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/events", prevQuery, "prev", "Previous page")
+	}
+
+	if len(events) == perPage {
+		nextQuery := buildEventFilterQuery(filter, currentPage+1)
+		links["next"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/events", nextQuery, "next", "Next page")
+	}
+
+	metadata := &PaginationMetadata{
+		Page:    currentPage,
+		PerPage: perPage,
+	}
+
+	return &HttpResponseEventList{
+		Events:   httpEvents,
+		Links:    links,
+		Metadata: metadata,
 	}
 }
 

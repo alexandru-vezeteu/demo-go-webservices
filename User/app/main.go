@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 	"userService/application/usecase"
+	_ "userService/docs"
 	"userService/infrastructure/http"
 	"userService/infrastructure/http/config"
 	"userService/infrastructure/http/gin/handler"
@@ -14,9 +15,25 @@ import (
 	mongorepository "userService/infrastructure/persistence/mongodb/repository"
 	infrastructureservice "userService/infrastructure/service"
 
+	pb "idmService/proto"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
+// @title User Service API
+// @version 1.0
+// @description User management service for the POS system. Handles user CRUD operations and ticket purchases.
+// @host localhost:12346
+// @BasePath /api/user-manager
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token
 
 func main() {
 	db := mongodb.InitDB()
@@ -29,11 +46,52 @@ func main() {
 		fmt.Printf("Warning: Failed to create indexes: %v\n", err)
 	}
 
-	eventManagerClient := http.NewEventManagerClient()
+	idmHost := os.Getenv("IDM_HOST")
+	if idmHost == "" {
+		idmHost = "localhost"
+	}
+	idmPort := os.Getenv("IDM_PORT")
+	if idmPort == "" {
+		idmPort = "50051"
+	}
+
+	idmAddress := fmt.Sprintf("%s:%s", idmHost, idmPort)
+	idmConn, err := grpc.NewClient(idmAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		fmt.Printf("Warning: Failed to connect to IDM for service auth: %v\n", err)
+	}
+	defer func() {
+		if idmConn != nil {
+			idmConn.Close()
+		}
+	}()
+
+	var serviceAuthClient *infrastructureservice.ServiceAuthClient
+	serviceEmail := os.Getenv("SERVICE_EMAIL")
+	servicePassword := os.Getenv("SERVICE_PASSWORD")
+	if serviceEmail != "" && servicePassword != "" && idmConn != nil {
+		idmClient := pb.NewIdentityServiceClient(idmConn)
+		serviceAuthClient = infrastructureservice.NewServiceAuthClient(idmClient, serviceEmail, servicePassword)
+		fmt.Printf("Service authentication configured for: %s\n", serviceEmail)
+	} else {
+		fmt.Println("Warning: SERVICE_EMAIL or SERVICE_PASSWORD not set, service-to-service auth disabled")
+	}
+
+	eventManagerClient := http.NewEventManagerClient(serviceAuthClient)
 	eventManagerService := infrastructureservice.NewEventManagerHTTPAdapter(eventManagerClient)
 
-	authenService := infrastructureservice.NewDummyAuthenticationService()
-	authzService := infrastructureservice.NewDummyAuthorizationService()
+	authenService, err := infrastructureservice.NewRealAuthenticationService(idmHost, idmPort)
+	if err != nil {
+		fmt.Printf("Failed to initialize authentication service: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if closer, ok := authenService.(interface{ Close() error }); ok {
+			closer.Close()
+		}
+	}()
+
+	authzService := infrastructureservice.NewDummyAuthorizationService(userRepo)
 
 	userUsecase := usecase.NewUserUsecase(userRepo, eventManagerService, authenService, authzService)
 
@@ -51,6 +109,9 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	// Swagger UI endpoint
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	userAPI := r.Group("/api/user-manager")
 	router.RegisterUserRoutes(userAPI, userHandler)
 
@@ -59,8 +120,7 @@ func main() {
 		port = "12346"
 	}
 
-	err := r.Run(":" + port)
-	if err != nil {
+	if err := r.Run(":" + port); err != nil {
 		fmt.Println(err.Error())
 	}
 }

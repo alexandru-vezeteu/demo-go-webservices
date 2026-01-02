@@ -20,6 +20,15 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title EventManager Service API
+// @version 1.0
+// @description Event management service for the POS system. Handles events, event packets, tickets, and inclusions.
+// @host localhost:12345
+// @BasePath /api/event-manager
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token
 func main() {
 	db := postgres.InitDB()
 
@@ -32,7 +41,26 @@ func main() {
 	eventPacketService := service.NewEventPacketService(eventPacketRepo, eventPacketInclusionRepo)
 	ticketService := service.NewTicketService(ticketRepo, eventRepo, eventPacketRepo, eventPacketInclusionRepo)
 
-	authenService := infrastructureservice.NewDummyAuthenticationService()
+	idmHost := os.Getenv("IDM_HOST")
+	if idmHost == "" {
+		idmHost = "localhost"
+	}
+	idmPort := os.Getenv("IDM_PORT")
+	if idmPort == "" {
+		idmPort = "50051"
+	}
+
+	authenService, err := infrastructureservice.NewRealAuthenticationService(idmHost, idmPort)
+	if err != nil {
+		fmt.Printf("Failed to initialize authentication service: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if closer, ok := authenService.(interface{ Close() error }); ok {
+			closer.Close()
+		}
+	}()
+
 	authzService := infrastructureservice.NewDummyAuthorizationService()
 
 	eventUseCase := usecase.NewEventUseCase(eventRepo, eventService, authenService, authzService)
@@ -69,8 +97,7 @@ func main() {
 		port = "8080"
 	}
 
-	err := r.Run(":" + port)
-	if err != nil {
+	if err := r.Run(":" + port); err != nil {
 		fmt.Println(err.Error())
 	}
 }

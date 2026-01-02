@@ -66,3 +66,25 @@ type InvalidRequestError struct {
 func (e *InvalidRequestError) Error() string {
 	return e.Reason
 }
+
+type UnauthorizedError struct {
+	Reason string
+}
+
+func (e *UnauthorizedError) Error() string {
+	if e.Reason != "" {
+		return fmt.Sprintf("unauthorized: %s", e.Reason)
+	}
+	return "unauthorized"
+}
+
+type ForbiddenError struct {
+	Reason string
+}
+
+func (e *ForbiddenError) Error() string {
+	if e.Reason != "" {
+		return fmt.Sprintf("forbidden: %s", e.Reason)
+	}
+	return "forbidden: you don't have permission to access this resource"
+}

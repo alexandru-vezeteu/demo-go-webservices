@@ -1,0 +1,105 @@
+@startuml idm_service_components
+!theme plain
+
+package "IDM Service (gRPC)" {
+
+    package "gRPC Layer" <<Rectangle>> {
+        component [gRPC Server\n:50051] as gRPCServer
+        component [IDM Server Implementation] as IDMServer
+        component [Protocol Buffers\nidm.proto] as Proto
+    }
+
+    package "Application Layer" <<Rectangle>> {
+        component [LoginUseCase] as LoginUC
+        component [VerifyTokenUseCase] as VerifyUC
+        component [RevokeTokenUseCase] as RevokeUC
+        component [ReadRelationshipsUseCase] as ReadRelUC
+        component [WriteRelationshipsUseCase] as WriteRelUC
+        component [CheckPermissionUseCase] as CheckPermUC
+
+        interface IUserRepository as IUserRepo
+        interface IRelationshipRepository as IRelRepo
+        interface IBlacklist as IBlacklist
+        interface ITokenService as ITokenSvc
+    }
+
+    package "Domain Layer" <<Rectangle>> {
+        component [User] as User
+        component [Relationship] as Relationship
+        component [JWT Token] as Token
+    }
+
+    package "Infrastructure Layer" <<Rectangle>> {
+        component [PostgresUserRepository] as UserRepo
+        component [InMemoryRelationshipRepository] as RelRepo
+        component [RedisBlacklist] as RedisBlacklist
+        component [InMemoryBlacklist] as MemBlacklist
+        component [JWTTokenService] as TokenService
+        database [PostgreSQL\nidm_db] as PostgresDB
+        database [Redis\nBlacklist Cache] as Redis
+    }
+
+    gRPCServer --> IDMServer
+    IDMServer --> Proto
+
+    IDMServer --> LoginUC
+    IDMServer --> VerifyUC
+    IDMServer --> RevokeUC
+    IDMServer --> ReadRelUC
+    IDMServer --> WriteRelUC
+    IDMServer --> CheckPermUC
+
+    LoginUC --> IUserRepo
+    LoginUC --> ITokenSvc
+    VerifyUC --> ITokenSvc
+    VerifyUC --> IBlacklist
+    RevokeUC --> IBlacklist
+    ReadRelUC --> IRelRepo
+    WriteRelUC --> IRelRepo
+    CheckPermUC --> IRelRepo
+
+    LoginUC --> User
+    ReadRelUC --> Relationship
+    WriteRelUC --> Relationship
+
+    IUserRepo <|.. UserRepo
+    IRelRepo <|.. RelRepo
+    IBlacklist <|.. RedisBlacklist
+    IBlacklist <|.. MemBlacklist
+    ITokenSvc <|.. TokenService
+
+    UserRepo --> PostgresDB
+    RedisBlacklist --> Redis
+
+    note right of TokenService
+        JWT Generation & Validation
+        Claims: iss, sub, exp, jti, role
+        Signing with secret key
+    end note
+
+    note right of RedisBlacklist
+        Token blacklist with TTL
+        Falls back to in-memory
+        if Redis unavailable
+    end note
+}
+
+package "IDM Gateway (HTTP Bridge)" {
+    component [FastAPI Server\n:8000] as FastAPI
+    component [gRPC Client] as gRPCClient
+    component [Auth Router] as AuthRouter
+
+    FastAPI --> AuthRouter
+    AuthRouter --> gRPCClient
+    gRPCClient --> gRPCServer : gRPC\n:50051
+}
+
+note bottom of FastAPI
+    HTTP to gRPC Adapter
+    Endpoints:
+    - POST /api/idm/auth/login
+    - POST /api/idm/auth/verify
+    - POST /api/idm/auth/revoke
+end note
+
+@enduml

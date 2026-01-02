@@ -4,8 +4,8 @@ include:
 services:
   userService:
     build:
-      context: .
-      dockerfile: user.dockerfile
+      context: ..
+      dockerfile: User/user.dockerfile
     image: user_service_image
     container_name: ${USER_HOST}
     depends_on:
@@ -19,6 +19,17 @@ services:
       USER_DB_PASSWORD: ${USER_DB_PASSWORD}
       USER_DB_NAME: ${USER_DB_NAME}
       USER_DB_PORT: ${USER_DB_PORT}
+
+      IDM_HOST: idm-service
+      IDM_PORT: "50051"
+
+      SERVICE_EMAIL: ${SERVICE_EMAIL:-clients_service@system.local}
+      SERVICE_PASSWORD: ${SERVICE_PASSWORD:-service_secret_password}
+
+      EVENT_MANAGER_HOST: eventManager
+      EVENT_MANAGER_PORT: "12345"
+    ports:
+      - "${USER_PORT}:${USER_PORT}"
     restart: always
     networks:
       - user-network

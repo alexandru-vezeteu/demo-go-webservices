@@ -8,10 +8,6 @@ service IdentityService {
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
   rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
-
-  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
-  rpc WriteRelationships(WriteRelationshipsRequest) returns (WriteRelationshipsResponse);
-  rpc ReadRelationships(ReadRelationshipsRequest) returns (ReadRelationshipsResponse);
 }
 
 message LoginRequest {
@@ -51,69 +47,4 @@ message RevokeTokenRequest {
 message RevokeTokenResponse {
   bool success = 1;  // Always true (validation processing completed successfully)
   string message = 2; // Success message or reason for revocation
-}
-
-message ObjectReference {
-  string object_type = 1;
-  string object_id = 2;
-}
-
-message SubjectReference {
-  string subject_type = 1;
-  string subject_id = 2;
-  optional string relation = 3;
-}
-
-message RelationshipTuple {
-  ObjectReference resource = 1;
-  string relation = 2;
-  SubjectReference subject = 3;
-}
-
-message CheckPermissionRequest {
-  ObjectReference resource = 1;
-  string permission = 2;
-  SubjectReference subject = 3;
-}
-
-message CheckPermissionResponse {
-  bool permitted = 1;
-  string message = 2;
-}
-
-enum RelationshipUpdateOperation {
-  OPERATION_UNSPECIFIED = 0;
-  OPERATION_CREATE = 1;
-  OPERATION_DELETE = 2;
-}
-
-message RelationshipUpdate {
-  RelationshipUpdateOperation operation = 1;
-  RelationshipTuple relationship = 2;
-}
-
-message WriteRelationshipsRequest {
-  repeated RelationshipUpdate updates = 1;
-}
-
-message WriteRelationshipsResponse {
-  bool success = 1;
-  string message = 2;
-  int32 relationships_written = 3;
-}
-
-message RelationshipFilter {
-  optional ObjectReference resource_filter = 1;
-  optional string relation_filter = 2;
-  optional SubjectReference subject_filter = 3;
-}
-
-message ReadRelationshipsRequest {
-  RelationshipFilter filter = 1;
-  optional int32 limit = 2;
-}
-
-message ReadRelationshipsResponse {
-  repeated RelationshipTuple relationships = 1;
-  int32 total_count = 2;
 }

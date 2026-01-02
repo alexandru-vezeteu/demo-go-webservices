@@ -1,0 +1,110 @@
+@startuml eventmanager_components
+!theme plain
+
+package "EventManager Service" {
+
+    package "HTTP Layer" <<Rectangle>> {
+        component [Gin Router] as Router
+        component [CORS Middleware] as CORS
+        component [Auth Middleware] as AuthMiddleware
+        component [EventHandler] as EventH
+        component [EventPacketHandler] as PacketH
+        component [EventPacketInclusionHandler] as InclusionH
+        component [TicketHandler] as TicketH
+        component [Swagger] as Swagger
+    }
+
+    package "Application Layer" <<Rectangle>> {
+        component [EventUseCase] as EventUC
+        component [EventPacketUseCase] as PacketUC
+        component [EventPacketInclusionUseCase] as InclusionUC
+        component [TicketUseCase] as TicketUC
+
+        interface IEventRepository as IEventRepo
+        interface IEventPacketRepository as IPacketRepo
+        interface IEventPacketInclusionRepository as IInclusionRepo
+        interface ITicketRepository as ITicketRepo
+        interface IAuthenticationService as IAuth
+        interface IAuthorizationService as IAuthz
+    }
+
+    package "Domain Layer" <<Rectangle>> {
+        component [Event] as Event
+        component [EventPacket] as Packet
+        component [EventPacketInclusion] as Inclusion
+        component [Ticket] as Ticket
+        component [Errors] as Errors
+    }
+
+    package "Infrastructure Layer" <<Rectangle>> {
+        component [GormEventRepository] as EventRepo
+        component [GormEventPacketRepository] as PacketRepo
+        component [GormEventPacketInclusionRepository] as InclusionRepo
+        component [GormTicketRepository] as TicketRepo
+        component [RealAuthenticationService] as RealAuth
+        component [DummyAuthorizationService] as DummyAuthz
+        component [IDM gRPC Client] as IDMClient
+        database [PostgreSQL\nevent_db] as DB
+    }
+
+    package "DTO Layer" <<Rectangle>> {
+        component [HttpEvent] as HttpEvent
+        component [HttpEventPacket] as HttpPacket
+        component [HATEOAS LinkBuilder] as HATEOAS
+    }
+
+    Router --> CORS
+    Router --> AuthMiddleware
+    Router --> EventH
+    Router --> PacketH
+    Router --> InclusionH
+    Router --> TicketH
+    Router --> Swagger
+
+    EventH --> EventUC
+    PacketH --> PacketUC
+    InclusionH --> InclusionUC
+    TicketH --> TicketUC
+
+    EventH --> HATEOAS
+    PacketH --> HATEOAS
+    TicketH --> HATEOAS
+
+    EventUC --> IEventRepo
+    EventUC --> IAuth
+    EventUC --> IAuthz
+    PacketUC --> IPacketRepo
+    InclusionUC --> IInclusionRepo
+    TicketUC --> ITicketRepo
+
+    EventUC --> Event
+    PacketUC --> Packet
+    InclusionUC --> Inclusion
+    TicketUC --> Ticket
+
+    IEventRepo <|.. EventRepo
+    IPacketRepo <|.. PacketRepo
+    IInclusionRepo <|.. InclusionRepo
+    ITicketRepo <|.. TicketRepo
+    IAuth <|.. RealAuth
+    IAuthz <|.. DummyAuthz
+
+    RealAuth --> IDMClient
+    EventRepo --> DB
+    PacketRepo --> DB
+    InclusionRepo --> DB
+    TicketRepo --> DB
+
+    note right of RealAuth
+        Calls IDM Service via gRPC
+        for token verification
+    end note
+
+    note right of DummyAuthz
+        Currently allows all operations
+        Can be replaced with real
+        authorization logic
+    end note
+}
+
+@enduml

@@ -3,8 +3,9 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"userService/application/usecase"
+	"strings"
 	"userService/application/domain"
+	"userService/application/usecase"
 	"userService/infrastructure/http/config"
 	"userService/infrastructure/http/gin/middleware"
 	"userService/infrastructure/http/httpdto"
@@ -24,14 +25,87 @@ func NewGinUserHandler(usecase usecase.UserUsecase, serviceURLs *config.ServiceU
 	}
 }
 
-func getTokenFromHeader(c *gin.Context) string {
-	token := c.GetHeader("Authorization")
-	if token == "" {
-		token = "dummy-token"
+func handleError(c *gin.Context, err error) bool {
+	if err == nil {
+		return false
 	}
-	return token
+
+	var validationErr *domain.ValidationError
+	if errors.As(err, &validationErr) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return true
+	}
+
+	var unauthorizedErr *domain.UnauthorizedError
+	if errors.As(err, &unauthorizedErr) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": unauthorizedErr.Error()})
+		return true
+	}
+
+	var forbiddenErr *domain.ForbiddenError
+	if errors.As(err, &forbiddenErr) {
+		c.JSON(http.StatusForbidden, gin.H{"error": forbiddenErr.Error()})
+		return true
+	}
+
+	var notFoundErr *domain.NotFoundError
+	if errors.As(err, &notFoundErr) {
+		c.JSON(http.StatusNotFound, gin.H{"error": notFoundErr.Error()})
+		return true
+	}
+
+	var existsErr *domain.AlreadyExistsError
+	if errors.As(err, &existsErr) {
+		c.JSON(http.StatusConflict, gin.H{"error": existsErr.Error()})
+		return true
+	}
+
+	var internalErr *domain.InternalError
+	if errors.As(err, &internalErr) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		return true
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+	return true
 }
 
+func getTokenFromHeader(c *gin.Context) string {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return ""
+	}
+
+	token := authHeader
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		token = authHeader[7:]
+	}
+
+	return strings.TrimSpace(token)
+}
+
+func requireAuth(c *gin.Context) (string, bool) {
+	token := getTokenFromHeader(c)
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+		return "", false
+	}
+	return token, true
+}
+
+// CreateUser godoc
+// @Summary Create a new user
+// @Description Create a new user account with the provided details
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param Authorization header string false "Bearer token (optional for user creation)"
+// @Param user body httpdto.HttpCreateUser true "User details"
+// @Success 201 {object} httpdto.HttpResponseUser "User created successfully"
+// @Failure 400 {object} map[string]string "Invalid request body"
+// @Failure 409 {object} map[string]string "User already exists"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /users [post]
 func (h *GinUserHandler) CreateUser(c *gin.Context) {
 	var req httpdto.HttpCreateUser
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
@@ -43,21 +117,7 @@ func (h *GinUserHandler) CreateUser(c *gin.Context) {
 	token := getTokenFromHeader(c)
 
 	ret, err := h.usecase.CreateUser(c.Request.Context(), token, user)
-	var validationErr *domain.ValidationError
-	if errors.As(err, &validationErr) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var existsErr *domain.AlreadyExistsError
-	if errors.As(err, &existsErr) {
-		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		return
-	}
-
-	var internalErr *domain.InternalError
-	if errors.As(err, &internalErr) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+	if handleError(c, err) {
 		return
 	}
 
@@ -65,39 +125,64 @@ func (h *GinUserHandler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
+// GetUserByID godoc
+// @Summary Get user by ID
+// @Description Retrieve a specific user by their unique identifier
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path int true "User ID"
+// @Success 200 {object} httpdto.HttpResponseUser "User details"
+// @Failure 400 {object} map[string]string "Invalid user ID"
+// @Failure 401 {object} map[string]string "Unauthorized - missing or invalid token"
+// @Failure 403 {object} map[string]string "Forbidden - insufficient permissions"
+// @Failure 404 {object} map[string]string "User not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /users/{id} [get]
 func (h *GinUserHandler) GetUserByID(c *gin.Context) {
+	token, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	token := getTokenFromHeader(c)
 	ret, err := h.usecase.GetUserByID(c.Request.Context(), token, id)
-
-	var notFoundErr *domain.NotFoundError
-	if errors.As(err, &notFoundErr) {
-		c.JSON(http.StatusNotFound, gin.H{"error": notFoundErr.Error()})
-		return
-	}
-
-	var validationErr *domain.ValidationError
-	if errors.As(err, &validationErr) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
-		return
-	}
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+	if handleError(c, err) {
 		return
 	}
 
 	resp := httpdto.ToHttpResponseUser(ret, h.serviceURLs)
-
 	c.JSON(http.StatusOK, resp)
 }
 
+// UpdateUser godoc
+// @Summary Update an existing user
+// @Description Partially update user details (PATCH - only provided fields are updated)
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path int true "User ID"
+// @Param user body httpdto.HttpUpdateUser true "Fields to update"
+// @Success 200 {object} httpdto.HttpResponseUser "User updated successfully"
+// @Failure 400 {object} map[string]string "Invalid request body or user ID"
+// @Failure 401 {object} map[string]string "Unauthorized - missing or invalid token"
+// @Failure 403 {object} map[string]string "Forbidden - cannot update other users"
+// @Failure 404 {object} map[string]string "User not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /users/{id} [patch]
 func (h *GinUserHandler) UpdateUser(c *gin.Context) {
+	token, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -111,29 +196,9 @@ func (h *GinUserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	updates := req.ToUpdateMap()
-	token := getTokenFromHeader(c)
 
 	user, err := h.usecase.UpdateUser(c.Request.Context(), token, id, updates)
-
-	var validationErr *domain.ValidationError
-	var notFoundErr *domain.NotFoundError
-	var existsErr *domain.AlreadyExistsError
-	if errors.As(err, &validationErr) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if errors.As(err, &notFoundErr) {
-		c.JSON(http.StatusNotFound, gin.H{"error": notFoundErr.Error()})
-		return
-	}
-	if errors.As(err, &existsErr) {
-		c.JSON(http.StatusConflict, gin.H{"error": existsErr.Error() + " is already taken"})
-		return
-	}
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+	if handleError(c, err) {
 		return
 	}
 
@@ -141,46 +206,67 @@ func (h *GinUserHandler) UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// DeleteUser godoc
+// @Summary Delete a user
+// @Description Delete a user account by its ID
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path int true "User ID"
+// @Success 200 {object} httpdto.HttpResponseUser "User deleted successfully"
+// @Failure 400 {object} map[string]string "Invalid user ID"
+// @Failure 401 {object} map[string]string "Unauthorized - missing or invalid token"
+// @Failure 403 {object} map[string]string "Forbidden - cannot delete other users"
+// @Failure 404 {object} map[string]string "User not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /users/{id} [delete]
 func (h *GinUserHandler) DeleteUser(c *gin.Context) {
+	token, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	token := getTokenFromHeader(c)
 	ret, err := h.usecase.DeleteUser(c.Request.Context(), token, id)
-
-	var notFoundErr *domain.NotFoundError
-	if errors.As(err, &notFoundErr) {
-		c.JSON(http.StatusNotFound, gin.H{"error": notFoundErr.Error()})
-		return
-	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+	if handleError(c, err) {
 		return
 	}
 
 	resp := httpdto.ToHttpResponseUser(ret, h.serviceURLs)
-
 	c.JSON(http.StatusOK, resp)
 }
 
+// CreateTicketForUser godoc
+// @Summary Create ticket for user
+// @Description Purchase a ticket for a user by creating a ticket through the EventManager service
+// @Tags clients
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param user_id path int true "User ID"
+// @Param ticket body httpdto.HttpCreateTicketForUser true "Ticket purchase details (packet_id and event_id)"
+// @Success 201 {object} httpdto.HttpCreateTicketResponse "Ticket created successfully with ticket code"
+// @Failure 400 {object} map[string]string "Invalid request body or user ID"
+// @Failure 401 {object} map[string]string "Unauthorized - missing or invalid token"
+// @Failure 404 {object} map[string]string "User, event, or packet not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /clients/{user_id}/tickets [post]
 func (h *GinUserHandler) CreateTicketForUser(c *gin.Context) {
+	token, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
 	userID, err := middleware.ParseIDParam(c, "user_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
-	}
-
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization header is required"})
-		return
-	}
-
-	token := authHeader
-	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
-		token = authHeader[7:]
 	}
 
 	var req httpdto.HttpCreateTicketForUser
@@ -190,33 +276,7 @@ func (h *GinUserHandler) CreateTicketForUser(c *gin.Context) {
 	}
 
 	ticketCode, err := h.usecase.CreateTicketForUser(c.Request.Context(), userID, token, req.PacketID, req.EventID)
-
-	var validationErr *domain.ValidationError
-	if errors.As(err, &validationErr) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var forbiddenErr *domain.ForbiddenError
-	if errors.As(err, &forbiddenErr) {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
-	var notFoundErr2 *domain.NotFoundError
-	if errors.As(err, &notFoundErr2) {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	var internalErr *domain.InternalError
-	if errors.As(err, &internalErr) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
-		return
-	}
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+	if handleError(c, err) {
 		return
 	}
 

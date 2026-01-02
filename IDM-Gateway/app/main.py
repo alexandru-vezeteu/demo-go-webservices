@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.config import get_settings
 from app.grpc_client import grpc_client
-from app.routers import auth_router, authz_router
+from app.routers import auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,7 +28,6 @@ app.add_middleware(
 )
 
 app.include_router(auth_router.router)
-app.include_router(authz_router.router)
 
 @app.get("/health")
 async def health_check():

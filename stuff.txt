@@ -1,9 +1,0 @@
-1 pit /tickets/{cod}
-
-2 post /clients/_id/tickets
-    a) validat token
-    b) EMAIL DIN TOKEN CLAIMS
-    C) EMAIL DIN DB PE BAZA DE _id
-    D) EMAIL TOKEN == EMAIL DB => DACA NU 403
-    E) GENERAM COD PT TICKET UUID.GENERATE()
-    F)PUT /TICKETS/{COD} -> DACA 201 -> APPEND LA TICKETS LA LISTA ALTFEL => FAIL ( 500 SAU 503 )

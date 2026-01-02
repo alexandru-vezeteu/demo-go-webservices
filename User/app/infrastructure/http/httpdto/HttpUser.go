@@ -8,13 +8,19 @@ import (
 	"userService/infrastructure/http/hateoas"
 )
 
+type HttpTicket struct {
+	Code string `json:"code"`
+}
+
 type httpResponseUser struct {
 	ID               int                  `json:"id"`
 	Email            string               `json:"email"`
 	FirstName        string               `json:"first_name"`
 	LastName         string               `json:"last_name"`
 	SocialMediaLinks *string              `json:"social_media_links,omitempty"`
-	TicketList       *string              `json:"ticket_list,omitempty"`
+	TicketList       []HttpTicket         `json:"ticket_list,omitempty"`
+	FirstNamePrivate bool                 `json:"first_name_private"`
+	LastNamePrivate  bool                 `json:"last_name_private"`
 	Links            map[string]http.Link `json:"_links"`
 }
 
@@ -29,13 +35,22 @@ func ToHttpResponseUser(user *domain.User, serviceURLs *config.ServiceURLs) *Htt
 
 	resourcePath := fmt.Sprintf("/users/%d", user.ID)
 
+	httpTickets := make([]HttpTicket, len(user.TicketList))
+	for i, ticket := range user.TicketList {
+		httpTickets[i] = HttpTicket{
+			Code: ticket.Code,
+		}
+	}
+
 	dto := &httpResponseUser{
 		ID:               user.ID,
 		Email:            user.Email,
 		FirstName:        user.FirstName,
 		LastName:         user.LastName,
 		SocialMediaLinks: user.SocialMediaLinks,
-		TicketList:       user.TicketList,
+		TicketList:       httpTickets,
+		FirstNamePrivate: user.FirstNamePrivate,
+		LastNamePrivate:  user.LastNamePrivate,
 		Links: map[string]http.Link{
 			"self":   hateoas.BuildSelfLink(serviceURLs.UserManager, resourcePath),
 			"update": hateoas.BuildUpdateLink(serviceURLs.UserManager, resourcePath),
@@ -58,6 +73,12 @@ func ToHttpResponseUser(user *domain.User, serviceURLs *config.ServiceURLs) *Htt
 				"POST",
 				"Create a ticket for this user",
 			),
+			"tickets": hateoas.BuildRelatedLink(
+				fmt.Sprintf("%s/clients/%d/tickets", serviceURLs.UserManager, user.ID),
+				"tickets",
+				"GET",
+				"View purchased tickets",
+			),
 		},
 	}
 
@@ -71,7 +92,6 @@ type HttpCreateUser struct {
 	FirstName        string  `json:"first_name" binding:"required"`
 	LastName         string  `json:"last_name" binding:"required"`
 	SocialMediaLinks *string `json:"social_media_links"`
-	TicketList       *string `json:"ticket_list"`
 }
 
 func (user *HttpCreateUser) ToUser() *domain.User {
@@ -80,7 +100,7 @@ func (user *HttpCreateUser) ToUser() *domain.User {
 		FirstName:        user.FirstName,
 		LastName:         user.LastName,
 		SocialMediaLinks: user.SocialMediaLinks,
-		TicketList:       user.TicketList,
+		TicketList:       []domain.Ticket{},
 	}
 }
 
@@ -89,7 +109,6 @@ type HttpUpdateUser struct {
 	FirstName        *string `json:"first_name"`
 	LastName         *string `json:"last_name"`
 	SocialMediaLinks *string `json:"social_media_links"`
-	TicketList       *string `json:"ticket_list"`
 }
 
 func (user *HttpUpdateUser) ToUpdateMap() map[string]interface{} {
@@ -106,9 +125,6 @@ func (user *HttpUpdateUser) ToUpdateMap() map[string]interface{} {
 	}
 	if user.SocialMediaLinks != nil {
 		updates["social_media_links"] = *user.SocialMediaLinks
-	}
-	if user.TicketList != nil {
-		updates["ticket_list"] = *user.TicketList
 	}
 
 	return updates

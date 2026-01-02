@@ -1,5 +1,16 @@
 basePath: /api/event-manager
 definitions:
+  hateoas.Link:
+    properties:
+      href:
+        type: string
+      method:
+        type: string
+      rel:
+        type: string
+      title:
+        type: string
+    type: object
   httpdto.HttpCreateEvent:
     properties:
       description:
@@ -46,13 +57,6 @@ definitions:
       event:
         $ref: '#/definitions/httpdto.httpResponseEvent'
     type: object
-  httpdto.HttpResponseEventList:
-    properties:
-      events:
-        items:
-          $ref: '#/definitions/httpdto.httpResponseEvent'
-        type: array
-    type: object
   httpdto.HttpResponseEventPacket:
     properties:
       event_packet:
@@ -60,6 +64,10 @@ definitions:
     type: object
   httpdto.HttpResponseEventPacketInclusion:
     properties:
+      _links:
+        additionalProperties:
+          $ref: '#/definitions/hateoas.Link'
+        type: object
       id_event:
         type: integer
       id_packet:
@@ -67,6 +75,10 @@ definitions:
     type: object
   httpdto.HttpResponseTicket:
     properties:
+      _links:
+        additionalProperties:
+          $ref: '#/definitions/hateoas.Link'
+        type: object
       code:
         type: string
       event_id:
@@ -111,6 +123,10 @@ definitions:
     type: object
   httpdto.httpResponseEvent:
     properties:
+      _links:
+        additionalProperties:
+          $ref: '#/definitions/hateoas.Link'
+        type: object
       description:
         type: string
       id:
@@ -126,6 +142,10 @@ definitions:
     type: object
   httpdto.httpResponseEventPacket:
     properties:
+      _links:
+        additionalProperties:
+          $ref: '#/definitions/hateoas.Link'
+        type: object
       allocated_seats:
         type: integer
       description:
@@ -139,17 +159,24 @@ definitions:
       name:
         type: string
     type: object
+host: localhost:12345
 info:
   contact: {}
-  title: Event Service API
+  description: Event management service for the POS system. Handles events, event
+    packets, tickets, and inclusions.
+  title: EventManager Service API
   version: "1.0"
 paths:
   /event-packet-inclusions/event/{event_id}:
     get:
       consumes:
       - application/json
-      description: Retrieves all event packets that include a specific event
+      description: Retrieve all event packets linked to a specific event
       parameters:
+      - description: Bearer token (optional)
+        in: header
+        name: Authorization
+        type: string
       - description: Event ID
         in: path
         name: event_id
@@ -161,40 +188,46 @@ paths:
         "200":
           description: List of event packets
           schema:
-            items:
-              $ref: '#/definitions/httpdto.HttpResponseEventPacket'
-            type: array
-        "400":
-          description: Invalid event ID format
-          schema:
             additionalProperties: true
+            type: object
+        "400":
+          description: Invalid event ID
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
-          description: Not found
+          description: Event not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Get event packets by event ID
+      summary: Get all packet inclusions for an event
       tags:
       - event-packet-inclusions
   /event-packet-inclusions/event/{event_id}/packet/{packet_id}:
     delete:
       consumes:
       - application/json
-      description: Removes an event from an event packet by deleting the inclusion
-        relationship
+      description: Remove the link between an event and an event packet
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Event ID
         in: path
         name: event_id
         required: true
         type: integer
-      - description: Event Packet ID
+      - description: Packet ID
         in: path
         name: packet_id
         required: true
@@ -207,42 +240,55 @@ paths:
           schema:
             $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
         "400":
-          description: Invalid event or packet ID format
+          description: Invalid parameters
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Inclusion not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Delete an event packet inclusion
+      summary: Delete event packet inclusion
       tags:
       - event-packet-inclusions
     patch:
       consumes:
       - application/json
-      description: Updates an existing inclusion relationship between an event and
-        a packet
+      description: Update the details of an event-packet inclusion relationship
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Event ID
         in: path
         name: event_id
         required: true
         type: integer
-      - description: Event Packet ID
+      - description: Packet ID
         in: path
         name: packet_id
         required: true
         type: integer
       - description: Fields to update
         in: body
-        name: updates
+        name: inclusion
         required: true
         schema:
           $ref: '#/definitions/httpdto.HttpUpdateEventPacketInclusion'
@@ -254,40 +300,53 @@ paths:
           schema:
             $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
         "400":
-          description: Invalid IDs, request body, or validation error
+          description: Invalid parameters or request body
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
-          description: Inclusion not found or foreign key error
+          description: Inclusion not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Update an event packet inclusion
+      summary: Update event packet inclusion
       tags:
       - event-packet-inclusions
     post:
       consumes:
       - application/json
-      description: Adds an event to an event packet. Validates that the event has
-        enough seats to meet the packet's allocated_seats requirement.
+      description: Link an event packet to an event (many-to-many relationship)
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Event ID
         in: path
         name: event_id
         required: true
         type: integer
-      - description: Event Packet ID
+      - description: Packet ID
         in: path
         name: packet_id
         required: true
         type: integer
-      - description: Inclusion data
+      - description: Inclusion details
         in: body
         name: inclusion
         required: true
@@ -301,35 +360,49 @@ paths:
           schema:
             $ref: '#/definitions/httpdto.HttpResponseEventPacketInclusion'
         "400":
-          description: Invalid request format or validation error
+          description: Invalid parameters or request body
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
-          description: Event or packet not found (foreign key error)
+          description: Event or packet not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "409":
           description: Inclusion already exists
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Create an event packet inclusion
+      summary: Create event packet inclusion
       tags:
       - event-packet-inclusions
   /event-packet-inclusions/packet/{packet_id}:
     get:
       consumes:
       - application/json
-      description: Retrieves all events that are included in a specific event packet
+      description: Retrieve all events linked to a specific event packet
       parameters:
-      - description: Event Packet ID
+      - description: Bearer token (optional)
+        in: header
+        name: Authorization
+        type: string
+      - description: Packet ID
         in: path
         name: packet_id
         required: true
@@ -340,38 +413,43 @@ paths:
         "200":
           description: List of events
           schema:
-            items:
-              $ref: '#/definitions/httpdto.HttpResponseEvent'
-            type: array
-        "400":
-          description: Invalid packet ID format
-          schema:
             additionalProperties: true
+            type: object
+        "400":
+          description: Invalid packet ID
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
-          description: Not found
+          description: Packet not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Get events by packet ID
+      summary: Get all event inclusions for a packet
       tags:
       - event-packet-inclusions
   /event-packets:
     post:
       consumes:
       - application/json
-      description: Creates a new event packet. Event packets can include multiple
-        events and have allocated seats that must not exceed the minimum seats of
-        included events.
+      description: Create a new event packet (ticket package/bundle)
       parameters:
-      - description: Event packet to create
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Event packet details
         in: body
-        name: event_packet
+        name: packet
         required: true
         schema:
           $ref: '#/definitions/httpdto.HttpCreateEventPacket'
@@ -383,19 +461,28 @@ paths:
           schema:
             $ref: '#/definitions/httpdto.HttpResponseEventPacket'
         "400":
-          description: Invalid request format or validation error
+          description: Invalid request body
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "409":
           description: Event packet already exists
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
       summary: Create a new event packet
       tags:
@@ -404,14 +491,18 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Deletes an event packet by its ID and returns the deleted event
-        packet.
+      description: Delete an event packet by its ID
       parameters:
-      - description: Event Packet ID
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Event Packet ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -422,17 +513,26 @@ paths:
         "400":
           description: Invalid event packet ID format
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Event packet not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: An unexpected error occurred
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
       summary: Delete an event packet
       tags:
@@ -440,52 +540,64 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves a single event packet using its unique integer ID
+      description: Retrieve a specific event packet by its unique identifier
       parameters:
-      - description: Event Packet ID
+      - description: Event Packet ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
+      - description: Bearer token (optional)
+        in: header
+        name: Authorization
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: The requested event packet
+          description: Event packet details
           schema:
             $ref: '#/definitions/httpdto.HttpResponseEventPacket'
         "400":
-          description: Invalid event packet ID format or validation error
+          description: Invalid event packet ID format
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Event packet not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Get an event packet by ID
+      summary: Get event packet by ID
       tags:
       - event-packets
     patch:
       consumes:
       - application/json
-      description: Partially updates an existing event packet by its ID. Validates
-        that allocated_seats does not exceed minimum seats of included events.
+      description: Partially update event packet details (PATCH - only provided fields
+        are updated)
       parameters:
-      - description: Event Packet ID
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Event Packet ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       - description: Fields to update
         in: body
-        name: updates
+        name: packet
         required: true
         schema:
           $ref: '#/definitions/httpdto.HttpUpdateEventPacket'
@@ -497,37 +609,43 @@ paths:
           schema:
             $ref: '#/definitions/httpdto.HttpResponseEventPacket'
         "400":
-          description: Invalid event packet ID format, request body, or validation
-            error
+          description: Invalid request body or event packet ID
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Event packet not found
           schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Name already taken
-          schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: An unexpected error occurred
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Update an event packet
+      summary: Update an existing event packet
       tags:
       - event-packets
   /events:
     get:
       consumes:
       - application/json
-      description: Retrieves a list of events with optional filters, sorting, and
-        pagination.
+      description: Get a paginated list of events with optional filters
       parameters:
-      - description: Filter by name (partial match)
+      - description: Bearer token (optional)
+        in: header
+        name: Authorization
+        type: string
+      - description: Filter by event name (partial match)
         in: query
         name: name
         type: string
@@ -539,25 +657,23 @@ paths:
         in: query
         name: description
         type: string
-      - description: Minimum seats
+      - description: Minimum number of seats
         in: query
         name: min_seats
         type: integer
-      - description: Maximum seats
+      - description: Maximum number of seats
         in: query
         name: max_seats
         type: integer
-      - default: 1
-        description: Page number
+      - description: 'Page number (default: 1)'
         in: query
         name: page
         type: integer
-      - default: 10
-        description: Items per page
+      - description: 'Items per page (default: 10, max: 100)'
         in: query
         name: per_page
         type: integer
-      - description: 'Sort order: name_asc, name_desc, seats_asc, seats_desc'
+      - description: Sort field (e.g., 'name', 'created_at')
         in: query
         name: order_by
         type: string
@@ -565,28 +681,36 @@ paths:
       - application/json
       responses:
         "200":
-          description: A list of events
-          schema:
-            $ref: '#/definitions/httpdto.HttpResponseEventList'
-        "400":
-          description: Invalid query parameters or validation error
+          description: Paginated list of events
           schema:
             additionalProperties: true
+            type: object
+        "400":
+          description: Invalid query parameters
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Filter and list events
+      summary: List and filter events
       tags:
       - events
     post:
       consumes:
       - application/json
-      description: Adds a new event to the system.
+      description: Create a new event with the provided details
       parameters:
-      - description: Event to create
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Event details
         in: body
         name: event
         required: true
@@ -600,19 +724,34 @@ paths:
           schema:
             $ref: '#/definitions/httpdto.HttpResponseEvent'
         "400":
-          description: Invalid request format or validation error
+          description: Invalid request body
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden - insufficient permissions
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "409":
-          description: Event already exists
+          description: Conflict - event already exists
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
       summary: Create a new event
       tags:
@@ -621,13 +760,18 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Deletes an event by its ID and returns the deleted event.
+      description: Delete an event by its ID (only the owner can delete)
       parameters:
-      - description: Event ID
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Event ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -638,17 +782,32 @@ paths:
         "400":
           description: Invalid event ID format
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden - not the event owner
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Event not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
       summary: Delete an event
       tags:
@@ -656,51 +815,64 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves a single event using its unique integer ID
+      description: Retrieve a specific event by its unique identifier
       parameters:
-      - description: Event ID
+      - description: Event ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
+      - description: Bearer token (optional)
+        in: header
+        name: Authorization
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: The requested event
+          description: Event details
           schema:
             $ref: '#/definitions/httpdto.HttpResponseEvent'
         "400":
-          description: Invalid event ID format or validation error
+          description: Invalid event ID format
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Event not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Get an event by ID
+      summary: Get event by ID
       tags:
       - events
     patch:
       consumes:
       - application/json
-      description: Partially updates an existing event by its ID.
+      description: Partially update event details (PATCH - only provided fields are
+        updated)
       parameters:
-      - description: Event ID
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Event ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       - description: Fields to update
         in: body
-        name: updates
+        name: event
         required: true
         schema:
           $ref: '#/definitions/httpdto.HttpUpdateEvent'
@@ -712,38 +884,50 @@ paths:
           schema:
             $ref: '#/definitions/httpdto.HttpResponseEvent'
         "400":
-          description: Invalid event ID format or request body
+          description: Invalid request body or event ID
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden - not the event owner
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Event not found
           schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Name already taken
-          schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
           description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Update an event
+      summary: Update an existing event
       tags:
       - events
   /tickets:
     post:
       consumes:
       - application/json
-      description: Creates a new ticket for either an event or an event packet. The
-        ticket code is automatically generated as a UUID. Validates seat availability
-        before creation.
+      description: Create a new ticket for an event and packet
       parameters:
-      - description: Ticket to create (must specify either event_id or packet_id,
-          not both)
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Ticket details
         in: body
         name: ticket
         required: true
@@ -753,23 +937,38 @@ paths:
       - application/json
       responses:
         "201":
-          description: Ticket created successfully with auto-generated code
+          description: Ticket created successfully
           schema:
             $ref: '#/definitions/httpdto.HttpResponseTicket'
         "400":
-          description: Invalid request format, validation error, or no seats available
+          description: Invalid request body
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Event or packet not found
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "409":
           description: Ticket already exists
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: Internal error or unexpected error occurred
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
       summary: Create a new ticket
       tags:
@@ -778,9 +977,14 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Deletes a ticket by its code and returns the deleted ticket.
+      description: Delete a ticket by its code
       parameters:
-      - description: Ticket Code (UUID)
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Ticket code (UUID)
         in: path
         name: code
         required: true
@@ -793,19 +997,28 @@ paths:
           schema:
             $ref: '#/definitions/httpdto.HttpResponseTicket'
         "400":
-          description: Invalid ticket code format
+          description: Invalid ticket code
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Ticket not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: An unexpected error occurred
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
       summary: Delete a ticket
       tags:
@@ -813,9 +1026,14 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves a single ticket using its unique UUID code
+      description: Retrieve a specific ticket by its unique code
       parameters:
-      - description: Ticket Code (UUID)
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Ticket code (UUID)
         in: path
         name: code
         required: true
@@ -824,41 +1042,55 @@ paths:
       - application/json
       responses:
         "200":
-          description: The requested ticket
+          description: Ticket details
           schema:
             $ref: '#/definitions/httpdto.HttpResponseTicket'
         "400":
-          description: Invalid ticket code format or validation error
+          description: Invalid ticket code
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Ticket not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: Internal error
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: Get a ticket by code
+      summary: Get ticket by code
       tags:
       - tickets
     patch:
       consumes:
       - application/json
-      description: Partially updates an existing ticket by its code. Validates seat
-        availability when reassigning to a different event or packet.
+      description: Partially update ticket details (PATCH - only provided fields are
+        updated)
       parameters:
-      - description: Ticket Code (UUID)
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Ticket code (UUID)
         in: path
         name: code
         required: true
         type: string
-      - description: Fields to update (event_id or packet_id)
+      - description: Fields to update
         in: body
-        name: updates
+        name: ticket
         required: true
         schema:
           $ref: '#/definitions/httpdto.HttpUpdateTicket'
@@ -870,22 +1102,92 @@ paths:
           schema:
             $ref: '#/definitions/httpdto.HttpResponseTicket'
         "400":
-          description: Invalid ticket code format, request body, or validation error
-            (e.g., no seats available)
+          description: Invalid request body or ticket code
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "404":
           description: Ticket not found
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
-          description: An unexpected error occurred
+          description: Internal server error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
       summary: Update a ticket
       tags:
       - tickets
+    put:
+      consumes:
+      - application/json
+      description: Create a new ticket with a specified code or replace an existing
+        one (idempotent)
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Ticket code (UUID)
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: Ticket details
+        in: body
+        name: ticket
+        required: true
+        schema:
+          $ref: '#/definitions/httpdto.HttpCreateTicket'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ticket created or updated successfully
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseTicket'
+        "400":
+          description: Invalid request body or ticket code
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - missing or invalid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Event or packet not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or replace a ticket with specific code
+      tags:
+      - tickets
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

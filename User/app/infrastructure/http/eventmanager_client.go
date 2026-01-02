@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,9 +12,15 @@ import (
 	"userService/application/domain"
 )
 
+type ServiceTokenProvider interface {
+	GetServiceToken(ctx context.Context) (string, error)
+	IsConfigured() bool
+}
+
 type EventManagerClient struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL       string
+	httpClient    *http.Client
+	tokenProvider ServiceTokenProvider
 }
 
 type CreateTicketRequest struct {
@@ -27,7 +34,7 @@ type TicketResponse struct {
 	EventID  *int   `json:"event_id"`
 }
 
-func NewEventManagerClient() *EventManagerClient {
+func NewEventManagerClient(tokenProvider ServiceTokenProvider) *EventManagerClient {
 	host := os.Getenv("EVENT_MANAGER_HOST")
 	if host == "" {
 		host = "localhost"
@@ -37,17 +44,18 @@ func NewEventManagerClient() *EventManagerClient {
 		port = "8080"
 	}
 
-	baseURL := fmt.Sprintf("http:%s%s:%s", "/", "/", host, port)
+	baseURL := fmt.Sprintf("http://%s:%s", host, port)
 
 	return &EventManagerClient{
 		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		tokenProvider: tokenProvider,
 	}
 }
 
-func (c *EventManagerClient) CreateTicket(code string, packetID *int, eventID *int) (*TicketResponse, error) {
+func (c *EventManagerClient) CreateTicket(ctx context.Context, code string, packetID *int, eventID *int) (*TicketResponse, error) {
 	url := fmt.Sprintf("%s/api/event-manager/tickets/%s", c.baseURL, code)
 
 	reqBody := CreateTicketRequest{
@@ -60,12 +68,20 @@ func (c *EventManagerClient) CreateTicket(code string, packetID *int, eventID *i
 		return nil, &domain.InternalError{Msg: "failed to marshal request", Err: err}
 	}
 
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, &domain.InternalError{Msg: "failed to create request", Err: err}
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+
+	if c.tokenProvider != nil && c.tokenProvider.IsConfigured() {
+		serviceToken, err := c.tokenProvider.GetServiceToken(ctx)
+		if err != nil {
+			return nil, &domain.InternalError{Msg: "failed to get service token", Err: err}
+		}
+		req.Header.Set("Authorization", "Bearer "+serviceToken)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -76,6 +92,14 @@ func (c *EventManagerClient) CreateTicket(code string, packetID *int, eventID *i
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, &domain.InternalError{Msg: "failed to read response", Err: err}
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, &domain.UnauthorizedError{Reason: fmt.Sprintf("service authentication failed: %s", string(body))}
+	}
+
+	if resp.StatusCode == http.StatusForbidden {
+		return nil, &domain.ForbiddenError{Reason: fmt.Sprintf("service not authorized: %s", string(body))}
 	}
 
 	if resp.StatusCode >= 500 {

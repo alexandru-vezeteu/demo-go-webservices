@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"idmService/application/domain"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -45,7 +47,7 @@ func ConnectDatabase(config *DatabaseConfig) (*gorm.DB, error) {
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		return nil, &domain.InternalError{Operation: "database connection", Err: err}
 	}
 
 	return db, nil

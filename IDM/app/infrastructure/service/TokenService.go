@@ -6,7 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"idmService/domain"
+	"idmService/application/domain"
+	appservice "idmService/application/service"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -14,30 +15,16 @@ import (
 
 var jwtSecret = []byte("your-secret-key-change-this-in-production")
 
-type TokenClaims struct {
-	UserID    string
-	Role      string
-	Issuer    string
-	ExpiresAt int64
-	IsValid   bool
-	IsExpired bool
-}
-
-type TokenService interface {
-	GenerateJWT(user *domain.User) (string, error)
-	ParseToken(tokenString string) (*TokenClaims, error)
-}
-
 type tokenService struct{}
 
-func NewTokenService() TokenService {
+func NewTokenService() appservice.TokenService {
 	return &tokenService{}
 }
 
 func (s *tokenService) GenerateJWT(user *domain.User) (string, error) {
 	issuer := os.Getenv("IDM_SERVICE_URL")
 	if issuer == "" {
-		return "", fmt.Errorf("IDM_SERVICE_URL environment variable not set")
+		return "", &domain.ConfigurationError{Key: "IDM_SERVICE_URL"}
 	}
 
 	tokenID := uuid.New().String()
@@ -51,10 +38,14 @@ func (s *tokenService) GenerateJWT(user *domain.User) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	signedToken, err := token.SignedString(jwtSecret)
+	if err != nil {
+		return "", &domain.InternalError{Operation: "token signing", Err: err}
+	}
+	return signedToken, nil
 }
 
-func (s *tokenService) ParseToken(tokenString string) (*TokenClaims, error) {
+func (s *tokenService) ParseToken(tokenString string) (*appservice.TokenClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -63,12 +54,12 @@ func (s *tokenService) ParseToken(tokenString string) (*TokenClaims, error) {
 	})
 
 	if err != nil && err != jwt.ErrTokenExpired {
-		return nil, fmt.Errorf("token parsing failed: %w", err)
+		return nil, &domain.TokenError{Corrupted: true, Reason: err.Error()}
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, fmt.Errorf("invalid claims format")
+		return nil, &domain.TokenError{Corrupted: true, Reason: "invalid claims format"}
 	}
 
 	userIDStr, _ := claims["sub"].(string)
@@ -79,12 +70,11 @@ func (s *tokenService) ParseToken(tokenString string) (*TokenClaims, error) {
 	expirationTime := time.Unix(int64(exp), 0)
 	isExpired := time.Now().After(expirationTime)
 
-	
 	if userIDStr == "" || role == "" || issuer == "" {
-		return nil, fmt.Errorf("missing required claims")
+		return nil, &domain.TokenError{Corrupted: true, Reason: "missing required claims"}
 	}
 
-	return &TokenClaims{
+	return &appservice.TokenClaims{
 		UserID:    userIDStr,
 		Role:      role,
 		Issuer:    issuer,

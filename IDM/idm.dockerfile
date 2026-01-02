@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS deps
+FROM golang:1.24-alpine AS deps
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ WORKDIR /app
 
 COPY app/ ./
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /idmService .
+RUN go mod tidy && CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /idmService .
 
 
 FROM alpine:latest AS runtime

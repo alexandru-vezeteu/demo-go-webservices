@@ -4,3 +4,4 @@ services:
       - userService
       - eventManager
       - idmService
+      - idm-gateway

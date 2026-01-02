@@ -29,11 +29,11 @@ func (s *DummyAuthorizationService) CanUserViewEvents(ctx context.Context, userI
 }
 
 func (s *DummyAuthorizationService) CanUserEditEvent(ctx context.Context, userID uint, event *domain.Event) (bool, error) {
-	return true, nil
+	return userID == uint(event.OwnerID), nil
 }
 
 func (s *DummyAuthorizationService) CanUserDeleteEvent(ctx context.Context, userID uint, event *domain.Event) (bool, error) {
-	return true, nil
+	return userID == uint(event.OwnerID), nil
 }
 
 func (s *DummyAuthorizationService) CanUserViewTicket(ctx context.Context, userID uint, ticket *domain.Ticket) (bool, error) {
@@ -77,11 +77,11 @@ func (s *DummyAuthorizationService) CanUserViewEventPackets(ctx context.Context,
 }
 
 func (s *DummyAuthorizationService) CanUserEditEventPacket(ctx context.Context, userID uint, packet *domain.EventPacket) (bool, error) {
-	return true, nil
+	return userID == uint(packet.OwnerID), nil
 }
 
 func (s *DummyAuthorizationService) CanUserDeleteEventPacket(ctx context.Context, userID uint, packet *domain.EventPacket) (bool, error) {
-	return true, nil
+	return userID == uint(packet.OwnerID), nil
 }
 
 func (s *DummyAuthorizationService) CanUserCreateEventPacketInclusion(ctx context.Context, userID uint, eventID int, packetID int) (bool, error) {

@@ -75,9 +75,13 @@ func (uc *ticketUseCase) PutTicket(ctx context.Context, token string, code strin
 			return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
 		}
 		if !allowed {
-			return nil, &domain.ValidationError{Reason: "user not authorized to replace this ticket"}
+			return nil, &domain.ForbiddenError{Reason: "user not authorized to replace this ticket"}
 		}
 		return uc.ticketService.ReplaceTicket(ctx, ticket)
+	}
+
+	if identity.Role != "serviciu_clienti" && identity.Role != "admin" {
+		return nil, &domain.ForbiddenError{Reason: "only the client service can create new tickets"}
 	}
 
 	return uc.ticketService.ReplaceTicket(ctx, ticket)

@@ -3,8 +3,10 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"idmService/domain"
-	"idmService/service"
+
+	"idmService/application/domain"
+	"idmService/application/repository"
+	"idmService/application/service"
 )
 
 type LoginResult struct {
@@ -21,11 +23,14 @@ type LoginUseCase interface {
 }
 
 type loginUseCase struct {
-	userRepo     domain.UserRepository
+	userRepo     repository.UserRepository
 	tokenService service.TokenService
 }
 
-func NewLoginUseCase(userRepo domain.UserRepository, tokenService service.TokenService) LoginUseCase {
+func NewLoginUseCase(
+	userRepo repository.UserRepository,
+	tokenService service.TokenService,
+) LoginUseCase {
 	return &loginUseCase{
 		userRepo:     userRepo,
 		tokenService: tokenService,
@@ -33,33 +38,19 @@ func NewLoginUseCase(userRepo domain.UserRepository, tokenService service.TokenS
 }
 
 func (uc *loginUseCase) Execute(ctx context.Context, email, password string) (*LoginResult, error) {
-	
+
 	user, err := uc.userRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return &LoginResult{
-			Success: false,
-			Token:   "",
-			Message: "Database error",
-		}, nil
+		return nil, err
 	}
 
-	
 	if user == nil || user.Parola != password {
-		return &LoginResult{
-			Success: false,
-			Token:   "",
-			Message: "Invalid email or password",
-		}, nil
+		return nil, &domain.AuthenticationError{Reason: "invalid email or password"}
 	}
 
-	
 	token, err := uc.tokenService.GenerateJWT(user)
 	if err != nil {
-		return &LoginResult{
-			Success: false,
-			Token:   "",
-			Message: "Failed to generate token",
-		}, nil
+		return nil, err
 	}
 
 	return &LoginResult{

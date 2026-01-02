@@ -1,15 +1,17 @@
 {
     "swagger": "2.0",
     "info": {
-        "title": "Event Service API",
+        "description": "Event management service for the POS system. Handles events, event packets, tickets, and inclusions.",
+        "title": "EventManager Service API",
         "contact": {},
         "version": "1.0"
     },
+    "host": "localhost:12345",
     "basePath": "/api/event-manager",
     "paths": {
         "/event-packet-inclusions/event/{event_id}": {
             "get": {
-                "description": "Retrieves all event packets that include a specific event",
+                "description": "Retrieve all event packets linked to a specific event",
                 "consumes": [
                     "application/json"
                 ],
@@ -19,8 +21,14 @@
                 "tags": [
                     "event-packet-inclusions"
                 ],
-                "summary": "Get event packets by event ID",
+                "summary": "Get all packet inclusions for an event",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token (optional)",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
                     {
                         "type": "integer",
                         "description": "Event ID",
@@ -33,31 +41,35 @@
                     "200": {
                         "description": "List of event packets",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/httpdto.HttpResponseEventPacket"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid event ID format",
+                        "description": "Invalid event ID",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
-                        "description": "Not found",
+                        "description": "Event not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -65,7 +77,7 @@
         },
         "/event-packet-inclusions/event/{event_id}/packet/{packet_id}": {
             "post": {
-                "description": "Adds an event to an event packet. Validates that the event has enough seats to meet the packet's allocated_seats requirement.",
+                "description": "Link an event packet to an event (many-to-many relationship)",
                 "consumes": [
                     "application/json"
                 ],
@@ -75,8 +87,15 @@
                 "tags": [
                     "event-packet-inclusions"
                 ],
-                "summary": "Create an event packet inclusion",
+                "summary": "Create event packet inclusion",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Event ID",
@@ -86,13 +105,13 @@
                     },
                     {
                         "type": "integer",
-                        "description": "Event Packet ID",
+                        "description": "Packet ID",
                         "name": "packet_id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Inclusion data",
+                        "description": "Inclusion details",
                         "name": "inclusion",
                         "in": "body",
                         "required": true,
@@ -109,37 +128,54 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request format or validation error",
+                        "description": "Invalid parameters or request body",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
-                        "description": "Event or packet not found (foreign key error)",
+                        "description": "Event or packet not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "409": {
                         "description": "Inclusion already exists",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Removes an event from an event packet by deleting the inclusion relationship",
+                "description": "Remove the link between an event and an event packet",
                 "consumes": [
                     "application/json"
                 ],
@@ -149,8 +185,15 @@
                 "tags": [
                     "event-packet-inclusions"
                 ],
-                "summary": "Delete an event packet inclusion",
+                "summary": "Delete event packet inclusion",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Event ID",
@@ -160,7 +203,7 @@
                     },
                     {
                         "type": "integer",
-                        "description": "Event Packet ID",
+                        "description": "Packet ID",
                         "name": "packet_id",
                         "in": "path",
                         "required": true
@@ -174,30 +217,45 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid event or packet ID format",
+                        "description": "Invalid parameters",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Inclusion not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "patch": {
-                "description": "Updates an existing inclusion relationship between an event and a packet",
+                "description": "Update the details of an event-packet inclusion relationship",
                 "consumes": [
                     "application/json"
                 ],
@@ -207,8 +265,15 @@
                 "tags": [
                     "event-packet-inclusions"
                 ],
-                "summary": "Update an event packet inclusion",
+                "summary": "Update event packet inclusion",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Event ID",
@@ -218,14 +283,14 @@
                     },
                     {
                         "type": "integer",
-                        "description": "Event Packet ID",
+                        "description": "Packet ID",
                         "name": "packet_id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "description": "Fields to update",
-                        "name": "updates",
+                        "name": "inclusion",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -241,24 +306,39 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid IDs, request body, or validation error",
+                        "description": "Invalid parameters or request body",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
-                        "description": "Inclusion not found or foreign key error",
+                        "description": "Inclusion not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -266,7 +346,7 @@
         },
         "/event-packet-inclusions/packet/{packet_id}": {
             "get": {
-                "description": "Retrieves all events that are included in a specific event packet",
+                "description": "Retrieve all events linked to a specific event packet",
                 "consumes": [
                     "application/json"
                 ],
@@ -276,11 +356,17 @@
                 "tags": [
                     "event-packet-inclusions"
                 ],
-                "summary": "Get events by packet ID",
+                "summary": "Get all event inclusions for a packet",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer token (optional)",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
                         "type": "integer",
-                        "description": "Event Packet ID",
+                        "description": "Packet ID",
                         "name": "packet_id",
                         "in": "path",
                         "required": true
@@ -290,31 +376,35 @@
                     "200": {
                         "description": "List of events",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/httpdto.HttpResponseEvent"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid packet ID format",
+                        "description": "Invalid packet ID",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
-                        "description": "Not found",
+                        "description": "Packet not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -322,7 +412,7 @@
         },
         "/event-packets": {
             "post": {
-                "description": "Creates a new event packet. Event packets can include multiple events and have allocated seats that must not exceed the minimum seats of included events.",
+                "description": "Create a new event packet (ticket package/bundle)",
                 "consumes": [
                     "application/json"
                 ],
@@ -335,8 +425,15 @@
                 "summary": "Create a new event packet",
                 "parameters": [
                     {
-                        "description": "Event packet to create",
-                        "name": "event_packet",
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Event packet details",
+                        "name": "packet",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -352,24 +449,39 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request format or validation error",
+                        "description": "Invalid request body",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "409": {
                         "description": "Event packet already exists",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -377,7 +489,7 @@
         },
         "/event-packets/{id}": {
             "get": {
-                "description": "Retrieves a single event packet using its unique integer ID",
+                "description": "Retrieve a specific event packet by its unique identifier",
                 "consumes": [
                     "application/json"
                 ],
@@ -387,48 +499,60 @@
                 "tags": [
                     "event-packets"
                 ],
-                "summary": "Get an event packet by ID",
+                "summary": "Get event packet by ID",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Event Packet ID",
+                        "type": "string",
+                        "description": "Event Packet ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer token (optional)",
+                        "name": "Authorization",
+                        "in": "header"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "The requested event packet",
+                        "description": "Event packet details",
                         "schema": {
                             "$ref": "#/definitions/httpdto.HttpResponseEventPacket"
                         }
                     },
                     "400": {
-                        "description": "Invalid event packet ID format or validation error",
+                        "description": "Invalid event packet ID format",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Event packet not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Deletes an event packet by its ID and returns the deleted event packet.",
+                "description": "Delete an event packet by its ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -441,8 +565,15 @@
                 "summary": "Delete an event packet",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Event Packet ID",
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event Packet ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -459,27 +590,42 @@
                         "description": "Invalid event packet ID format",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Event packet not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "An unexpected error occurred",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "patch": {
-                "description": "Partially updates an existing event packet by its ID. Validates that allocated_seats does not exceed minimum seats of included events.",
+                "description": "Partially update event packet details (PATCH - only provided fields are updated)",
                 "consumes": [
                     "application/json"
                 ],
@@ -489,18 +635,25 @@
                 "tags": [
                     "event-packets"
                 ],
-                "summary": "Update an event packet",
+                "summary": "Update an existing event packet",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Event Packet ID",
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event Packet ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "description": "Fields to update",
-                        "name": "updates",
+                        "name": "packet",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -516,31 +669,39 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid event packet ID format, request body, or validation error",
+                        "description": "Invalid request body or event packet ID",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Event packet not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "409": {
-                        "description": "Name already taken",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "An unexpected error occurred",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -548,7 +709,7 @@
         },
         "/events": {
             "get": {
-                "description": "Retrieves a list of events with optional filters, sorting, and pagination.",
+                "description": "Get a paginated list of events with optional filters",
                 "consumes": [
                     "application/json"
                 ],
@@ -558,11 +719,17 @@
                 "tags": [
                     "events"
                 ],
-                "summary": "Filter and list events",
+                "summary": "List and filter events",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by name (partial match)",
+                        "description": "Bearer token (optional)",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by event name (partial match)",
                         "name": "name",
                         "in": "query"
                     },
@@ -580,62 +747,65 @@
                     },
                     {
                         "type": "integer",
-                        "description": "Minimum seats",
+                        "description": "Minimum number of seats",
                         "name": "min_seats",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Maximum seats",
+                        "description": "Maximum number of seats",
                         "name": "max_seats",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "default": 1,
-                        "description": "Page number",
+                        "description": "Page number (default: 1)",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "default": 10,
-                        "description": "Items per page",
+                        "description": "Items per page (default: 10, max: 100)",
                         "name": "per_page",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Sort order: name_asc, name_desc, seats_asc, seats_desc",
+                        "description": "Sort field (e.g., 'name', 'created_at')",
                         "name": "order_by",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "A list of events",
-                        "schema": {
-                            "$ref": "#/definitions/httpdto.HttpResponseEventList"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid query parameters or validation error",
+                        "description": "Paginated list of events",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "post": {
-                "description": "Adds a new event to the system.",
+                "description": "Create a new event with the provided details",
                 "consumes": [
                     "application/json"
                 ],
@@ -648,7 +818,14 @@
                 "summary": "Create a new event",
                 "parameters": [
                     {
-                        "description": "Event to create",
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Event details",
                         "name": "event",
                         "in": "body",
                         "required": true,
@@ -665,24 +842,48 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request format or validation error",
+                        "description": "Invalid request body",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - insufficient permissions",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "409": {
-                        "description": "Event already exists",
+                        "description": "Conflict - event already exists",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -690,7 +891,7 @@
         },
         "/events/{id}": {
             "get": {
-                "description": "Retrieves a single event using its unique integer ID",
+                "description": "Retrieve a specific event by its unique identifier",
                 "consumes": [
                     "application/json"
                 ],
@@ -700,48 +901,60 @@
                 "tags": [
                     "events"
                 ],
-                "summary": "Get an event by ID",
+                "summary": "Get event by ID",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Event ID",
+                        "type": "string",
+                        "description": "Event ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer token (optional)",
+                        "name": "Authorization",
+                        "in": "header"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "The requested event",
+                        "description": "Event details",
                         "schema": {
                             "$ref": "#/definitions/httpdto.HttpResponseEvent"
                         }
                     },
                     "400": {
-                        "description": "Invalid event ID format or validation error",
+                        "description": "Invalid event ID format",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Event not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Deletes an event by its ID and returns the deleted event.",
+                "description": "Delete an event by its ID (only the owner can delete)",
                 "consumes": [
                     "application/json"
                 ],
@@ -754,8 +967,15 @@
                 "summary": "Delete an event",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Event ID",
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -772,27 +992,51 @@
                         "description": "Invalid event ID format",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - not the event owner",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Event not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "patch": {
-                "description": "Partially updates an existing event by its ID.",
+                "description": "Partially update event details (PATCH - only provided fields are updated)",
                 "consumes": [
                     "application/json"
                 ],
@@ -802,18 +1046,25 @@
                 "tags": [
                     "events"
                 ],
-                "summary": "Update an event",
+                "summary": "Update an existing event",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Event ID",
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "description": "Fields to update",
-                        "name": "updates",
+                        "name": "event",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -829,31 +1080,48 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid event ID format or request body",
+                        "description": "Invalid request body or event ID",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - not the event owner",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Event not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "409": {
-                        "description": "Name already taken",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -861,7 +1129,7 @@
         },
         "/tickets": {
             "post": {
-                "description": "Creates a new ticket for either an event or an event packet. The ticket code is automatically generated as a UUID. Validates seat availability before creation.",
+                "description": "Create a new ticket for an event and packet",
                 "consumes": [
                     "application/json"
                 ],
@@ -874,7 +1142,14 @@
                 "summary": "Create a new ticket",
                 "parameters": [
                     {
-                        "description": "Ticket to create (must specify either event_id or packet_id, not both)",
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Ticket details",
                         "name": "ticket",
                         "in": "body",
                         "required": true,
@@ -885,30 +1160,54 @@
                 ],
                 "responses": {
                     "201": {
-                        "description": "Ticket created successfully with auto-generated code",
+                        "description": "Ticket created successfully",
                         "schema": {
                             "$ref": "#/definitions/httpdto.HttpResponseTicket"
                         }
                     },
                     "400": {
-                        "description": "Invalid request format, validation error, or no seats available",
+                        "description": "Invalid request body",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Event or packet not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "409": {
                         "description": "Ticket already exists",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal error or unexpected error occurred",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -916,7 +1215,7 @@
         },
         "/tickets/{code}": {
             "get": {
-                "description": "Retrieves a single ticket using its unique UUID code",
+                "description": "Retrieve a specific ticket by its unique code",
                 "consumes": [
                     "application/json"
                 ],
@@ -926,11 +1225,18 @@
                 "tags": [
                     "tickets"
                 ],
-                "summary": "Get a ticket by code",
+                "summary": "Get ticket by code",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Ticket Code (UUID)",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Ticket code (UUID)",
                         "name": "code",
                         "in": "path",
                         "required": true
@@ -938,36 +1244,133 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "The requested ticket",
+                        "description": "Ticket details",
                         "schema": {
                             "$ref": "#/definitions/httpdto.HttpResponseTicket"
                         }
                     },
                     "400": {
-                        "description": "Invalid ticket code format or validation error",
+                        "description": "Invalid ticket code",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Ticket not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Create a new ticket with a specified code or replace an existing one (idempotent)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Create or replace a ticket with specific code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Ticket code (UUID)",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Ticket details",
+                        "name": "ticket",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpCreateTicket"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ticket created or updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpResponseTicket"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or ticket code",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Event or packet not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Deletes a ticket by its code and returns the deleted ticket.",
+                "description": "Delete a ticket by its code",
                 "consumes": [
                     "application/json"
                 ],
@@ -981,7 +1384,14 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Ticket Code (UUID)",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Ticket code (UUID)",
                         "name": "code",
                         "in": "path",
                         "required": true
@@ -995,30 +1405,45 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid ticket code format",
+                        "description": "Invalid ticket code",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Ticket not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "An unexpected error occurred",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "patch": {
-                "description": "Partially updates an existing ticket by its code. Validates seat availability when reassigning to a different event or packet.",
+                "description": "Partially update ticket details (PATCH - only provided fields are updated)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1032,14 +1457,21 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Ticket Code (UUID)",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Ticket code (UUID)",
                         "name": "code",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Fields to update (event_id or packet_id)",
-                        "name": "updates",
+                        "description": "Fields to update",
+                        "name": "ticket",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -1055,24 +1487,39 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid ticket code format, request body, or validation error (e.g., no seats available)",
+                        "description": "Invalid request body or ticket code",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
                         "description": "Ticket not found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "An unexpected error occurred",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -1080,6 +1527,23 @@
         }
     },
     "definitions": {
+        "hateoas.Link": {
+            "type": "object",
+            "properties": {
+                "href": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "rel": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "httpdto.HttpCreateEvent": {
             "type": "object",
             "required": [
@@ -1150,17 +1614,6 @@
                 }
             }
         },
-        "httpdto.HttpResponseEventList": {
-            "type": "object",
-            "properties": {
-                "events": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/httpdto.httpResponseEvent"
-                    }
-                }
-            }
-        },
         "httpdto.HttpResponseEventPacket": {
             "type": "object",
             "properties": {
@@ -1172,6 +1625,12 @@
         "httpdto.HttpResponseEventPacketInclusion": {
             "type": "object",
             "properties": {
+                "_links": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/hateoas.Link"
+                    }
+                },
                 "id_event": {
                     "type": "integer"
                 },
@@ -1183,6 +1642,12 @@
         "httpdto.HttpResponseTicket": {
             "type": "object",
             "properties": {
+                "_links": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/hateoas.Link"
+                    }
+                },
                 "code": {
                     "type": "string"
                 },
@@ -1251,6 +1716,12 @@
         "httpdto.httpResponseEvent": {
             "type": "object",
             "properties": {
+                "_links": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/hateoas.Link"
+                    }
+                },
                 "description": {
                     "type": "string"
                 },
@@ -1274,6 +1745,12 @@
         "httpdto.httpResponseEventPacket": {
             "type": "object",
             "properties": {
+                "_links": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/hateoas.Link"
+                    }
+                },
                 "allocated_seats": {
                     "type": "integer"
                 },
@@ -1293,6 +1770,14 @@
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }

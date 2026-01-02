@@ -17,7 +17,8 @@ RUN mkdir -p ./app/proto && \
     -I./proto \
     --python_out=./app/proto \
     --grpc_python_out=./app/proto \
-    ./proto/idm.proto
+    ./proto/idm.proto && \
+    sed -i 's/^import idm_pb2/from . import idm_pb2/' ./app/proto/idm_pb2_grpc.py
 
 COPY IDM-Gateway/app/ ./app/
 

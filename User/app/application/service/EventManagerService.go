@@ -1,7 +1,9 @@
 package service
 
+import "context"
+
 type EventManagerService interface {
-	CreateTicket(code string, packetID *int, eventID *int) (*TicketResponse, error)
+	CreateTicket(ctx context.Context, code string, packetID *int, eventID *int) (*TicketResponse, error)
 }
 
 type TicketResponse struct {

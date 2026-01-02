@@ -29,5 +29,5 @@ services:
 
 networks:
   idm-network:
-    external: true
     name: idm-network
+    driver: bridge

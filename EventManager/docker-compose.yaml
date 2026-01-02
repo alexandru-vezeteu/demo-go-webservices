@@ -4,8 +4,8 @@ include:
 services:
   eventManager:
     build:
-      context: .
-      dockerfile: app.dockerfile
+      context: ..
+      dockerfile: EventManager/app.dockerfile
     image: event_manager_image
     container_name: ${EVENT_MANAGER_HOST}
     depends_on:
@@ -19,6 +19,11 @@ services:
       EVENT_MANAGER_DB_PASSWORD: ${EVENT_MANAGER_DB_PASSWORD}
       EVENT_MANAGER_DB_NAME: ${EVENT_MANAGER_DB_NAME}
       EVENT_MANAGER_DB_PORT: ${EVENT_MANAGER_DB_PORT}
+
+      IDM_HOST: idm-service
+      IDM_PORT: "50051"
+    ports:
+      - "${EVENT_MANAGER_PORT}:${EVENT_MANAGER_PORT}"
     restart: always
     networks:
       - event-network

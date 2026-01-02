@@ -78,13 +78,6 @@ func (uc *userUsecase) validateUser(user *domain.User) error {
 		}
 	}
 
-	if user.TicketList != nil {
-		trimmed := strings.TrimSpace(*user.TicketList)
-		if trimmed == "" {
-			return &domain.ValidationError{Field: "ticket_list", Reason: "Ticket list cannot be empty string"}
-		}
-	}
-
 	return nil
 }
 
@@ -174,14 +167,7 @@ func (uc *userUsecase) UpdateUser(ctx context.Context, token string, id int, upd
 		}
 	}
 
-	if ticketList, ok := updates["ticket_list"]; ok {
-		if ticketList != nil {
-			ticketListStr, isString := ticketList.(string)
-			if isString && strings.TrimSpace(ticketListStr) == "" {
-				return nil, &domain.ValidationError{Field: "ticket_list", Reason: "Ticket list cannot be empty string"}
-			}
-		}
-	}
+	delete(updates, "ticket_list")
 
 	return uc.repo.Update(ctx, id, updates)
 }
@@ -225,20 +211,20 @@ func (uc *userUsecase) CreateTicketForUser(ctx context.Context, userID int, toke
 
 	ticketCode := uuid.New().String()
 
-	_, err = uc.eventManagerService.CreateTicket(ticketCode, packetID, eventID)
+	ticketResp, err := uc.eventManagerService.CreateTicket(ctx, ticketCode, packetID, eventID)
 	if err != nil {
 		return "", err
 	}
 
-	var newTicketList string
-	if user.TicketList == nil || strings.TrimSpace(*user.TicketList) == "" {
-		newTicketList = ticketCode
-	} else {
-		newTicketList = *user.TicketList + "," + ticketCode
+	newTicket := domain.Ticket{
+		Code: ticketCode,
 	}
+	_ = ticketResp
+
+	updatedTicketList := append(user.TicketList, newTicket)
 
 	updates := map[string]interface{}{
-		"ticket_list": newTicketList,
+		"ticket_list": updatedTicketList,
 	}
 
 	_, err = uc.repo.Update(ctx, userID, updates)

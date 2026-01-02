@@ -55,3 +55,16 @@ func BuildRelatedLink(url string, rel string, method string, title string) Link 
 		Title:  title,
 	}
 }
+
+func BuildPaginationLink(baseURL string, resourcePath string, queryParams string, rel string, title string) Link {
+	href := fmt.Sprintf("%s%s", baseURL, resourcePath)
+	if queryParams != "" {
+		href = fmt.Sprintf("%s?%s", href, queryParams)
+	}
+	return Link{
+		Href:   href,
+		Rel:    rel,
+		Method: "GET",
+		Title:  title,
+	}
+}

@@ -60,6 +60,49 @@ func ToHttpResponseEventPacket(event *domain.EventPacket, serviceURLs *config.Se
 	}
 }
 
+type HttpResponseEventPacketList struct {
+	EventPackets []*httpResponseEventPacket  `json:"event_packets"`
+	Links        map[string]hateoas.Link     `json:"_links"`
+}
+
+func ToHttpResponseEventPacketList(packets []*domain.EventPacket, selfPath string, serviceURLs *config.ServiceURLs) *HttpResponseEventPacketList {
+	if packets == nil {
+		packets = []*domain.EventPacket{}
+	}
+
+	httpPackets := make([]*httpResponseEventPacket, 0, len(packets))
+
+	for _, packet := range packets {
+		resourcePath := fmt.Sprintf("/packets/%d", packet.ID)
+		httpPackets = append(httpPackets, &httpResponseEventPacket{
+			ID:             packet.ID,
+			OwnerID:        packet.OwnerID,
+			Name:           packet.Name,
+			Location:       packet.Location,
+			Description:    packet.Description,
+			AllocatedSeats: packet.AllocatedSeats,
+			Links: map[string]hateoas.Link{
+				"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+				"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
+				"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
+				"owner": hateoas.BuildRelatedLink(
+					fmt.Sprintf("%s/users/%d", serviceURLs.UserManager, packet.OwnerID),
+					"owner",
+					"GET",
+					"Get packet owner",
+				),
+			},
+		})
+	}
+
+	return &HttpResponseEventPacketList{
+		EventPackets: httpPackets,
+		Links: map[string]hateoas.Link{
+			"self": hateoas.BuildSelfLink(serviceURLs.EventManager, selfPath),
+		},
+	}
+}
+
 type HttpCreateEventPacket struct {
 	OwnerID        int     `json:"id_owner" binding:"required"`
 	Name           string  `json:"name" binding:"required"`
