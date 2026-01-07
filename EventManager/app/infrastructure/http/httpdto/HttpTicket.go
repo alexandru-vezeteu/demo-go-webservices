@@ -8,8 +8,8 @@ import (
 )
 
 type HttpCreateTicket struct {
-	PacketID *int `json:"packet_id"`
-	EventID  *int `json:"event_id"`
+	PacketID *int `json:"packet_id" binding:"omitempty,min=1"`
+	EventID  *int `json:"event_id" binding:"omitempty,min=1"`
 }
 
 type HttpResponseTicket struct {
@@ -20,8 +20,8 @@ type HttpResponseTicket struct {
 }
 
 type HttpUpdateTicket struct {
-	PacketID *int `json:"packet_id"`
-	EventID  *int `json:"event_id"`
+	PacketID *int `json:"packet_id" binding:"omitempty,min=1"`
+	EventID  *int `json:"event_id" binding:"omitempty,min=1"`
 }
 
 func (dto *HttpCreateTicket) ToTicket() *domain.Ticket {

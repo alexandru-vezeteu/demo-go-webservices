@@ -6,7 +6,9 @@ import (
 )
 
 type Ticket struct {
-	Code string
+	PacketID *int
+	EventID  *int
+	Code     string
 }
 
 type User struct {

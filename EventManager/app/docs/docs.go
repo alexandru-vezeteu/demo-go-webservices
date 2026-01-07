@@ -1558,19 +1558,25 @@ const docTemplate = `{
             ],
             "properties": {
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 1000
                 },
                 "id_owner": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "location": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
                 },
                 "seats": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 }
             }
         },
@@ -1582,19 +1588,25 @@ const docTemplate = `{
             ],
             "properties": {
                 "allocated_seats": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 1000
                 },
                 "id_owner": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "location": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
                 }
             }
         },
@@ -1605,10 +1617,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "event_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "packet_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 }
             }
         },
@@ -1669,19 +1683,25 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 1000
                 },
                 "id_owner": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "location": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
                 },
                 "seats": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 }
             }
         },
@@ -1689,19 +1709,25 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "allocated_seats": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 1000
                 },
                 "id_owner": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "location": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
                 }
             }
         },
@@ -1712,10 +1738,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "event_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "packet_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 }
             }
         },

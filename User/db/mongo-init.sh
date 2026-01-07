@@ -1,12 +1,8 @@
 #!/bin/bash
 set -e
 
-# MongoDB init scripts run before auth is enabled, so we can connect without credentials
-# This script runs automatically when the container starts for the first time
 
-# Create users with proper roles using mongosh
 mongosh -- "$MONGO_INITDB_DATABASE" <<EOF
-// Create admin user in admin database
 db = db.getSiblingDB('admin');
 
 db.createUser({
@@ -20,7 +16,6 @@ db.createUser({
   ]
 });
 
-// Switch to application database
 db = db.getSiblingDB("$MONGO_INITDB_DATABASE");
 
 db.createUser({

@@ -5,7 +5,9 @@ import (
 )
 
 type MongoTicket struct {
-	Code string `bson:"code"`
+	PacketID *int   `bson:"packet_id,omitempty"`
+	EventID  *int   `bson:"event_id,omitempty"`
+	Code     string `bson:"code"`
 }
 
 type MongoUser struct {
@@ -24,7 +26,9 @@ func (mu *MongoUser) ToDomain() *domain.User {
 	domainTickets := make([]domain.Ticket, len(mu.TicketList))
 	for i, mt := range mu.TicketList {
 		domainTickets[i] = domain.Ticket{
-			Code: mt.Code,
+			PacketID: mt.PacketID,
+			EventID:  mt.EventID,
+			Code:     mt.Code,
 		}
 	}
 
@@ -44,7 +48,9 @@ func FromUser(u *domain.User) *MongoUser {
 	mongoTickets := make([]MongoTicket, len(u.TicketList))
 	for i, dt := range u.TicketList {
 		mongoTickets[i] = MongoTicket{
-			Code: dt.Code,
+			PacketID: dt.PacketID,
+			EventID:  dt.EventID,
+			Code:     dt.Code,
 		}
 	}
 

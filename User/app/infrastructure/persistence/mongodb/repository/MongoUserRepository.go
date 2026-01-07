@@ -22,16 +22,13 @@ func NewMongoUserRepository(db *mongo.Database) *MongoUserRepository {
 }
 
 func (r *MongoUserRepository) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
-	
-	nextID, err := r.getNextID(ctx)
-	if err != nil {
-		return nil, &domain.InternalError{Msg: "failed to generate ID", Err: err}
+	if user.ID < 1 {
+		return nil, &domain.ValidationError{Field: "id", Reason: "user ID must be provided"}
 	}
 
-	user.ID = nextID
 	mongoUser := model.FromUser(user)
 
-	_, err = r.Collection.InsertOne(ctx, mongoUser)
+	_, err := r.Collection.InsertOne(ctx, mongoUser)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			return nil, &domain.AlreadyExistsError{Name: user.Email}
@@ -56,7 +53,7 @@ func (r *MongoUserRepository) GetByID(ctx context.Context, id int) (*domain.User
 }
 
 func (r *MongoUserRepository) Update(ctx context.Context, id int, updates map[string]interface{}) (*domain.User, error) {
-	
+
 	mongoUpdates := bson.M{}
 	for key, value := range updates {
 		switch key {
@@ -68,8 +65,24 @@ func (r *MongoUserRepository) Update(ctx context.Context, id int, updates map[st
 			mongoUpdates["last_name"] = value
 		case "social_media_links":
 			mongoUpdates["social_media_links"] = value
+		case "first_name_private":
+			mongoUpdates["first_name_private"] = value
+		case "last_name_private":
+			mongoUpdates["last_name_private"] = value
 		case "ticket_list":
-			mongoUpdates["ticket_list"] = value
+			if domainTickets, ok := value.([]domain.Ticket); ok {
+				mongoTickets := make([]model.MongoTicket, len(domainTickets))
+				for i, dt := range domainTickets {
+					mongoTickets[i] = model.MongoTicket{
+						PacketID: dt.PacketID,
+						EventID:  dt.EventID,
+						Code:     dt.Code,
+					}
+				}
+				mongoUpdates["ticket_list"] = mongoTickets
+			} else {
+				mongoUpdates["ticket_list"] = value
+			}
 		}
 	}
 
@@ -97,13 +110,12 @@ func (r *MongoUserRepository) Update(ctx context.Context, id int, updates map[st
 }
 
 func (r *MongoUserRepository) Delete(ctx context.Context, id int) (*domain.User, error) {
-	
+
 	user, err := r.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	
 	result, err := r.Collection.DeleteOne(ctx, bson.M{"id": id})
 	if err != nil {
 		return nil, &domain.InternalError{Msg: "failed to delete user", Err: err}
@@ -116,9 +128,8 @@ func (r *MongoUserRepository) Delete(ctx context.Context, id int) (*domain.User,
 	return user, nil
 }
 
-
 func (r *MongoUserRepository) getNextID(ctx context.Context) (int, error) {
-	
+
 	opts := options.Find().SetSort(bson.D{{Key: "id", Value: -1}}).SetLimit(1)
 	cursor, err := r.Collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
@@ -138,9 +149,8 @@ func (r *MongoUserRepository) getNextID(ctx context.Context) (int, error) {
 	return users[0].ID + 1, nil
 }
 
-
 func (r *MongoUserRepository) CreateIndexes(ctx context.Context) error {
-	
+
 	indexModel := mongo.IndexModel{
 		Keys:    bson.D{{Key: "email", Value: 1}},
 		Options: options.Index().SetUnique(true),
@@ -151,7 +161,6 @@ func (r *MongoUserRepository) CreateIndexes(ctx context.Context) error {
 		return err
 	}
 
-	
 	indexModel = mongo.IndexModel{
 		Keys:    bson.D{{Key: "id", Value: 1}},
 		Options: options.Index().SetUnique(true),
@@ -163,4 +172,60 @@ func (r *MongoUserRepository) CreateIndexes(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (r *MongoUserRepository) GetUsersByEventID(ctx context.Context, eventID int) ([]*domain.User, error) {
+	filter := bson.M{
+		"ticket_list": bson.M{
+			"$elemMatch": bson.M{
+				"event_id": eventID,
+			},
+		},
+	}
+
+	cursor, err := r.Collection.Find(ctx, filter)
+	if err != nil {
+		return nil, &domain.InternalError{Msg: "failed to query users by event ID", Err: err}
+	}
+	defer cursor.Close(ctx)
+
+	var mongoUsers []model.MongoUser
+	if err = cursor.All(ctx, &mongoUsers); err != nil {
+		return nil, &domain.InternalError{Msg: "failed to decode users", Err: err}
+	}
+
+	users := make([]*domain.User, 0, len(mongoUsers))
+	for _, mu := range mongoUsers {
+		users = append(users, mu.ToDomain())
+	}
+
+	return users, nil
+}
+
+func (r *MongoUserRepository) GetUsersByPacketID(ctx context.Context, packetID int) ([]*domain.User, error) {
+	filter := bson.M{
+		"ticket_list": bson.M{
+			"$elemMatch": bson.M{
+				"packet_id": packetID,
+			},
+		},
+	}
+
+	cursor, err := r.Collection.Find(ctx, filter)
+	if err != nil {
+		return nil, &domain.InternalError{Msg: "failed to query users by packet ID", Err: err}
+	}
+	defer cursor.Close(ctx)
+
+	var mongoUsers []model.MongoUser
+	if err = cursor.All(ctx, &mongoUsers); err != nil {
+		return nil, &domain.InternalError{Msg: "failed to decode users", Err: err}
+	}
+
+	users := make([]*domain.User, 0, len(mongoUsers))
+	for _, mu := range mongoUsers {
+		users = append(users, mu.ToDomain())
+	}
+
+	return users, nil
 }

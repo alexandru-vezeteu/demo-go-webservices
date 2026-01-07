@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 
@@ -61,9 +63,26 @@ func StrictBindJSON(c *gin.Context, obj interface{}) error {
 		}
 	}
 
-	
+
 	if decoder.More() {
 		return &domain.InvalidRequestError{Reason: "request body contains multiple JSON objects"}
+	}
+
+
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		if err := v.Struct(obj); err != nil {
+			var validationErrs validator.ValidationErrors
+			if errors.As(err, &validationErrs) {
+
+				for _, fieldErr := range validationErrs {
+					return &domain.ValidationError{
+						Field:  fieldErr.Field(),
+						Reason: fmt.Sprintf("validation failed on '%s' tag", fieldErr.Tag()),
+					}
+				}
+			}
+			return &domain.ValidationError{Reason: err.Error()}
+		}
 	}
 
 	return nil

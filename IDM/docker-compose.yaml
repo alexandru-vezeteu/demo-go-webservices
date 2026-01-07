@@ -25,6 +25,9 @@ services:
 
       REDIS_ADDR: ${IDM_REDIS_HOST}:${IDM_REDIS_PORT}
       REDIS_PASSWORD: ${IDM_REDIS_PASSWORD}
+
+      USER_SERVICE_HOST: ${USER_SERVICE_HOST}
+      USER_SERVICE_PORT: ${USER_SERVICE_PORT}
     restart: always
     networks:
       - idm-network

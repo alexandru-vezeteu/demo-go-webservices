@@ -11,21 +11,48 @@ import (
 
 type IdentityServer struct {
 	pb.UnimplementedIdentityServiceServer
+	registerUseCase    usecase.RegisterUseCase
 	loginUseCase       usecase.LoginUseCase
 	verifyTokenUseCase usecase.VerifyTokenUseCase
 	revokeTokenUseCase usecase.RevokeTokenUseCase
 }
 
 func NewIdentityServer(
+	registerUseCase usecase.RegisterUseCase,
 	loginUseCase usecase.LoginUseCase,
 	verifyTokenUseCase usecase.VerifyTokenUseCase,
 	revokeTokenUseCase usecase.RevokeTokenUseCase,
 ) *IdentityServer {
 	return &IdentityServer{
+		registerUseCase:    registerUseCase,
 		loginUseCase:       loginUseCase,
 		verifyTokenUseCase: verifyTokenUseCase,
 		revokeTokenUseCase: revokeTokenUseCase,
 	}
+}
+
+func (s *IdentityServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
+	result, err := s.registerUseCase.Execute(ctx, req.Email, req.Password, req.Role)
+	if err != nil {
+		var internalErr *domain.InternalError
+		if errors.As(err, &internalErr) {
+			return &pb.RegisterResponse{
+				Success: false,
+				Message: "Internal error during registration",
+			}, nil
+		}
+
+		return &pb.RegisterResponse{
+			Success: false,
+			Message: "Registration failed",
+		}, nil
+	}
+
+	return &pb.RegisterResponse{
+		Success: result.Success,
+		Message: result.Message,
+		UserId:  result.UserID,
+	}, nil
 }
 
 func (s *IdentityServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {

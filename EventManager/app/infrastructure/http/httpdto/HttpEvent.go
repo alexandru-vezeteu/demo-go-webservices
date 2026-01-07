@@ -39,6 +39,7 @@ func ToHttpResponseEvent(event *domain.Event, serviceURLs *config.ServiceURLs) *
 		Seats:       event.Seats,
 		Links: map[string]hateoas.Link{
 			"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+			"parent": hateoas.BuildParentLink(serviceURLs.EventManager, "/events"),
 			"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
 			"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
 			"owner": hateoas.BuildRelatedLink(
@@ -138,6 +139,7 @@ func ToHttpResponseEventList(events []*domain.Event, serviceURLs *config.Service
 			Seats:       event.Seats,
 			Links: map[string]hateoas.Link{
 				"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+				"parent": hateoas.BuildParentLink(serviceURLs.EventManager, "/events"),
 				"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
 				"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
 				"owner": hateoas.BuildRelatedLink(
@@ -177,6 +179,7 @@ func ToHttpResponseEventListCustom(events []*domain.Event, selfPath string, serv
 			Seats:       event.Seats,
 			Links: map[string]hateoas.Link{
 				"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+				"parent": hateoas.BuildParentLink(serviceURLs.EventManager, "/events"),
 				"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
 				"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
 				"owner": hateoas.BuildRelatedLink(
@@ -215,6 +218,7 @@ func ToHttpResponseEventListWithPagination(events []*domain.Event, filter *domai
 			Seats:       event.Seats,
 			Links: map[string]hateoas.Link{
 				"self":   hateoas.BuildSelfLink(serviceURLs.EventManager, resourcePath),
+				"parent": hateoas.BuildParentLink(serviceURLs.EventManager, "/events"),
 				"update": hateoas.BuildUpdateLink(serviceURLs.EventManager, resourcePath),
 				"delete": hateoas.BuildDeleteLink(serviceURLs.EventManager, resourcePath),
 				"owner": hateoas.BuildRelatedLink(
@@ -269,11 +273,11 @@ func ToHttpResponseEventListWithPagination(events []*domain.Event, filter *domai
 }
 
 type HttpCreateEvent struct {
-	OwnerID     int     `json:"id_owner" binding:"required"`
-	Name        string  `json:"name" binding:"required"`
-	Location    *string `json:"location"`
-	Description *string `json:"description"`
-	Seats       *int    `json:"seats"`
+	OwnerID     int     `json:"id_owner" binding:"required,min=1"`
+	Name        string  `json:"name" binding:"required,min=1,max=255"`
+	Location    *string `json:"location" binding:"omitempty,max=500"`
+	Description *string `json:"description" binding:"omitempty,max=1000"`
+	Seats       *int    `json:"seats" binding:"omitempty,min=1"`
 }
 
 func (event *HttpCreateEvent) ToEvent() *domain.Event {
@@ -287,11 +291,11 @@ func (event *HttpCreateEvent) ToEvent() *domain.Event {
 }
 
 type HttpUpdateEvent struct {
-	OwnerID     *int    `json:"id_owner"`
-	Name        *string `json:"name"`
-	Location    *string `json:"location"`
-	Description *string `json:"description"`
-	Seats       *int    `json:"seats"`
+	OwnerID     *int    `json:"id_owner" binding:"omitempty,min=1"`
+	Name        *string `json:"name" binding:"omitempty,min=1,max=255"`
+	Location    *string `json:"location" binding:"omitempty,max=500"`
+	Description *string `json:"description" binding:"omitempty,max=1000"`
+	Seats       *int    `json:"seats" binding:"omitempty,min=1"`
 }
 
 func (event *HttpUpdateEvent) ToUpdateMap() map[string]interface{} {

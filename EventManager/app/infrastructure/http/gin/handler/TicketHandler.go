@@ -45,7 +45,7 @@ func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 
 	var req httpdto.HttpCreateTicket
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (h *GinTicketHandler) PutTicket(c *gin.Context) {
 
 	var req httpdto.HttpCreateTicket
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *GinTicketHandler) UpdateTicket(c *gin.Context) {
 
 	var req httpdto.HttpUpdateTicket
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 

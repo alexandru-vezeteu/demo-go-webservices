@@ -14,14 +14,20 @@ definitions:
   httpdto.HttpCreateEvent:
     properties:
       description:
+        maxLength: 1000
         type: string
       id_owner:
+        minimum: 1
         type: integer
       location:
+        maxLength: 500
         type: string
       name:
+        maxLength: 255
+        minLength: 1
         type: string
       seats:
+        minimum: 1
         type: integer
     required:
     - id_owner
@@ -30,14 +36,20 @@ definitions:
   httpdto.HttpCreateEventPacket:
     properties:
       allocated_seats:
+        minimum: 1
         type: integer
       description:
+        maxLength: 1000
         type: string
       id_owner:
+        minimum: 1
         type: integer
       location:
+        maxLength: 500
         type: string
       name:
+        maxLength: 255
+        minLength: 1
         type: string
     required:
     - id_owner
@@ -48,8 +60,10 @@ definitions:
   httpdto.HttpCreateTicket:
     properties:
       event_id:
+        minimum: 1
         type: integer
       packet_id:
+        minimum: 1
         type: integer
     type: object
   httpdto.HttpResponseEvent:
@@ -89,27 +103,39 @@ definitions:
   httpdto.HttpUpdateEvent:
     properties:
       description:
+        maxLength: 1000
         type: string
       id_owner:
+        minimum: 1
         type: integer
       location:
+        maxLength: 500
         type: string
       name:
+        maxLength: 255
+        minLength: 1
         type: string
       seats:
+        minimum: 1
         type: integer
     type: object
   httpdto.HttpUpdateEventPacket:
     properties:
       allocated_seats:
+        minimum: 1
         type: integer
       description:
+        maxLength: 1000
         type: string
       id_owner:
+        minimum: 1
         type: integer
       location:
+        maxLength: 500
         type: string
       name:
+        maxLength: 255
+        minLength: 1
         type: string
     type: object
   httpdto.HttpUpdateEventPacketInclusion:
@@ -117,8 +143,10 @@ definitions:
   httpdto.HttpUpdateTicket:
     properties:
       event_id:
+        minimum: 1
         type: integer
       packet_id:
+        minimum: 1
         type: integer
     type: object
   httpdto.httpResponseEvent:

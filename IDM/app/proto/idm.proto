@@ -5,46 +5,59 @@ package idm;
 option go_package = "idmService/proto";
 
 service IdentityService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
   rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
 }
 
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string role = 3;
+}
+
+message RegisterResponse {
+  bool success = 1;
+  string message = 2;
+  string user_id = 3;
+}
+
 message LoginRequest {
-  string email = 1;    // User email address
-  string password = 2; // User password
+  string email = 1;
+  string password = 2;
 }
 
 message LoginResponse {
   bool success = 1;
-  string token = 2;  // JWT token in Base64Url format with claims: iss, sub, exp, jti, role
+  string token = 2;
   string message = 3;
-  string user_id = 4;  // User ID (corresponds to 'sub' claim in JWT)
-  string role = 5;     // User role (corresponds to 'role' claim in JWT)
-  string email = 6;    // User email address
+  string user_id = 4;
+  string role = 5;
+  string email = 6;
 }
 
 message VerifyTokenRequest {
-  string token = 1;  // JWT token to verify
+  string token = 1;
 }
 
 message VerifyTokenResponse {
-  bool valid = 1;      // false if expired or blacklisted, true if valid
-  string email = 2;    // User email address
-  string message = 3;  // Contains reason if invalid (expired, blacklisted, corrupted)
-  string user_id = 4;  // User ID extracted from token's 'sub' claim (clear text)
-  string role = 5;     // Role extracted from token's 'role' claim (clear text)
-  string issuer = 6;   // Issuer extracted from token's 'iss' claim
-  int64 expires_at = 7; // Expiration timestamp from token's 'exp' claim
-  bool expired = 8;    // true if token has expired
-  bool blacklisted = 9; // true if token is in blacklist
+  bool valid = 1;
+  string email = 2;
+  string message = 3;
+  string user_id = 4;
+  string role = 5;
+  string issuer = 6;
+  int64 expires_at = 7;
+  bool expired = 8;
+  bool blacklisted = 9;
 }
 
 message RevokeTokenRequest {
-  string token = 1;  // JWT token to revoke/destroy
+  string token = 1;
 }
 
 message RevokeTokenResponse {
-  bool success = 1;  // Always true (validation processing completed successfully)
-  string message = 2; // Success message or reason for revocation
+  bool success = 1;
+  string message = 2;
 }

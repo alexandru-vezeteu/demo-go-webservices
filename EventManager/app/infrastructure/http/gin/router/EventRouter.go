@@ -7,15 +7,14 @@ import (
 )
 
 func RegisterEventRoutes(router *gin.RouterGroup, handler *handler.GinEventHandler) {
-	eventsGroup := router.Group("/events")
-	{
-		eventsGroup.POST("/", handler.CreateEvent)
+	router.POST("/events", handler.CreateEvent)
+	router.POST("/events/", handler.CreateEvent)
 
-		eventsGroup.GET("/:id", handler.GetEventByID)
-		eventsGroup.GET("/", handler.FilterEvents)
+	router.GET("/events/:id", handler.GetEventByID)
+	router.GET("/events", handler.FilterEvents)
+	router.GET("/events/", handler.FilterEvents)
 
-		eventsGroup.PATCH("/:id", handler.UpdateEvent)
+	router.PATCH("/events/:id", handler.UpdateEvent)
 
-		eventsGroup.DELETE("/:id", handler.DeleteEvent)
-	}
+	router.DELETE("/events/:id", handler.DeleteEvent)
 }

@@ -68,12 +68,12 @@ func (uc *eventPacketInclusionUseCase) CreateEventPacketInclusion(ctx context.Co
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserCreateEventPacketInclusion(ctx, identity.UserID, inclusion.EventID, inclusion.PacketID)
+	allowed, err := uc.authZService.CanUserCreateEventPacketInclusion(ctx, *identity, inclusion.EventID, inclusion.PacketID)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to add packets to this event"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to add packets to this event"}
 	}
 
 	return uc.repo.Create(ctx, inclusion)
@@ -131,7 +131,7 @@ func (uc *eventPacketInclusionUseCase) GetEventsByPacketID(ctx context.Context, 
 		return nil, err
 	}
 
-	permissions, err := uc.authZService.CanUserViewEvents(ctx, identity.UserID, events)
+	permissions, err := uc.authZService.CanUserViewEvents(ctx, *identity, events)
 	if err != nil {
 		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
@@ -161,7 +161,7 @@ func (uc *eventPacketInclusionUseCase) GetEventPacketsByEventID(ctx context.Cont
 		return nil, err
 	}
 
-	permissions, err := uc.authZService.CanUserViewEventPackets(ctx, identity.UserID, packets)
+	permissions, err := uc.authZService.CanUserViewEventPackets(ctx, *identity, packets)
 	if err != nil {
 		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
@@ -192,12 +192,12 @@ func (uc *eventPacketInclusionUseCase) Update(ctx context.Context, token string,
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserUpdateEventPacketInclusion(ctx, identity.UserID, eventID, packetID)
+	allowed, err := uc.authZService.CanUserUpdateEventPacketInclusion(ctx, *identity, eventID, packetID)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to update this inclusion"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to update this inclusion"}
 	}
 
 	return uc.repo.Update(ctx, eventID, packetID, updates)
@@ -216,12 +216,12 @@ func (uc *eventPacketInclusionUseCase) DeleteEventPacketInclusion(ctx context.Co
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserDeleteEventPacketInclusion(ctx, identity.UserID, eventID, packetID)
+	allowed, err := uc.authZService.CanUserDeleteEventPacketInclusion(ctx, *identity, eventID, packetID)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to delete this inclusion"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to delete this inclusion"}
 	}
 
 	return uc.repo.Delete(ctx, eventID, packetID)

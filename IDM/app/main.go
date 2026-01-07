@@ -71,11 +71,16 @@ func main() {
 
 	tokenService := service.NewTokenService()
 
+	userServiceClient := service.NewUserServiceHTTPClient()
+	fmt.Println("User service client initialized")
+
+	registerUseCase := usecase.NewRegisterUseCase(userRepo, userServiceClient)
 	loginUseCase := usecase.NewLoginUseCase(userRepo, tokenService)
 	verifyTokenUseCase := usecase.NewVerifyTokenUseCase(userRepo, tokenService, tokenBlacklist)
 	revokeTokenUseCase := usecase.NewRevokeTokenUseCase(tokenBlacklist, tokenService)
 
 	idmServer := server.NewIdentityServer(
+		registerUseCase,
 		loginUseCase,
 		verifyTokenUseCase,
 		revokeTokenUseCase,

@@ -32,6 +32,12 @@ func handleError(c *gin.Context, err error) bool {
 
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return true
+	}
+
+	var invalidReqErr *domain.InvalidRequestError
+	if errors.As(err, &invalidReqErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return true
 	}
@@ -109,7 +115,7 @@ func requireAuth(c *gin.Context) (string, bool) {
 func (h *GinUserHandler) CreateUser(c *gin.Context) {
 	var req httpdto.HttpCreateUser
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -148,7 +154,7 @@ func (h *GinUserHandler) GetUserByID(c *gin.Context) {
 
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -185,13 +191,13 @@ func (h *GinUserHandler) UpdateUser(c *gin.Context) {
 
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	var req httpdto.HttpUpdateUser
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -229,7 +235,7 @@ func (h *GinUserHandler) DeleteUser(c *gin.Context) {
 
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -265,13 +271,13 @@ func (h *GinUserHandler) CreateTicketForUser(c *gin.Context) {
 
 	userID, err := middleware.ParseIDParam(c, "user_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	var req httpdto.HttpCreateTicketForUser
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -284,4 +290,74 @@ func (h *GinUserHandler) CreateTicketForUser(c *gin.Context) {
 		TicketCode: ticketCode,
 	}
 	c.JSON(http.StatusCreated, resp)
+}
+
+// GetCustomersByEventID godoc
+// @Summary Get customers who purchased tickets for an event
+// @Description Retrieve all customers who have purchased tickets for a specific event (owner only)
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param event_id path int true "Event ID"
+// @Success 200 {object} httpdto.HttpResponseUserList "List of customers"
+// @Failure 400 {object} map[string]string "Invalid event ID"
+// @Failure 401 {object} map[string]string "Unauthorized - missing or invalid token"
+// @Failure 403 {object} map[string]string "Forbidden - only event owners can view customers"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /events/{event_id}/customers [get]
+func (h *GinUserHandler) GetCustomersByEventID(c *gin.Context) {
+	token, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	eventID, err := middleware.ParseIDParam(c, "event_id")
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+
+	customers, err := h.usecase.GetCustomersByEventID(c.Request.Context(), token, eventID)
+	if handleError(c, err) {
+		return
+	}
+
+	resp := httpdto.ToHttpResponseUserList(customers, h.serviceURLs)
+	c.JSON(http.StatusOK, resp)
+}
+
+// GetCustomersByPacketID godoc
+// @Summary Get customers who purchased tickets for a packet
+// @Description Retrieve all customers who have purchased tickets for a specific packet (owner only)
+// @Tags customers
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param packet_id path int true "Packet ID"
+// @Success 200 {object} httpdto.HttpResponseUserList "List of customers"
+// @Failure 400 {object} map[string]string "Invalid packet ID"
+// @Failure 401 {object} map[string]string "Unauthorized - missing or invalid token"
+// @Failure 403 {object} map[string]string "Forbidden - only packet owners can view customers"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /packets/{packet_id}/customers [get]
+func (h *GinUserHandler) GetCustomersByPacketID(c *gin.Context) {
+	token, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	packetID, err := middleware.ParseIDParam(c, "packet_id")
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+
+	customers, err := h.usecase.GetCustomersByPacketID(c.Request.Context(), token, packetID)
+	if handleError(c, err) {
+		return
+	}
+
+	resp := httpdto.ToHttpResponseUserList(customers, h.serviceURLs)
+	c.JSON(http.StatusOK, resp)
 }

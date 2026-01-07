@@ -84,10 +84,17 @@ func (s *RealAuthenticationService) WhoIsUser(ctx context.Context, token string)
 		}
 	}
 
+	if !isValidRole(resp.Role) {
+		return nil, &domain.UnauthorizedError{
+			Reason: fmt.Sprintf("invalid role in token: %s", resp.Role),
+		}
+	}
+
+	r := service.UserRole(resp.Role)
 	return &service.UserIdentity{
 		UserID:    uint(userID),
 		Email:     resp.Email,
-		Role:      resp.Role,
+		Role:      r,
 		ExpiresAt: resp.ExpiresAt,
 	}, nil
 }
@@ -97,4 +104,13 @@ func (s *RealAuthenticationService) Close() error {
 		return s.conn.Close()
 	}
 	return nil
+}
+
+func isValidRole(role string) bool {
+	switch service.UserRole(role) {
+	case service.RoleAdmin, service.RoleOwnerEvent, service.RoleClient, service.RoleServiceClient:
+		return true
+	default:
+		return false
+	}
 }

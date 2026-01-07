@@ -7,12 +7,11 @@ import (
 )
 
 func RegisterTicketRoutes(router *gin.RouterGroup, handler *handler.GinTicketHandler) {
-	ticketsGroup := router.Group("/tickets")
-	{
-		ticketsGroup.POST("/", handler.CreateTicket)
-		ticketsGroup.GET("/:code", handler.GetTicketByCode)
-		ticketsGroup.PATCH("/:code", handler.UpdateTicket)
-		ticketsGroup.PUT("/:code", handler.PutTicket)
-		ticketsGroup.DELETE("/:code", handler.DeleteTicket)
-	}
+	router.POST("/tickets", handler.CreateTicket)
+	router.POST("/tickets/", handler.CreateTicket)
+
+	router.GET("/tickets/:code", handler.GetTicketByCode)
+	router.PATCH("/tickets/:code", handler.UpdateTicket)
+	router.PUT("/tickets/:code", handler.PutTicket)
+	router.DELETE("/tickets/:code", handler.DeleteTicket)
 }

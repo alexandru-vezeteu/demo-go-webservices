@@ -51,9 +51,23 @@ func (uc *ticketUseCase) CreateTicket(ctx context.Context, token string, ticket 
 		return nil, err
 	}
 
-	_ = identity
+	allowed, err := uc.authZService.CanUserCreateTicket(ctx, *identity)
+	if err != nil {
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
+	}
+	if !allowed {
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to create tickets"}
+	}
 
-	return uc.ticketService.CreateTicket(ctx, ticket)
+	if ticket == nil {
+		return nil, &domain.ValidationError{Reason: "invalid ticket object"}
+	}
+
+	if ticket.Code == "" {
+		return nil, &domain.ValidationError{Reason: "ticket code is required"}
+	}
+
+	return uc.repo.CreateTicket(ctx, ticket)
 }
 
 func (uc *ticketUseCase) PutTicket(ctx context.Context, token string, code string, ticket *domain.Ticket) (*domain.Ticket, error) {
@@ -68,22 +82,13 @@ func (uc *ticketUseCase) PutTicket(ctx context.Context, token string, code strin
 
 	ticket.Code = code
 
-	existing, err := uc.repo.GetTicketByCode(ctx, code)
-	if err == nil && existing != nil {
-		allowed, err := uc.authZService.CanUserEditTicket(ctx, identity.UserID, existing)
-		if err != nil {
-			return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
-		}
-		if !allowed {
-			return nil, &domain.ForbiddenError{Reason: "user not authorized to replace this ticket"}
-		}
-		return uc.ticketService.ReplaceTicket(ctx, ticket)
+	allowed, err := uc.authZService.CanUserCreateTicket(ctx, *identity)
+	if err != nil {
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
-
-	if identity.Role != "serviciu_clienti" && identity.Role != "admin" {
-		return nil, &domain.ForbiddenError{Reason: "only the client service can create new tickets"}
+	if !allowed {
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to create this ticket"}
 	}
-
 	return uc.ticketService.ReplaceTicket(ctx, ticket)
 }
 
@@ -102,12 +107,12 @@ func (uc *ticketUseCase) GetTicketByCode(ctx context.Context, token string, code
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserViewTicket(ctx, identity.UserID, ticket)
+	allowed, err := uc.authZService.CanUserViewTicket(ctx, *identity, ticket)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to view ticket"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to view this ticket"}
 	}
 
 	return ticket, nil
@@ -124,12 +129,12 @@ func (uc *ticketUseCase) UpdateTicket(ctx context.Context, token string, code st
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserEditTicket(ctx, identity.UserID, ticket)
+	allowed, err := uc.authZService.CanUserEditTicket(ctx, *identity, ticket)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to edit ticket"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to edit this ticket"}
 	}
 
 	return uc.ticketService.UpdateTicket(ctx, code, updates)
@@ -150,12 +155,12 @@ func (uc *ticketUseCase) DeleteTicket(ctx context.Context, token string, code st
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserDeleteTicket(ctx, identity.UserID, ticket)
+	allowed, err := uc.authZService.CanUserDeleteTicket(ctx, *identity, ticket)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to delete ticket"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to delete this ticket"}
 	}
 
 	return uc.repo.DeleteEvent(ctx, code)

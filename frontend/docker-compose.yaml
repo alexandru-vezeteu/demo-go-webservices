@@ -1,0 +1,22 @@
+include:
+  - path: ../docker-compose.network.yaml
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pos_frontend_image
+    container_name: ${FRONTEND_HOST}
+    environment:
+      - VITE_USER_SERVICE_URL=http://localhost:12346
+      - VITE_EVENT_SERVICE_URL=http://localhost:12345
+      - VITE_IDM_GATEWAY_URL=http://localhost:8000
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    restart: always
+    networks:
+      - pos-network
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public

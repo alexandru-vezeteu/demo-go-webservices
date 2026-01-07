@@ -66,12 +66,12 @@ func (uc *eventUseCase) CreateEvent(ctx context.Context, token string, event *do
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserCreateEvent(ctx, identity.UserID)
+	allowed, err := uc.authZService.CanUserCreateEvent(ctx, *identity)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to create events"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to create events"}
 	}
 
 	if err := uc.validateEvent(event); err != nil {
@@ -86,25 +86,13 @@ func (uc *eventUseCase) GetEventByID(ctx context.Context, token string, id int) 
 		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
 	}
 
-	identity, err := uc.authenticate(ctx, token)
-	if err != nil {
-		return nil, err
-	}
-
 	event, err := uc.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserViewEvent(ctx, identity.UserID, event)
-	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
-	}
-	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to view event"}
-	}
-
 	return event, nil
+
 }
 
 func (uc *eventUseCase) UpdateEvent(ctx context.Context, token string, id int, updates map[string]interface{}) (*domain.Event, error) {
@@ -118,12 +106,12 @@ func (uc *eventUseCase) UpdateEvent(ctx context.Context, token string, id int, u
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserEditEvent(ctx, identity.UserID, event)
+	allowed, err := uc.authZService.CanUserEditEvent(ctx, *identity, event)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to edit event"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to edit this event"}
 	}
 
 	return uc.eventService.UpdateEvent(ctx, id, updates)
@@ -144,39 +132,23 @@ func (uc *eventUseCase) DeleteEvent(ctx context.Context, token string, id int) (
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserDeleteEvent(ctx, identity.UserID, event)
+	allowed, err := uc.authZService.CanUserDeleteEvent(ctx, *identity, event)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to delete event"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to delete this event"}
 	}
 
 	return uc.repo.Delete(ctx, id)
 }
 
 func (uc *eventUseCase) FilterEvents(ctx context.Context, token string, filter *domain.EventFilter) ([]*domain.Event, error) {
-	identity, err := uc.authenticate(ctx, token)
-	if err != nil {
-		return nil, err
-	}
 
 	events, err := uc.repo.FilterEvents(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
+	return events, nil
 
-	permissions, err := uc.authZService.CanUserViewEvents(ctx, identity.UserID, events)
-	if err != nil {
-		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
-	}
-
-	authorizedEvents := make([]*domain.Event, 0, len(events))
-	for i, event := range events {
-		if permissions[i] {
-			authorizedEvents = append(authorizedEvents, event)
-		}
-	}
-
-	return authorizedEvents, nil
 }

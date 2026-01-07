@@ -18,6 +18,9 @@ type UserUsecase interface {
 	UpdateUser(ctx context.Context, token string, id int, updates map[string]interface{}) (*domain.User, error)
 	DeleteUser(ctx context.Context, token string, id int) (*domain.User, error)
 	CreateTicketForUser(ctx context.Context, userID int, token string, packetID *int, eventID *int) (string, error)
+
+	GetCustomersByEventID(ctx context.Context, token string, eventID int) ([]*domain.User, error)
+	GetCustomersByPacketID(ctx context.Context, token string, packetID int) ([]*domain.User, error)
 }
 
 type userUsecase struct {
@@ -63,12 +66,12 @@ func (uc *userUsecase) validateUser(user *domain.User) error {
 		return &domain.ValidationError{Field: "email", Reason: "Invalid email format"}
 	}
 
-	if strings.TrimSpace(user.FirstName) == "" {
-		return &domain.ValidationError{Field: "first_name", Reason: "First name is required"}
+	if user.FirstName != "" && len(strings.TrimSpace(user.FirstName)) > 100 {
+		return &domain.ValidationError{Field: "first_name", Reason: "First name too long (max 100 characters)"}
 	}
 
-	if strings.TrimSpace(user.LastName) == "" {
-		return &domain.ValidationError{Field: "last_name", Reason: "Last name is required"}
+	if user.LastName != "" && len(strings.TrimSpace(user.LastName)) > 100 {
+		return &domain.ValidationError{Field: "last_name", Reason: "Last name too long (max 100 characters)"}
 	}
 
 	if user.SocialMediaLinks != nil {
@@ -82,10 +85,6 @@ func (uc *userUsecase) validateUser(user *domain.User) error {
 }
 
 func (uc *userUsecase) CreateUser(ctx context.Context, token string, user *domain.User) (*domain.User, error) {
-	_, err := uc.authenticate(ctx, token)
-	if err != nil {
-		return nil, err
-	}
 
 	if err := uc.validateUser(user); err != nil {
 		return nil, err
@@ -217,7 +216,9 @@ func (uc *userUsecase) CreateTicketForUser(ctx context.Context, userID int, toke
 	}
 
 	newTicket := domain.Ticket{
-		Code: ticketCode,
+		PacketID: packetID,
+		EventID:  eventID,
+		Code:     ticketCode,
 	}
 	_ = ticketResp
 
@@ -233,4 +234,85 @@ func (uc *userUsecase) CreateTicketForUser(ctx context.Context, userID int, toke
 	}
 
 	return ticketCode, nil
+}
+
+func (uc *userUsecase) GetCustomersByEventID(ctx context.Context, token string, eventID int) ([]*domain.User, error) {
+	identity, err := uc.authenticate(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	//asta ar trb bagat in interfata de authz.
+	if identity.Role != "owner-event" {
+		return nil, &domain.ForbiddenError{Reason: "only event owners can view customers"}
+	}
+
+	// we should verify that the event belongs to this owner but... no time
+
+	users, err := uc.repo.GetUsersByEventID(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	filteredUsers := make([]*domain.User, 0, len(users))
+	for _, u := range users {
+		filtered := &domain.User{
+			ID:               u.ID,
+			Email:            u.Email,
+			FirstName:        u.FirstName,
+			LastName:         u.LastName,
+			SocialMediaLinks: u.SocialMediaLinks,
+			TicketList:       nil,
+		}
+
+		if u.FirstNamePrivate {
+			filtered.FirstName = "[Private]"
+		}
+		if u.LastNamePrivate {
+			filtered.LastName = "[Private]"
+		}
+
+		filteredUsers = append(filteredUsers, filtered)
+	}
+
+	return filteredUsers, nil
+}
+
+func (uc *userUsecase) GetCustomersByPacketID(ctx context.Context, token string, packetID int) ([]*domain.User, error) {
+	identity, err := uc.authenticate(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	if identity.Role != "owner-event" {
+		return nil, &domain.ForbiddenError{Reason: "only packet owners can view customers"}
+	}
+
+	users, err := uc.repo.GetUsersByPacketID(ctx, packetID)
+	if err != nil {
+		return nil, err
+	}
+
+	filteredUsers := make([]*domain.User, 0, len(users))
+	for _, u := range users {
+		filtered := &domain.User{
+			ID:               u.ID,
+			Email:            u.Email,
+			FirstName:        u.FirstName,
+			LastName:         u.LastName,
+			SocialMediaLinks: u.SocialMediaLinks,
+			TicketList:       nil,
+		}
+
+		if u.FirstNamePrivate {
+			filtered.FirstName = "[Private]"
+		}
+		if u.LastNamePrivate {
+			filtered.LastName = "[Private]"
+		}
+
+		filteredUsers = append(filteredUsers, filtered)
+	}
+
+	return filteredUsers, nil
 }

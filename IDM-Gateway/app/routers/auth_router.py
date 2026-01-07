@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.models.auth_models import (
+    RegisterRequest, RegisterResponse,
     LoginRequest, LoginResponse,
     VerifyTokenRequest, VerifyTokenResponse,
     RevokeTokenRequest, RevokeTokenResponse
@@ -10,6 +11,28 @@ from app.utils.error_handler import handle_grpc_error
 import grpc
 
 router = APIRouter(prefix="/api/idm/auth", tags=["Authentication"])
+
+@router.post("/register", response_model=RegisterResponse)
+async def register(request: RegisterRequest):
+    try:
+        stub = grpc_client.get_stub()
+        grpc_request = idm_pb2.RegisterRequest(
+            email=request.email,
+            password=request.password,
+            role=request.role
+        )
+        response = await stub.Register(grpc_request)
+
+        if not response.success:
+            raise HTTPException(status_code=400, detail=response.message)
+
+        return RegisterResponse(
+            success=response.success,
+            message=response.message,
+            user_id=response.user_id
+        )
+    except grpc.RpcError as e:
+        raise handle_grpc_error(e)
 
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest):

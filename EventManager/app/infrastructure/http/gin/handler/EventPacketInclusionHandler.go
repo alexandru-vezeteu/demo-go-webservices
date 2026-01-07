@@ -48,19 +48,19 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	var dto httpdto.HttpCreateEventPacketInclusion
 	if err := middleware.StrictBindJSON(c, &dto); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -92,7 +92,7 @@ func (h *GinEventPacketInclusionHandler) CreateEventPacketInclusion(c *gin.Conte
 func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context) {
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *GinEventPacketInclusionHandler) GetEventPacketsByEventID(c *gin.Context
 func (h *GinEventPacketInclusionHandler) GetEventsByPacketID(c *gin.Context) {
 	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -164,19 +164,19 @@ func (h *GinEventPacketInclusionHandler) UpdateEventPacketInclusion(c *gin.Conte
 
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	var dto httpdto.HttpUpdateEventPacketInclusion
 	if err := middleware.StrictBindJSON(c, &dto); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -212,13 +212,13 @@ func (h *GinEventPacketInclusionHandler) DeleteEventPacketInclusion(c *gin.Conte
 
 	eventID, err := middleware.ParseIDParam(c, "event_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	packetID, err := middleware.ParseIDParam(c, "packet_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 

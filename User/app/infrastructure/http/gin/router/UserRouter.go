@@ -7,19 +7,17 @@ import (
 )
 
 func RegisterUserRoutes(router *gin.RouterGroup, handler *handler.GinUserHandler) {
-	usersGroup := router.Group("/users")
-	{
-		usersGroup.POST("/", handler.CreateUser)
+	router.POST("/users", handler.CreateUser)
+	router.POST("/users/", handler.CreateUser)
 
-		usersGroup.GET("/:id", handler.GetUserByID)
+	router.GET("/users/:id", handler.GetUserByID)
 
-		usersGroup.PATCH("/:id", handler.UpdateUser)
+	router.PATCH("/users/:id", handler.UpdateUser)
 
-		usersGroup.DELETE("/:id", handler.DeleteUser)
-	}
+	router.DELETE("/users/:id", handler.DeleteUser)
 
-	clientsGroup := router.Group("/clients")
-	{
-		clientsGroup.POST("/:user_id/tickets", handler.CreateTicketForUser)
-	}
+	router.GET("/events/:event_id/customers", handler.GetCustomersByEventID)
+	router.GET("/packets/:packet_id/customers", handler.GetCustomersByPacketID)
+
+	router.POST("/clients/:user_id/tickets", handler.CreateTicketForUser)
 }

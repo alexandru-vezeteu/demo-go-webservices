@@ -68,3 +68,12 @@ func BuildPaginationLink(baseURL string, resourcePath string, queryParams string
 		Title:  title,
 	}
 }
+
+func BuildParentLink(baseURL string, resourcePath string) Link {
+	return Link{
+		Href:   fmt.Sprintf("%s%s", baseURL, resourcePath),
+		Rel:    "parent",
+		Method: "GET",
+		Title:  "Get parent collection",
+	}
+}

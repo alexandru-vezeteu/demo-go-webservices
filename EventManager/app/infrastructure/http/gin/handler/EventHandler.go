@@ -32,6 +32,12 @@ func handleError(c *gin.Context, err error) bool {
 
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return true
+	}
+
+	var invalidReqErr *domain.InvalidRequestError
+	if errors.As(err, &invalidReqErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return true
 	}
@@ -128,7 +134,7 @@ func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 
 	var req httpdto.HttpCreateEvent
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -159,7 +165,7 @@ func (h *GinEventHandler) CreateEvent(c *gin.Context) {
 func (h *GinEventHandler) GetEventByID(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -197,13 +203,13 @@ func (h *GinEventHandler) UpdateEvent(c *gin.Context) {
 
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	var req httpdto.HttpUpdateEvent
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -241,7 +247,7 @@ func (h *GinEventHandler) DeleteEvent(c *gin.Context) {
 
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -277,14 +283,14 @@ func (h *GinEventHandler) FilterEvents(c *gin.Context) {
 	var filter httpdto.HttpFilterEvent
 	allowedParams := []string{"name", "location", "description", "min_seats", "max_seats", "page", "per_page", "order_by"}
 	if err := middleware.StrictBindQuery(c, &filter, allowedParams); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	domainFilter := filter.ToEventFilter()
 	domainFilter.Default()
 	if err := domainFilter.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return
 	}
 

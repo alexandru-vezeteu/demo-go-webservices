@@ -1,9 +1,19 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
+class RegisterRequest(BaseModel):
+    email: EmailStr = Field(..., max_length=255)
+    password: str = Field(..., min_length=1, max_length=255)
+    role: str = Field(..., pattern="^(client|owner)$")
+
+class RegisterResponse(BaseModel):
+    success: bool
+    message: str
+    user_id: str
+
 class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(..., min_length=1)
+    email: EmailStr = Field(..., max_length=255)
+    password: str = Field(..., min_length=1, max_length=255)
 
 class LoginResponse(BaseModel):
     success: bool
@@ -14,7 +24,7 @@ class LoginResponse(BaseModel):
     email: str
 
 class VerifyTokenRequest(BaseModel):
-    token: str = Field(..., min_length=1)
+    token: str = Field(..., min_length=1, max_length=1000)
 
 class VerifyTokenResponse(BaseModel):
     valid: bool
@@ -28,7 +38,7 @@ class VerifyTokenResponse(BaseModel):
     blacklisted: bool
 
 class RevokeTokenRequest(BaseModel):
-    token: str = Field(..., min_length=1)
+    token: str = Field(..., min_length=1, max_length=1000)
 
 class RevokeTokenResponse(BaseModel):
     success: bool

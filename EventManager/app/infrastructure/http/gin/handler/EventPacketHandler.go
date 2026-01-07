@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"eventManager/application/domain"
 	"eventManager/application/usecase"
 	"eventManager/infrastructure/http/config"
 	"eventManager/infrastructure/http/gin/middleware"
@@ -44,7 +45,7 @@ func (h *GinEventPacketHandler) CreateEventPacket(c *gin.Context) {
 
 	var req httpdto.HttpCreateEventPacket
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -75,7 +76,7 @@ func (h *GinEventPacketHandler) CreateEventPacket(c *gin.Context) {
 func (h *GinEventPacketHandler) GetEventPacketByID(c *gin.Context) {
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -112,13 +113,13 @@ func (h *GinEventPacketHandler) UpdateEventPacket(c *gin.Context) {
 
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
 	var req httpdto.HttpUpdateEventPacket
 	if err := middleware.StrictBindJSON(c, &req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -155,7 +156,7 @@ func (h *GinEventPacketHandler) DeleteEventPacket(c *gin.Context) {
 
 	id, err := middleware.ParseIDParam(c, "id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, err)
 		return
 	}
 
@@ -165,5 +166,48 @@ func (h *GinEventPacketHandler) DeleteEventPacket(c *gin.Context) {
 	}
 
 	resp := httpdto.ToHttpResponseEventPacket(ret, h.serviceURLs)
+	c.JSON(http.StatusOK, resp)
+}
+
+// FilterEventPackets godoc
+// @Summary List and filter event packets
+// @Description Get a paginated list of event packets with optional filters. No authentication required for public access.
+// @Tags event-packets
+// @Accept json
+// @Produce json
+// @Param Authorization header string false "Bearer token (optional)"
+// @Param name query string false "Filter by packet name (partial match)"
+// @Param location query string false "Filter by location (partial match)"
+// @Param description query string false "Filter by description (partial match)"
+// @Param min_seats query int false "Minimum allocated seats"
+// @Param max_seats query int false "Maximum allocated seats"
+// @Param page query int false "Page number (default: 1)"
+// @Param per_page query int false "Items per page (default: 10, max: 100)"
+// @Param order_by query string false "Sort field (e.g., 'name_asc', 'seats_desc')"
+// @Success 200 {object} httpdto.HttpResponseEventPacketList "Paginated list of event packets"
+// @Failure 400 {object} map[string]string "Invalid query parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /event-packets [get]
+func (h *GinEventPacketHandler) FilterEventPackets(c *gin.Context) {
+	var filter httpdto.HttpFilterEventPacket
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		handleError(c, &domain.ValidationError{Reason: "invalid query parameters"})
+		return
+	}
+
+	domainFilter := filter.ToEventPacketFilter()
+	domainFilter.Default()
+	if err := domainFilter.Validate(); err != nil {
+		handleError(c, err)
+		return
+	}
+
+	token := getTokenFromHeader(c)
+	packets, err := h.usecase.FilterEventPackets(c.Request.Context(), token, domainFilter)
+	if handleError(c, err) {
+		return
+	}
+
+	resp := httpdto.ToHttpResponseEventPacketListWithPagination(packets, domainFilter, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }

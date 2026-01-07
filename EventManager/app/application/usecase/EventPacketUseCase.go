@@ -13,6 +13,7 @@ type EventPacketUseCase interface {
 	GetEventPacketByID(ctx context.Context, token string, id int) (*domain.EventPacket, error)
 	UpdateEventPacket(ctx context.Context, token string, id int, updates map[string]interface{}) (*domain.EventPacket, error)
 	DeleteEventPacket(ctx context.Context, token string, id int) (*domain.EventPacket, error)
+	FilterEventPackets(ctx context.Context, token string, filter *domain.EventPacketFilter) ([]*domain.EventPacket, error)
 }
 
 type eventPacketUseCase struct {
@@ -70,12 +71,12 @@ func (uc *eventPacketUseCase) CreateEventPacket(ctx context.Context, token strin
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserCreateEventPacket(ctx, identity.UserID)
+	allowed, err := uc.authZService.CanUserCreateEventPacket(ctx, *identity)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to create event packets"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to create event packets"}
 	}
 
 	if err := uc.validateEventPacket(event); err != nil {
@@ -100,12 +101,12 @@ func (uc *eventPacketUseCase) GetEventPacketByID(ctx context.Context, token stri
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserViewEventPacket(ctx, identity.UserID, packet)
+	allowed, err := uc.authZService.CanUserViewEventPacket(ctx, *identity, packet)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to view event packet"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to view this event packet"}
 	}
 
 	return packet, nil
@@ -126,12 +127,12 @@ func (uc *eventPacketUseCase) UpdateEventPacket(ctx context.Context, token strin
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserEditEventPacket(ctx, identity.UserID, packet)
+	allowed, err := uc.authZService.CanUserEditEventPacket(ctx, *identity, packet)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to edit event packet"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to edit this event packet"}
 	}
 
 	return uc.eventPacketService.UpdateEventPacket(ctx, id, updates)
@@ -152,13 +153,23 @@ func (uc *eventPacketUseCase) DeleteEventPacket(ctx context.Context, token strin
 		return nil, err
 	}
 
-	allowed, err := uc.authZService.CanUserDeleteEventPacket(ctx, identity.UserID, packet)
+	allowed, err := uc.authZService.CanUserDeleteEventPacket(ctx, *identity, packet)
 	if err != nil {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("authorization check failed: %v", err)}
+		return nil, &domain.InternalError{Msg: fmt.Sprintf("authorization check failed: %v", err)}
 	}
 	if !allowed {
-		return nil, &domain.ValidationError{Reason: "user not authorized to delete event packet"}
+		return nil, &domain.ForbiddenError{Reason: "you don't have permission to delete this event packet"}
 	}
 
 	return uc.repo.Delete(ctx, id)
+}
+
+func (uc *eventPacketUseCase) FilterEventPackets(ctx context.Context, token string, filter *domain.EventPacketFilter) ([]*domain.EventPacket, error) {
+
+	packets, err := uc.eventPacketService.FilterEventPackets(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	return packets, nil
+
 }

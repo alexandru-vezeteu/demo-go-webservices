@@ -14,8 +14,10 @@ definitions:
   httpdto.HttpCreateTicketForUser:
     properties:
       event_id:
+        minimum: 1
         type: integer
       packet_id:
+        minimum: 1
         type: integer
     type: object
   httpdto.HttpCreateTicketResponse:
@@ -26,17 +28,24 @@ definitions:
   httpdto.HttpCreateUser:
     properties:
       email:
+        maxLength: 255
+        minLength: 3
         type: string
       first_name:
+        maxLength: 100
         type: string
+      id:
+        minimum: 1
+        type: integer
       last_name:
+        maxLength: 100
         type: string
       social_media_links:
+        maxLength: 500
         type: string
     required:
     - email
-    - first_name
-    - last_name
+    - id
     type: object
   httpdto.HttpResponseUser:
     properties:
@@ -47,16 +56,27 @@ definitions:
     properties:
       code:
         type: string
+      event_id:
+        type: integer
+      packet_id:
+        type: integer
     type: object
   httpdto.HttpUpdateUser:
     properties:
       email:
+        maxLength: 255
+        minLength: 3
         type: string
       first_name:
+        maxLength: 100
+        minLength: 1
         type: string
       last_name:
+        maxLength: 100
+        minLength: 1
         type: string
       social_media_links:
+        maxLength: 500
         type: string
     type: object
   httpdto.httpResponseUser:

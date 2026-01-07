@@ -446,10 +446,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "event_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "packet_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 }
             }
         },
@@ -465,21 +467,29 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "email",
-                "first_name",
-                "last_name"
+                "id"
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
                 },
                 "first_name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "id": {
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "last_name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
                 },
                 "social_media_links": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 }
             }
         },
@@ -496,6 +506,12 @@ const docTemplate = `{
             "properties": {
                 "code": {
                     "type": "string"
+                },
+                "event_id": {
+                    "type": "integer"
+                },
+                "packet_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -503,16 +519,23 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
                 },
                 "first_name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
                 },
                 "last_name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
                 },
                 "social_media_links": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 }
             }
         },
