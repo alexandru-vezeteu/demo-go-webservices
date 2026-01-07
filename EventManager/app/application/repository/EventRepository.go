@@ -11,5 +11,6 @@ type EventRepository interface {
 	Update(ctx context.Context, id int, updates map[string]interface{}) (*domain.Event, error)
 	Delete(ctx context.Context, id int) (*domain.Event, error)
 	FilterEvents(ctx context.Context, filter *domain.EventFilter) ([]*domain.Event, error)
+	CountEvents(ctx context.Context, filter *domain.EventFilter) (int, error)
 	CountSoldTickets(ctx context.Context, id int) (int, error)
 }

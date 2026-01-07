@@ -17,12 +17,14 @@ type EventPacketService interface {
 
 type eventPacketService struct {
 	repo          repository.EventPacketRepository
+	eventRepo     repository.EventRepository
 	inclusionRepo repository.EventPacketInclusionRepository
 }
 
-func NewEventPacketService(repo repository.EventPacketRepository, inclusionRepo repository.EventPacketInclusionRepository) EventPacketService {
+func NewEventPacketService(repo repository.EventPacketRepository, eventRepo repository.EventRepository, inclusionRepo repository.EventPacketInclusionRepository) EventPacketService {
 	return &eventPacketService{
 		repo:          repo,
+		eventRepo:     eventRepo,
 		inclusionRepo: inclusionRepo,
 	}
 }
@@ -65,6 +67,17 @@ func (service *eventPacketService) UpdateEventPacket(ctx context.Context, id int
 		if seatsPtr, ok := allocatedSeats.(int); ok {
 			if seatsPtr < 0 {
 				return nil, &domain.ValidationError{Reason: "allocated_seats must be non-negative"}
+			}
+
+			soldTickets, err := service.repo.CountSoldTickets(ctx, id)
+			if err != nil {
+				return nil, &domain.InternalError{Msg: "failed to count sold tickets", Err: err}
+			}
+
+			if seatsPtr < soldTickets {
+				return nil, &domain.ValidationError{
+					Reason: fmt.Sprintf("cannot reduce allocated_seats to %d: %d tickets have already been sold for this packet", seatsPtr, soldTickets),
+				}
 			}
 
 			if err := service.validateAllocatedSeatsConstraint(ctx, id, seatsPtr); err != nil {
@@ -126,17 +139,40 @@ func (service *eventPacketService) validateAllocatedSeatsConstraint(ctx context.
 		return nil
 	}
 
-	minSeats := findMinSeats(events)
-
-	if minSeats == nil {
-		return &domain.ValidationError{
-			Reason: "cannot set allocated_seats: some included events don't have seats defined",
+	for _, event := range events {
+		if event.Seats == nil {
+			continue
 		}
-	}
 
-	if requestedSeats > *minSeats {
-		return &domain.ValidationError{
-			Reason: fmt.Sprintf("allocated_seats (%d) cannot exceed minimum seats of included events (%d)", requestedSeats, *minSeats),
+		directSold, err := service.eventRepo.CountSoldTickets(ctx, event.ID)
+		if err != nil {
+			return &domain.InternalError{Msg: "failed to count sold tickets", Err: err}
+		}
+
+		allPackets, err := service.inclusionRepo.GetEventPacketsByEventID(ctx, event.ID)
+		if err != nil {
+			return err
+		}
+
+		otherPacketsAllocated := 0
+		for _, packet := range allPackets {
+			if packet.ID == packetID {
+				continue
+			}
+			if packet.AllocatedSeats != nil {
+				otherPacketsAllocated += *packet.AllocatedSeats
+			}
+		}
+
+		availableSeats := *event.Seats - directSold - otherPacketsAllocated
+
+		if requestedSeats > availableSeats {
+			return &domain.ValidationError{
+				Reason: fmt.Sprintf(
+					"cannot allocate %d seats: event '%s' only has %d available seats (%d total - %d sold - %d in other packets)",
+					requestedSeats, event.Name, availableSeats, *event.Seats, directSold, otherPacketsAllocated,
+				),
+			}
 		}
 	}
 

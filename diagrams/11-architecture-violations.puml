@@ -1,0 +1,134 @@
+@startuml architecture_violations
+!theme plain
+
+title Clean Architecture - Current Violations and Issues
+
+skinparam component {
+    BackgroundColor<<good>> LightGreen
+    BackgroundColor<<warning>> Yellow
+    BackgroundColor<<violation>> LightCoral
+}
+
+package "EventManager - Issues" {
+
+    component "EventUseCase" <<warning>> {
+        note right
+            ❌ Bypasses service layer
+            Calls repo.Create() directly
+            Should call eventService.Create()
+        end note
+    }
+
+    component "EventService" <<good>> {
+        note right
+            ✅ Good business logic
+            ✅ Proper validation
+        end note
+    }
+
+    component "TicketService" <<good>> {
+        note right
+            ✅ Complex seat validation
+            ✅ Cross-aggregate checks
+        end note
+    }
+
+    component "EventRepository" <<warning>> {
+        note right
+            ⚠️ Contains business logic
+            CountSoldTickets should be
+            in service layer
+        end note
+    }
+
+    [EventUseCase] -down-> [EventRepository] : ❌ Direct call\n(bypasses service)
+    [EventUseCase] -down-> [EventService] : ✅ Should always go through here
+    [EventService] -down-> [EventRepository] : ✅ Correct flow
+}
+
+package "User Service - Issues" {
+
+    component "UserUseCase" <<violation>> {
+        note right
+            ❌ Line 246: Inline role check
+            if identity.Role != "owner-event"
+
+            ❌ Line 250: TODO comment
+            "should verify event belongs to owner
+            but... no time"
+
+            ❌ Business logic in usecase
+            - Email validation
+            - Privacy filtering
+        end note
+    }
+
+    component "AuthorizationService" <<warning>> {
+        note right
+            ⚠️ Exists but not fully used
+            Some checks hardcoded in UseCase
+        end note
+    }
+
+    component "UserService" <<violation>> {
+        note right
+            ❌ MISSING!
+            No service layer exists
+            Business logic in UseCase
+        end note
+    }
+
+    [UserUseCase] -down-> [UserRepository] : ❌ No service layer
+    [UserUseCase] .right.> [AuthorizationService] : ⚠️ Bypassed in places
+}
+
+package "IDM Service - Minor Issues" {
+
+    component "LoginUseCase" <<warning>> {
+        note right
+            ⚠️ Plain text password
+            user.Parola != password
+            Should use hashing service
+        end note
+    }
+
+    component "JWTTokenService" <<warning>> {
+        note right
+            ⚠️ Hardcoded secret
+            jwtSecret = []byte("...")
+            Should use secret manager
+        end note
+    }
+
+    component "TokenService" <<good>> {
+        note right
+            ✅ Clean interface
+            ✅ Well abstracted
+        end note
+    }
+
+    [LoginUseCase] -down-> [TokenService] : ✅ Good
+    [TokenService] <|.. [JWTTokenService] : implements
+}
+
+note as Summary
+    **Summary of Violations**
+
+    **EventManager (7.5/10)**
+    • Use cases bypass service layer
+    • Duplicate validation logic
+    • Business logic in repositories
+
+    **User Service (6.5/10)**
+    • Missing service layer entirely
+    • Inline authorization checks
+    • Business logic in use cases
+    • Incomplete authorization
+
+    **IDM Service (8.5/10)**
+    • Plain text passwords
+    • Hardcoded secrets
+    • Otherwise very clean
+end note
+
+@enduml

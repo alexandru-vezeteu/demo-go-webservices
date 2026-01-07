@@ -17,22 +17,22 @@ export const Dashboard = () => {
       {isOwner && (
         <div className="dashboard-grid">
           <Link to="/events" className="dashboard-card">
-            <h2>🎫 My Events</h2>
+            <h2>My Events</h2>
             <p>Create and manage your events</p>
           </Link>
 
           <Link to="/packets" className="dashboard-card">
-            <h2>📦 My Packages</h2>
+            <h2>My Packages</h2>
             <p>Bundle events into ticket packages</p>
           </Link>
 
           <Link to="/customers" className="dashboard-card">
-            <h2>👥 Customers</h2>
+            <h2>Customers</h2>
             <p>View clients who purchased tickets</p>
           </Link>
 
           <Link to="/events-public" className="dashboard-card">
-            <h2>🌍 Browse All Events</h2>
+            <h2>Browse All Events</h2>
             <p>View public events from all owners</p>
           </Link>
         </div>
@@ -41,17 +41,17 @@ export const Dashboard = () => {
       {isClient && (
         <div className="dashboard-grid">
           <Link to="/tickets" className="dashboard-card">
-            <h2>🎟️ My Tickets</h2>
+            <h2>My Tickets</h2>
             <p>View and purchase event tickets</p>
           </Link>
 
           <Link to="/profile" className="dashboard-card">
-            <h2>👤 My Profile</h2>
+            <h2>My Profile</h2>
             <p>Manage your personal information</p>
           </Link>
 
           <Link to="/events-public" className="dashboard-card">
-            <h2>🔍 Browse Events</h2>
+            <h2>Browse Events</h2>
             <p>Discover events and packages</p>
           </Link>
         </div>

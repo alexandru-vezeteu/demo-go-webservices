@@ -141,7 +141,7 @@ func buildEventPacketFilterQuery(filter *domain.EventPacketFilter, page int) str
 	return params.Encode()
 }
 
-func ToHttpResponseEventPacketListWithPagination(packets []*domain.EventPacket, filter *domain.EventPacketFilter, serviceURLs *config.ServiceURLs) *HttpResponseEventPacketList {
+func ToHttpResponseEventPacketListWithPagination(packets []*domain.EventPacket, filter *domain.EventPacketFilter, totalCount int, serviceURLs *config.ServiceURLs) *HttpResponseEventPacketList {
 	if packets == nil {
 		packets = []*domain.EventPacket{}
 	}
@@ -185,6 +185,11 @@ func ToHttpResponseEventPacketListWithPagination(packets []*domain.EventPacket, 
 		perPage = *filter.PerPage
 	}
 
+	totalPages := (totalCount + perPage - 1) / perPage
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
 	selfQuery := buildEventPacketFilterQuery(filter, currentPage)
 	links["self"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/event-packets", selfQuery, "self", "Current page")
 
@@ -196,14 +201,21 @@ func ToHttpResponseEventPacketListWithPagination(packets []*domain.EventPacket, 
 		links["prev"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/event-packets", prevQuery, "prev", "Previous page")
 	}
 
-	if len(packets) == perPage {
+	if currentPage < totalPages {
 		nextQuery := buildEventPacketFilterQuery(filter, currentPage+1)
 		links["next"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/event-packets", nextQuery, "next", "Next page")
 	}
 
+	if totalPages > 1 {
+		lastQuery := buildEventPacketFilterQuery(filter, totalPages)
+		links["last"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/event-packets", lastQuery, "last", "Last page")
+	}
+
 	metadata := &PaginationMetadata{
-		Page:    currentPage,
-		PerPage: perPage,
+		Page:       currentPage,
+		PerPage:    perPage,
+		TotalItems: totalCount,
+		TotalPages: totalPages,
 	}
 
 	return &HttpResponseEventPacketList{

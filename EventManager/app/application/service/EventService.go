@@ -15,7 +15,6 @@ type EventService interface {
 	FilterEvents(ctx context.Context, filter *domain.EventFilter) ([]*domain.Event, error)
 }
 
-
 type eventService struct {
 	repo          repository.EventRepository
 	inclusionRepo repository.EventPacketInclusionRepository
@@ -68,8 +67,8 @@ func (service *eventService) UpdateEvent(ctx context.Context, id int, updates ma
 			if seatsPtr < 0 {
 				return nil, &domain.ValidationError{Reason: "seats cannot be negative"}
 			}
-			
-			if err := service.validateSeatsAgainstPackets(ctx, id, seatsPtr); err != nil {
+
+			if err := service.validateTotalRequiredSeats(ctx, id, seatsPtr); err != nil {
 				return nil, err
 			}
 		}
@@ -91,20 +90,32 @@ func (service *eventService) UpdateEvent(ctx context.Context, id int, updates ma
 	return service.repo.Update(ctx, id, updates)
 }
 
+func (service *eventService) validateTotalRequiredSeats(ctx context.Context, eventID int, newSeats int) error {
+	directSoldTickets, err := service.repo.CountSoldTickets(ctx, eventID)
+	if err != nil {
+		return &domain.InternalError{Msg: "failed to count sold tickets", Err: err}
+	}
 
-func (service *eventService) validateSeatsAgainstPackets(ctx context.Context, eventID int, newSeats int) error {
-	
 	packets, err := service.inclusionRepo.GetEventPacketsByEventID(ctx, eventID)
 	if err != nil {
 		return err
 	}
 
-	
+	totalPacketAllocatedSeats := 0
 	for _, packet := range packets {
-		if packet.AllocatedSeats != nil && newSeats < *packet.AllocatedSeats {
-			return &domain.ValidationError{
-				Reason: fmt.Sprintf("cannot reduce seats to %d: event is in packet '%s' which requires %d allocated seats", newSeats, packet.Name, *packet.AllocatedSeats),
-			}
+		if packet.AllocatedSeats != nil {
+			totalPacketAllocatedSeats += *packet.AllocatedSeats
+		}
+	}
+
+	totalRequired := directSoldTickets + totalPacketAllocatedSeats
+
+	if newSeats < totalRequired {
+		return &domain.ValidationError{
+			Reason: fmt.Sprintf(
+				"cannot reduce seats to %d: total required is %d (%d direct tickets sold + %d allocated in packets)",
+				newSeats, totalRequired, directSoldTickets, totalPacketAllocatedSeats,
+			),
 		}
 	}
 

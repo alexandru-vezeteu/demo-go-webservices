@@ -10,13 +10,13 @@ import (
 )
 
 type httpResponseEvent struct {
-	ID          int                       `json:"id"`
-	OwnerID     int                       `json:"id_owner"`
-	Name        string                    `json:"name"`
-	Location    *string                   `json:"location,omitempty"`
-	Description *string                   `json:"description,omitempty"`
-	Seats       *int                      `json:"seats,omitempty"`
-	Links       map[string]hateoas.Link   `json:"_links"`
+	ID          int                     `json:"id"`
+	OwnerID     int                     `json:"id_owner"`
+	Name        string                  `json:"name"`
+	Location    *string                 `json:"location,omitempty"`
+	Description *string                 `json:"description,omitempty"`
+	Seats       *int                    `json:"seats,omitempty"`
+	Links       map[string]hateoas.Link `json:"_links"`
 }
 
 type HttpResponseEvent struct {
@@ -200,7 +200,7 @@ func ToHttpResponseEventListCustom(events []*domain.Event, selfPath string, serv
 	}
 }
 
-func ToHttpResponseEventListWithPagination(events []*domain.Event, filter *domain.EventFilter, serviceURLs *config.ServiceURLs) *HttpResponseEventList {
+func ToHttpResponseEventListWithPagination(events []*domain.Event, filter *domain.EventFilter, totalCount int, serviceURLs *config.ServiceURLs) *HttpResponseEventList {
 	if events == nil {
 		events = []*domain.Event{}
 	}
@@ -244,6 +244,11 @@ func ToHttpResponseEventListWithPagination(events []*domain.Event, filter *domai
 		perPage = *filter.PerPage
 	}
 
+	totalPages := (totalCount + perPage - 1) / perPage
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
 	selfQuery := buildEventFilterQuery(filter, currentPage)
 	links["self"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/events", selfQuery, "self", "Current page")
 
@@ -255,14 +260,21 @@ func ToHttpResponseEventListWithPagination(events []*domain.Event, filter *domai
 		links["prev"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/events", prevQuery, "prev", "Previous page")
 	}
 
-	if len(events) == perPage {
+	if currentPage < totalPages {
 		nextQuery := buildEventFilterQuery(filter, currentPage+1)
 		links["next"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/events", nextQuery, "next", "Next page")
 	}
 
+	if totalPages > 1 {
+		lastQuery := buildEventFilterQuery(filter, totalPages)
+		links["last"] = hateoas.BuildPaginationLink(serviceURLs.EventManager, "/events", lastQuery, "last", "Last page")
+	}
+
 	metadata := &PaginationMetadata{
-		Page:    currentPage,
-		PerPage: perPage,
+		Page:       currentPage,
+		PerPage:    perPage,
+		TotalItems: totalCount,
+		TotalPages: totalPages,
 	}
 
 	return &HttpResponseEventList{

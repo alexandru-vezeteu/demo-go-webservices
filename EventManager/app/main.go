@@ -38,7 +38,7 @@ func main() {
 	ticketRepo := &gormrepository.GormTicketRepository{DB: db}
 
 	eventService := service.NewEventService(eventRepo, eventPacketInclusionRepo)
-	eventPacketService := service.NewEventPacketService(eventPacketRepo, eventPacketInclusionRepo)
+	eventPacketService := service.NewEventPacketService(eventPacketRepo, eventRepo, eventPacketInclusionRepo)
 	ticketService := service.NewTicketService(ticketRepo, eventRepo, eventPacketRepo, eventPacketInclusionRepo)
 
 	idmHost := os.Getenv("IDM_HOST")
@@ -70,8 +70,8 @@ func main() {
 
 	serviceURLs := config.NewServiceURLs()
 
-	eventHandler := handler.NewGinEventHandler(eventUseCase, serviceURLs)
-	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketUseCase, serviceURLs)
+	eventHandler := handler.NewGinEventHandler(eventUseCase, eventRepo, serviceURLs)
+	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketUseCase, eventPacketRepo, serviceURLs)
 	eventPacketInclusionHandler := handler.NewGinEventPacketInclusionHandler(eventPacketInclusionUseCase, serviceURLs)
 	ticketHandler := handler.NewGinTicketHandler(ticketUseCase, serviceURLs)
 

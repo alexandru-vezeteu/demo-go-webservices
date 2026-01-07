@@ -179,3 +179,38 @@ func (r *GormEventPacketRepository) FilterEventPackets(ctx context.Context, filt
 
 	return domainPackets, nil
 }
+
+func (r *GormEventPacketRepository) CountEventPackets(ctx context.Context, filter *domain.EventPacketFilter) (int, error) {
+	if filter == nil {
+		return 0, &domain.ValidationError{Reason: "filter cannot be nil"}
+	}
+
+	query := r.DB.WithContext(ctx).Model(&gormmodel.GormEventPacket{})
+
+	if filter.Name != nil {
+		query = query.Where("name LIKE ?", "%"+*filter.Name+"%")
+	}
+
+	if filter.Location != nil {
+		query = query.Where("location LIKE ?", "%"+*filter.Location+"%")
+	}
+
+	if filter.Description != nil {
+		query = query.Where("description LIKE ?", "%"+*filter.Description+"%")
+	}
+
+	if filter.MinSeats != nil {
+		query = query.Where("allocated_seats >= ?", *filter.MinSeats)
+	}
+
+	if filter.MaxSeats != nil {
+		query = query.Where("allocated_seats <= ?", *filter.MaxSeats)
+	}
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return 0, &domain.InternalError{Msg: "failed to count event packets", Err: err}
+	}
+
+	return int(count), nil
+}

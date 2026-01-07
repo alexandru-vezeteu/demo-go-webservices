@@ -1,0 +1,210 @@
+@startuml architecture_summary
+!theme plain
+
+title POS System - Clean Architecture Compliance Summary
+
+skinparam card {
+    BackgroundColor<<excellent>> #90EE90
+    BackgroundColor<<good>> #FFD700
+    BackgroundColor<<needs>> #FFB6C1
+}
+
+card "EventManager Service" <<good>> {
+    card "Score: 7.5/10" #FFD700
+
+    card "Strengths ✅" #CCFFCC {
+        • Clear layer separation
+        • Domain-driven design
+        • Service layer with business logic
+        • Authentication/Authorization interfaces
+        • Repository pattern implemented
+        • HATEOAS REST API
+    }
+
+    card "Weaknesses ❌" #FFCCCC {
+        • Use cases bypass service layer
+        • Duplicate validation logic
+        • Business logic in repositories
+        • Direct repository calls from use cases
+    }
+
+    card "Recommendations" #E0E0FF {
+        1. Always route through service layer
+        2. Remove validation from use cases
+        3. Move CountSoldTickets to service
+        4. Enforce architectural boundaries
+    }
+}
+
+card "User Service" <<needs>> {
+    card "Score: 6.5/10" #FFB6C1
+
+    card "Strengths ✅" #CCFFCC {
+        • Good domain modeling
+        • Adapter pattern for external services
+        • Service-to-service authentication
+        • Repository interfaces defined
+    }
+
+    card "Weaknesses ❌" #FFCCCC {
+        • Missing service layer entirely
+        • Business logic in use cases
+        • Inline authorization checks
+        • Privacy filtering in wrong layer
+        • Incomplete authorization
+        • TODOs in production code
+    }
+
+    card "Recommendations" #E0E0FF {
+        1. CREATE UserService layer
+        2. Move email validation to service
+        3. Move privacy filtering to service
+        4. Complete AuthZ service usage
+        5. Remove inline role checks
+        6. Implement ownership verification
+    }
+}
+
+card "IDM Service" <<excellent>> {
+    card "Score: 8.5/10" #90EE90
+
+    card "Strengths ✅" #CCFFCC {
+        • Cleanest architecture
+        • Thin use cases (orchestration only)
+        • Well-abstracted token service
+        • Proper interface definitions
+        • Redis + in-memory fallback
+        • gRPC implementation
+        • Domain errors well-defined
+    }
+
+    card "Weaknesses ❌" #FFCCCC {
+        • Plain text passwords
+        • Hardcoded JWT secret
+        • No refresh token support
+    }
+
+    card "Recommendations" #E0E0FF {
+        1. Implement bcrypt password hashing
+        2. Use environment variables for secrets
+        3. Add refresh token mechanism
+        4. Consider secret management service
+    }
+}
+
+card "System-Wide Patterns" {
+    card "What Works Well ✅" #CCFFCC {
+        **Dependency Inversion**
+        • Interfaces in application layer
+        • Implementations in infrastructure
+        • Clean separation achieved
+
+        **Domain Layer**
+        • Zero dependencies (perfect!)
+        • Pure business entities
+        • Well-defined errors
+
+        **Infrastructure**
+        • Proper interface implementation
+        • No domain leakage
+        • Good database abstraction
+    }
+
+    card "What Needs Improvement ⚠️" #FFE0CC {
+        **Consistency**
+        • Inconsistent service layer usage
+        • Some use cases too fat
+        • Authorization not uniform
+
+        **Security**
+        • Plain text passwords
+        • Hardcoded secrets
+        • Incomplete authorization
+
+        **Business Logic**
+        • Sometimes in use cases
+        • Sometimes in services
+        • Sometimes in repositories
+    }
+}
+
+card "Layer-by-Layer Analysis" {
+    rectangle "Presentation Layer: 9/10" #90EE90 {
+        ✅ Good HTTP handling
+        ✅ DTO pattern used correctly
+        ✅ HATEOAS implementation
+        ⚠️ Some DTOs could be richer
+    }
+
+    rectangle "Application Layer: 7/10" #FFD700 {
+        ✅ Use cases orchestrate
+        ✅ Interfaces well-defined
+        ❌ Some layer violations
+        ❌ User service missing
+    }
+
+    rectangle "Domain Layer: 10/10" #90EE90 {
+        ✅ Zero dependencies
+        ✅ Pure business logic
+        ✅ Well-modeled entities
+        ✅ Domain errors
+    }
+
+    rectangle "Infrastructure Layer: 9/10" #90EE90 {
+        ✅ Implements interfaces
+        ✅ Database abstraction
+        ✅ External service adapters
+        ⚠️ Some hardcoded values
+    }
+}
+
+card "Overall System Score" #FFD700 {
+    card "7.5/10" #FFD700 {
+        **Above Average**
+        Clean Architecture principles
+        are generally well-followed
+
+        **Main Achievement:**
+        Good foundation with clear
+        layer separation
+
+        **Main Issue:**
+        Inconsistent enforcement
+        of architectural rules
+    }
+}
+
+note bottom
+    **Priority Action Items**
+
+    **High Priority:**
+    1. Create UserService layer
+    2. Remove use case → repository shortcuts
+    3. Implement password hashing
+    4. Complete authorization implementation
+
+    **Medium Priority:**
+    5. Externalize secrets to env vars
+    6. Remove duplicate validation logic
+    7. Move business logic to service layer
+    8. Add refresh token support
+
+    **Low Priority:**
+    9. Enhance HATEOAS links
+    10. Add comprehensive error handling
+    11. Implement proper secret management
+    12. Add API versioning
+
+    **Estimated Effort:**
+    High priority items: 2-3 days
+    Medium priority items: 2-3 days
+    Low priority items: 1-2 days
+
+    **Risk of Not Fixing:**
+    • Security vulnerabilities (passwords, secrets)
+    • Maintenance difficulty (scattered logic)
+    • Testing challenges (fat use cases)
+    • Inconsistent behavior across services
+end note
+
+@enduml

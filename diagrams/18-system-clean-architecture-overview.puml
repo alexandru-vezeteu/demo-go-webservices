@@ -1,0 +1,262 @@
+@startuml system_clean_architecture
+!theme plain
+
+title POS Microservices System - Clean Architecture Overview
+
+skinparam rectangle {
+    BackgroundColor<<domain>> #FFF8DC
+    BackgroundColor<<application>> #E6F3FF
+    BackgroundColor<<infrastructure>> #F0FFF0
+    BackgroundColor<<presentation>> #FFE6F0
+}
+
+package "Frontend" <<presentation>> {
+    [React SPA]
+    [Vite Build]
+    [HTTP Client]
+}
+
+package "EventManager Service\n:12345" {
+
+    rectangle "Presentation" <<presentation>> {
+        [Gin Router] as EM_Router
+        [Event Handler] as EM_EH
+        [Packet Handler] as EM_PH
+        [Ticket Handler] as EM_TH
+        [HTTP DTOs] as EM_DTO
+        [HATEOAS] as EM_HATEOAS
+    }
+
+    rectangle "Application - Use Cases" <<application>> {
+        [EventUseCase] as EM_EUC
+        [PacketUseCase] as EM_PUC
+        [TicketUseCase] as EM_TUC
+    }
+
+    rectangle "Application - Services" <<application>> {
+        [EventService] as EM_ES
+        [PacketService] as EM_PS
+        [TicketService] as EM_TS
+    }
+
+    rectangle "Application - Interfaces" <<application>> {
+        interface "IEventRepo" as EM_IER
+        interface "IAuthN" as EM_IAN
+        interface "IAuthZ" as EM_IAZ
+    }
+
+    rectangle "Domain" <<domain>> {
+        [Event] as EM_E
+        [EventPacket] as EM_EP
+        [Ticket] as EM_T
+        [Domain Errors] as EM_DE
+    }
+
+    rectangle "Infrastructure" <<infrastructure>> {
+        [GormEventRepo] as EM_GER
+        [RealAuthService] as EM_RAS
+        [DummyAuthZService] as EM_DAZ
+        [IDM gRPC Client] as EM_IDM
+        database [PostgreSQL\nevent_db] as EM_DB
+    }
+
+    ' EventManager connections
+    EM_Router --> EM_EH
+    EM_EH --> EM_EUC
+    EM_EUC --> EM_ES
+    EM_EUC -.-> EM_IER : ❌ sometimes bypasses
+    EM_ES --> EM_IER
+    EM_EUC --> EM_IAN
+    EM_EUC --> EM_IAZ
+    EM_ES --> EM_E
+    EM_IER <|.. EM_GER
+    EM_IAN <|.. EM_RAS
+    EM_IAZ <|.. EM_DAZ
+    EM_GER --> EM_DB
+    EM_RAS --> EM_IDM
+}
+
+package "User Service\n:12346" {
+
+    rectangle "Presentation" <<presentation>> {
+        [Gin Router] as U_Router
+        [User Handler] as U_UH
+        [User DTOs] as U_DTO
+    }
+
+    rectangle "Application - Use Cases" <<application>> {
+        [UserUseCase] as U_UUC
+    }
+
+    rectangle "Application - Missing!" <<application>> #FFCCCC {
+        [UserService\n❌ MISSING] as U_US
+    }
+
+    rectangle "Application - Interfaces" <<application>> {
+        interface "IUserRepo" as U_IUR
+        interface "IEventMgrSvc" as U_IEMS
+        interface "IAuthN" as U_IAN
+    }
+
+    rectangle "Domain" <<domain>> {
+        [User] as U_U
+        [Ticket] as U_T
+        [SocialMedia] as U_SM
+    }
+
+    rectangle "Infrastructure" <<infrastructure>> {
+        [MongoUserRepo] as U_MUR
+        [EventMgrAdapter] as U_EMA
+        [ServiceAuthClient] as U_SAC
+        [RealAuthService] as U_RAS
+        database [MongoDB\nuser_db] as U_DB
+    }
+
+    ' User Service connections
+    U_Router --> U_UH
+    U_UH --> U_UUC
+    U_UUC -.-> U_US : ❌ should exist
+    U_UUC --> U_IUR : ❌ direct call
+    U_UUC --> U_IEMS
+    U_UUC --> U_IAN
+    U_UUC --> U_U
+    U_IUR <|.. U_MUR
+    U_IEMS <|.. U_EMA
+    U_IAN <|.. U_RAS
+    U_MUR --> U_DB
+    U_EMA --> U_SAC
+}
+
+package "IDM Service\n:50051" {
+
+    rectangle "Presentation" <<presentation>> {
+        [gRPC Server] as I_GS
+        [Proto Definitions] as I_PD
+    }
+
+    rectangle "Application - Use Cases" <<application>> {
+        [LoginUseCase] as I_LUC
+        [VerifyTokenUseCase] as I_VUC
+        [RevokeTokenUseCase] as I_RUC
+        [RegisterUseCase] as I_RegUC
+    }
+
+    rectangle "Application - Interfaces" <<application>> {
+        interface "ITokenService" as I_ITS
+        interface "IUserRepo" as I_IUR
+        interface "IBlacklist" as I_IBL
+    }
+
+    rectangle "Domain" <<domain>> {
+        [User] as I_U
+        [JWT Token] as I_JWT
+        [Relationship] as I_R
+    }
+
+    rectangle "Infrastructure" <<infrastructure>> {
+        [JWTTokenService] as I_JTS
+        [PostgresUserRepo] as I_PUR
+        [RedisBlacklist] as I_RBL
+        [InMemoryBlacklist] as I_MBL
+        database [PostgreSQL\nidm_db] as I_PDB
+        database [Redis] as I_Redis
+    }
+
+    ' IDM connections
+    I_GS --> I_LUC
+    I_GS --> I_VUC
+    I_GS --> I_RUC
+    I_LUC --> I_ITS
+    I_LUC --> I_IUR
+    I_VUC --> I_ITS
+    I_VUC --> I_IBL
+    I_RUC --> I_IBL
+    I_LUC --> I_U
+    I_ITS <|.. I_JTS
+    I_IUR <|.. I_PUR
+    I_IBL <|.. I_RBL
+    I_IBL <|.. I_MBL
+    I_PUR --> I_PDB
+    I_RBL --> I_Redis
+}
+
+package "IDM Gateway\n:8000" {
+    [FastAPI] as Gateway
+    [Auth Router] as GW_AR
+    [gRPC Client] as GW_GC
+
+    Gateway --> GW_AR
+    GW_AR --> GW_GC
+}
+
+' Cross-service connections
+[React SPA] --> EM_Router : HTTP REST
+[React SPA] --> U_Router : HTTP REST
+[React SPA] --> Gateway : HTTP REST
+
+EM_IDM --> I_GS : gRPC
+U_SAC --> I_GS : gRPC
+GW_GC --> I_GS : gRPC
+U_EMA --> EM_Router : HTTP REST
+
+note right of EM_EUC
+    ⚠️ EventManager Issues:
+    • Sometimes bypasses service
+    • Direct repository calls
+    • Duplicate validation
+
+    Score: 7.5/10
+end note
+
+note right of U_UUC
+    ❌ User Service Issues:
+    • Missing service layer
+    • Business logic in use case
+    • Inline authorization
+    • Incomplete authZ
+
+    Score: 6.5/10
+end note
+
+note right of I_LUC
+    ✅ IDM Service Strengths:
+    • Clean architecture
+    • Thin use cases
+    • Well abstracted
+    • Minor issues only
+
+    Score: 8.5/10
+end note
+
+note bottom
+    **Clean Architecture Compliance Summary**
+
+    **Layer Compliance:**
+    ✅ Domain Layer: 10/10 - Zero dependencies, pure business logic
+    ⚠️ Application Layer: 7/10 - Some violations, missing service in User
+    ✅ Infrastructure Layer: 9/10 - Good interface implementation
+    ✅ Presentation Layer: 9/10 - Proper HTTP/gRPC handling
+
+    **Service Scores:**
+    • EventManager: 7.5/10 (Good, needs service layer enforcement)
+    • User Service: 6.5/10 (Needs service layer creation)
+    • IDM Service: 8.5/10 (Excellent, minor security improvements)
+
+    **Overall System: 7.5/10**
+
+    **Key Principles Followed:**
+    ✅ Dependency Rule (mostly)
+    ✅ Dependency Inversion Principle
+    ✅ Separation of Concerns
+    ✅ Domain-Driven Design
+    ⚠️ Single Responsibility (some violations)
+
+    **Main Improvements Needed:**
+    1. Create UserService layer
+    2. Enforce service layer in EventManager
+    3. Complete authorization implementation
+    4. Add password hashing
+    5. Externalize secrets
+end note
+
+@enduml

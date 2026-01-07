@@ -1,0 +1,169 @@
+@startuml clean_architecture_layers
+!theme plain
+
+title Clean Architecture - Dependency Flow Across Services
+
+skinparam packageStyle rectangle
+skinparam component {
+    BackgroundColor<<domain>> LightYellow
+    BackgroundColor<<application>> LightGreen
+    BackgroundColor<<infrastructure>> LightBlue
+    BackgroundColor<<presentation>> LightPink
+}
+
+package "EventManager Service" {
+
+    package "Presentation Layer" <<presentation>> {
+        [Gin Handlers]
+        [HTTP DTOs]
+        [HATEOAS Links]
+    }
+
+    package "Application Layer" <<application>> {
+        [EventUseCase]
+        [EventPacketUseCase]
+        [TicketUseCase]
+        [EventService]
+        [TicketService]
+        [IEventRepository]
+        [IAuthService]
+    }
+
+    package "Domain Layer" <<domain>> {
+        [Event]
+        [EventPacket]
+        [Ticket]
+        [Domain Errors]
+    }
+
+    package "Infrastructure Layer" <<infrastructure>> {
+        [GormRepositories]
+        [RealAuthService]
+        [IDM gRPC Client]
+        [PostgreSQL]
+    }
+}
+
+package "User Service" {
+
+    package "Presentation Layer" <<presentation>> as UP {
+        [User Handlers]
+        [User DTOs]
+    }
+
+    package "Application Layer" <<application>> as UA {
+        [UserUseCase]
+        [IUserRepository]
+        [IEventMgrService]
+    }
+
+    package "Domain Layer" <<domain>> as UD {
+        [User]
+        [User Ticket]
+    }
+
+    package "Infrastructure Layer" <<infrastructure>> as UI {
+        [MongoRepository]
+        [EventMgr Adapter]
+        [MongoDB]
+    }
+}
+
+package "IDM Service" {
+
+    package "Presentation Layer" <<presentation>> as IP {
+        [gRPC Server]
+        [IDM Gateway]
+    }
+
+    package "Application Layer" <<application>> as IA {
+        [LoginUseCase]
+        [VerifyTokenUseCase]
+        [TokenService]
+        [IUserRepository]
+        [IBlacklist]
+    }
+
+    package "Domain Layer" <<domain>> as ID {
+        [User]
+        [JWT Token]
+    }
+
+    package "Infrastructure Layer" <<infrastructure>> as II {
+        [PostgresUserRepo]
+        [JWTTokenService]
+        [RedisBlacklist]
+        [PostgreSQL]
+    }
+}
+
+' Dependencies within EventManager
+[Gin Handlers] ..> [EventUseCase] : uses
+[EventUseCase] ..> [EventService] : delegates to
+[EventUseCase] ..> [IAuthService] : uses
+[EventService] ..> [IEventRepository] : uses
+[EventService] ..> [Event] : manipulates
+[IEventRepository] <|.. [GormRepositories] : implements
+[IAuthService] <|.. [RealAuthService] : implements
+[GormRepositories] ..> [PostgreSQL] : persists to
+
+' Dependencies within User
+[User Handlers] ..> [UserUseCase] : uses
+[UserUseCase] ..> [IUserRepository] : uses
+[UserUseCase] ..> [IEventMgrService] : uses
+[UserUseCase] ..> [User] : manipulates
+[IUserRepository] <|.. [MongoRepository] : implements
+[IEventMgrService] <|.. [EventMgr Adapter] : implements
+[MongoRepository] ..> [MongoDB] : persists to
+
+' Dependencies within IDM
+[gRPC Server] ..> [LoginUseCase] : uses
+[gRPC Server] ..> [VerifyTokenUseCase] : uses
+[LoginUseCase] ..> [TokenService] : uses
+[LoginUseCase] ..> [IUserRepository] : uses
+[VerifyTokenUseCase] ..> [IBlacklist] : uses
+[TokenService] <|.. [JWTTokenService] : implements
+[IBlacklist] <|.. [RedisBlacklist] : implements
+[IUserRepository] <|.. [PostgresUserRepo] : implements
+[PostgresUserRepo] ..> [PostgreSQL] : persists to
+
+' Cross-service dependencies
+[RealAuthService] ..> [IDM gRPC Client] : calls
+[IDM gRPC Client] ..> [gRPC Server] : gRPC
+[EventMgr Adapter] ..> [Gin Handlers] : HTTP
+
+note right of [EventService]
+    Business Logic Layer
+    - Validation
+    - Business rules
+    - Orchestration
+end note
+
+note right of [Event]
+    Pure Domain
+    - No dependencies
+    - Business entities
+    - Domain errors
+end note
+
+note right of [IEventRepository]
+    Interface defined in
+    Application Layer
+    (Dependency Inversion)
+end note
+
+note bottom of [GormRepositories]
+    Infrastructure implements
+    application interfaces
+end note
+
+note as CleanArchPrinciples
+    **Clean Architecture Principles**
+    1. Dependency Rule: Dependencies point inward
+    2. Domain has ZERO dependencies
+    3. Application depends only on Domain
+    4. Infrastructure depends on Application interfaces
+    5. Presentation depends on Application
+end note
+
+@enduml

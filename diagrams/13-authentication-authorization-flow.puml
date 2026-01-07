@@ -1,0 +1,140 @@
+@startuml auth_authz_flow
+!theme plain
+
+title Authentication & Authorization Flow - Across All Services
+
+actor User
+participant "Frontend" as FE
+box "EventManager Service" #LightGreen
+    participant "EventHandler" as EH
+    participant "AuthMiddleware" as AM
+    participant "EventUseCase" as EUC
+    participant "AuthNService" as AuthN
+    participant "AuthZService" as AuthZ
+end box
+participant "IDM Service\n(gRPC)" as IDM
+database "Redis\nBlacklist" as Redis
+
+== Authentication ==
+
+User -> FE : Login with\nemail + password
+FE -> IDM : POST /api/idm/auth/login\n{email, password}
+activate IDM
+
+IDM -> IDM : LoginUseCase.Execute()
+note right
+    1. Find user by email
+    2. Verify password (plain text ⚠️)
+    3. Generate JWT token
+end note
+
+IDM --> FE : {token: "eyJ...", userId, role}
+deactivate IDM
+
+FE -> FE : Store token in\nlocalStorage
+
+== Authorization - Event Update ==
+
+User -> FE : Update Event 123
+FE -> EH : PATCH /events/123\nAuthorization: Bearer eyJ...
+activate EH
+
+EH -> AM : Middleware extracts token
+activate AM
+note right of AM
+    Token validation happens
+    in each authenticated endpoint
+end note
+AM --> EH : token string
+deactivate AM
+
+EH -> EUC : UpdateEvent(ctx, token, 123, updates)
+activate EUC
+
+EUC -> AuthN : WhoIsUser(ctx, token)
+activate AuthN
+note right of AuthN
+    RealAuthenticationService
+    (infrastructure implementation)
+end note
+
+AuthN -> IDM : VerifyToken(token) [gRPC]
+activate IDM
+
+IDM -> IDM : Parse JWT token
+IDM -> IDM : Check expiration
+IDM -> Redis : Check if blacklisted
+activate Redis
+Redis --> IDM : Not blacklisted
+deactivate Redis
+
+IDM --> AuthN : {valid: true, userId, email, role, expiresAt}
+deactivate IDM
+
+AuthN --> EUC : UserIdentity{UserID: 5, Role: "owner-event"}
+deactivate AuthN
+
+EUC -> EUC : Fetch Event 123
+
+EUC -> AuthZ : CanUserEditEvent(ctx, identity, event)
+activate AuthZ
+
+note right of AuthZ
+    DummyAuthorizationService
+    Business rule:
+    user.UserID == event.OwnerID
+end note
+
+AuthZ --> EUC : true
+deactivate AuthZ
+
+EUC -> EUC : eventService.UpdateEvent()
+EUC --> EH : Updated Event
+deactivate EUC
+
+EH --> FE : 200 OK {event}
+deactivate EH
+
+== Token Revocation ==
+
+User -> FE : Logout
+FE -> IDM : POST /api/idm/auth/revoke\nAuthorization: Bearer eyJ...
+activate IDM
+
+IDM -> IDM : RevokeTokenUseCase.Execute()
+IDM -> IDM : Parse token to get JTI
+IDM -> Redis : Add JTI to blacklist\nwith TTL = token expiry
+activate Redis
+Redis --> IDM : OK
+deactivate Redis
+
+IDM --> FE : {success: true}
+deactivate IDM
+
+FE -> FE : Clear token from\nlocalStorage
+
+note bottom
+    **Clean Architecture Analysis:**
+
+    ✅ Strengths:
+    • Authentication abstracted as interface
+    • Authorization abstracted as interface
+    • IDM service is single source of truth
+    • Token blacklisting with Redis
+    • Middleware properly separates concerns
+
+    ⚠️ Issues:
+    • Plain text passwords in IDM
+    • DummyAuthorizationService (not production-ready)
+    • User service has inline role checks (bypasses AuthZ)
+    • No refresh token mechanism
+    • JWT secret hardcoded
+
+    💡 Recommendations:
+    • Implement bcrypt password hashing
+    • Use proper secret management (env vars/vault)
+    • Implement refresh tokens
+    • Complete AuthorizationService for all services
+end note
+
+@enduml

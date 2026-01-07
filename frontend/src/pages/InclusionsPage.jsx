@@ -27,14 +27,19 @@ export const InclusionsPage = () => {
                 : eventList;
             setEvents(myEvents);
 
-            
-            setPackets([]);
 
-            setMessage('ℹ️ Enter Event ID and Packet ID below to bind them together');
+            const packetResponse = await eventService.filterPackets();
+            const packetList = packetResponse.event_packets || [];
+            const myPackets = userInfo?.user_id
+                ? packetList.filter(p => p.id_owner === parseInt(userInfo.user_id))
+                : packetList;
+            setPackets(myPackets);
+
+            setMessage('Enter Event ID and Packet ID below to bind them together');
         } catch (err) {
             console.error('Load data error:', err.response?.status, err.response?.data?.error || err.message);
             const errorMsg = parseErrorMessage(err, 'Failed to load data');
-            setMessage(`❌ ${errorMsg}`);
+            setMessage(`Error: ${errorMsg}`);
             setEvents([]);
         } finally {
             setLoading(false);
@@ -43,10 +48,12 @@ export const InclusionsPage = () => {
 
     const loadEventPackets = async (eventId) => {
         try {
-            const packets = await eventService.getPacketsByEvent(eventId);
-            setEventPackets(prev => ({ ...prev, [eventId]: packets }));
+            const response = await eventService.getPacketsByEvent(eventId);
+            const packetsArray = Array.isArray(response) ? response : (response.event_packets || response.packets || []);
+            setEventPackets(prev => ({ ...prev, [eventId]: packetsArray }));
         } catch (err) {
             console.error('Load event packets error:', err.response?.status, err.response?.data?.error || err.message);
+            setEventPackets(prev => ({ ...prev, [eventId]: [] }));
         }
     };
 
@@ -55,13 +62,13 @@ export const InclusionsPage = () => {
         setMessage('');
 
         if (!selectedEventId || !selectedPacketId) {
-            setMessage('⚠️ Please select both an event and a packet');
+            setMessage('Please select both an event and a packet');
             return;
         }
 
         try {
             await eventService.createInclusion(parseInt(selectedEventId), parseInt(selectedPacketId));
-            setMessage(`✓ Successfully added Event ${selectedEventId} to Packet ${selectedPacketId}!`);
+            setMessage(`Successfully added Event ${selectedEventId} to Packet ${selectedPacketId}!`);
             setSelectedEventId('');
             setSelectedPacketId('');
 
@@ -69,7 +76,7 @@ export const InclusionsPage = () => {
         } catch (err) {
             console.error('Create inclusion error:', err.response?.status, err.response?.data?.error || err.message);
             const errorMsg = parseErrorMessage(err, 'Failed to bind event to packet');
-            setMessage(`❌ ${errorMsg}`);
+            setMessage(`Error: ${errorMsg}`);
         }
     };
 
@@ -78,12 +85,12 @@ export const InclusionsPage = () => {
 
         try {
             await eventService.deleteInclusion(eventId, packetId);
-            setMessage(`✓ Removed Event ${eventId} from Packet ${packetId}`);
+            setMessage(`Removed Event ${eventId} from Packet ${packetId}`);
             loadEventPackets(eventId);
         } catch (err) {
             console.error('Delete inclusion error:', err.response?.status, err.response?.data?.error || err.message);
             const errorMsg = parseErrorMessage(err, 'Failed to remove binding');
-            setMessage(`❌ ${errorMsg}`);
+            setMessage(`Error: ${errorMsg}`);
         }
     };
 
@@ -101,19 +108,19 @@ export const InclusionsPage = () => {
                         padding: '15px',
                         margin: '10px 0',
                         borderRadius: '5px',
-                        backgroundColor: message.includes('❌') || message.includes('⚠️')
+                        backgroundColor: message.startsWith('Error:')
                             ? '#fee'
-                            : message.includes('✓')
+                            : message.includes('Successfully') || message.includes('Removed')
                                 ? '#efe'
                                 : '#fff3cd',
-                        border: message.includes('❌') || message.includes('⚠️')
+                        border: message.startsWith('Error:')
                             ? '1px solid #fcc'
-                            : message.includes('✓')
+                            : message.includes('Successfully') || message.includes('Removed')
                                 ? '1px solid #cfc'
                                 : '1px solid #ffd700',
-                        color: message.includes('❌') || message.includes('⚠️')
+                        color: message.startsWith('Error:')
                             ? '#c00'
-                            : message.includes('✓')
+                            : message.includes('Successfully') || message.includes('Removed')
                                 ? '#0a0'
                                 : '#856404',
                         whiteSpace: 'pre-line'
@@ -150,19 +157,26 @@ export const InclusionsPage = () => {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="packet">Packet ID</label>
-                        <input
-                            id="packet"
-                            type="number"
-                            placeholder="Enter Packet ID"
-                            value={selectedPacketId}
-                            onChange={(e) => setSelectedPacketId(e.target.value)}
-                            required
-                            min="1"
-                        />
-                        <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
-                            Enter the ID of the packet you created in the "My Packages" page
-                        </small>
+                        <label htmlFor="packet">Select Packet</label>
+                        {loading ? (
+                            <p>Loading packets...</p>
+                        ) : packets.length === 0 ? (
+                            <p>No packets found. Create a packet first!</p>
+                        ) : (
+                            <select
+                                id="packet"
+                                value={selectedPacketId}
+                                onChange={(e) => setSelectedPacketId(e.target.value)}
+                                required
+                            >
+                                <option value="">-- Select a Packet --</option>
+                                {packets.map(packet => (
+                                    <option key={packet.id} value={packet.id}>
+                                        ID {packet.id}: {packet.name} ({packet.location || 'No location'})
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     <button type="submit" className="btn-primary">
@@ -202,9 +216,13 @@ export const InclusionsPage = () => {
                                             <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
                                                 {eventPackets[event.id].map((pkt, idx) => (
                                                     <li key={idx} style={{ fontSize: '0.9em', margin: '5px 0' }}>
-                                                        Packet ID: {pkt.packet_id || 'Unknown'}
+                                                        <strong>{pkt.name || `Packet ${pkt.id}`}</strong>
+                                                        {pkt.location && ` - ${pkt.location}`}
+                                                        <span style={{ color: '#666', fontSize: '0.85em', marginLeft: '8px' }}>
+                                                            (ID: {pkt.id})
+                                                        </span>
                                                         <button
-                                                            onClick={() => handleRemoveInclusion(event.id, pkt.packet_id)}
+                                                            onClick={() => handleRemoveInclusion(event.id, pkt.id)}
                                                             className="btn-danger"
                                                             style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 8px' }}
                                                         >

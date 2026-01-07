@@ -54,15 +54,15 @@ export const HomePage = () => {
         <h2>Features</h2>
         <div className="feature-grid">
           <div className="feature">
-            <h3>🎫 Event Management</h3>
+            <h3>Event Management</h3>
             <p>Create and manage events with ease</p>
           </div>
           <div className="feature">
-            <h3>📦 Ticket Packages</h3>
+            <h3>Ticket Packages</h3>
             <p>Bundle events into attractive packages</p>
           </div>
           <div className="feature">
-            <h3>👥 Customer Insights</h3>
+            <h3>Customer Insights</h3>
             <p>View who's attending your events</p>
           </div>
           <div className="feature">

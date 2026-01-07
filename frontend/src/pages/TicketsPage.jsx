@@ -8,6 +8,7 @@ export const TicketsPage = () => {
   const [tickets, setTickets] = useState([]);
   const [enrichedTickets, setEnrichedTickets] = useState([]);
   const [events, setEvents] = useState([]);
+  const [packets, setPackets] = useState([]);
   const [formData, setFormData] = useState({
     event_id: '',
     packet_id: '',
@@ -18,6 +19,7 @@ export const TicketsPage = () => {
 
   useEffect(() => {
     loadEvents();
+    loadPackets();
     loadUserTickets();
   }, []);
 
@@ -31,6 +33,16 @@ export const TicketsPage = () => {
     }
   };
 
+  const loadPackets = async () => {
+    try {
+      const response = await eventService.filterPackets();
+      setPackets(response.event_packets || []);
+    } catch (err) {
+      console.error('Error loading packets:', err);
+      setPackets([]);
+    }
+  };
+
   const loadUserTickets = async () => {
     if (!userInfo?.user_id) return;
 
@@ -38,24 +50,18 @@ export const TicketsPage = () => {
     try {
       const user = await userService.getUser(parseInt(userInfo.user_id));
       const ticketList = user.ticket_list || [];
-      console.log('Raw ticket list from user service:', ticketList);
       setTickets(ticketList);
 
       const enriched = await Promise.all(
         ticketList.map(async (ticket) => {
-          console.log('Processing ticket:', ticket);
           const enrichedTicket = { ...ticket };
 
           const hasEventId = ticket.event_id !== undefined && ticket.event_id !== null;
           const hasPacketId = ticket.packet_id !== undefined && ticket.packet_id !== null;
 
-          console.log(`Ticket ${ticket.code}: hasEventId=${hasEventId}, hasPacketId=${hasPacketId}`);
-
           if (hasEventId) {
             try {
-              console.log(`Fetching event details for event_id: ${ticket.event_id}`);
               const event = await eventService.getEventById(ticket.event_id);
-              console.log('Event details loaded:', event);
               enrichedTicket.eventDetails = event;
             } catch (err) {
               console.error(`Error loading event ${ticket.event_id}:`, err);
@@ -64,15 +70,12 @@ export const TicketsPage = () => {
 
           if (hasPacketId) {
             try {
-              console.log(`Fetching packet details for packet_id: ${ticket.packet_id}`);
               const packet = await eventService.getPacketById(ticket.packet_id);
-              console.log('Packet details loaded:', packet);
               enrichedTicket.packetDetails = packet;
 
               if (packet) {
                 try {
                   const packetEvents = await eventService.getEventsByPacket(ticket.packet_id);
-                  console.log('Packet events loaded:', packetEvents);
                   enrichedTicket.packetEvents = packetEvents;
                 } catch (err) {
                   console.error(`Error loading events for packet ${ticket.packet_id}:`, err);
@@ -87,7 +90,6 @@ export const TicketsPage = () => {
         })
       );
 
-      console.log('Enriched tickets:', enriched);
       setEnrichedTickets(enriched);
     } catch (err) {
       console.error('Error in loadUserTickets:', err);
@@ -156,15 +158,20 @@ export const TicketsPage = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="packet">Or Select Packet ID</label>
-            <input
+            <label htmlFor="packet">Or Select Packet</label>
+            <select
               id="packet"
-              type="number"
-              placeholder="Enter packet ID (optional)"
               value={formData.packet_id}
               onChange={(e) => setFormData({ ...formData, packet_id: e.target.value, event_id: '' })}
               disabled={loading || formData.event_id}
-            />
+            >
+              <option value="">-- Select a Packet --</option>
+              {packets.map((packet) => (
+                <option key={packet.id} value={packet.id}>
+                  {packet.name} - {packet.location || 'No location'}
+                </option>
+              ))}
+            </select>
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
@@ -183,12 +190,12 @@ export const TicketsPage = () => {
           <div className="ticket-grid">
             {enrichedTickets.map((ticket, idx) => (
               <div key={idx} className="card ticket-card">
-                <h3>🎫 Ticket #{idx + 1}</h3>
+                <h3>Ticket #{idx + 1}</h3>
                 <p><strong>Code:</strong> <code>{ticket.code}</code></p>
 
                 {ticket.event_id && (
                   <div style={{ marginTop: '15px', padding: '15px', background: '#f0f8ff', borderRadius: '8px', border: '1px solid #b3d9ff' }}>
-                    <h4 style={{ marginTop: 0, color: '#0066cc' }}>📍 Event Ticket</h4>
+                    <h4 style={{ marginTop: 0, color: '#0066cc' }}>Event Ticket</h4>
 
                     {ticket.eventDetails ? (
                       <>
@@ -212,7 +219,7 @@ export const TicketsPage = () => {
 
                 {ticket.packet_id && (
                   <div style={{ marginTop: '15px', padding: '15px', background: '#fff5e6', borderRadius: '8px', border: '1px solid #ffd699' }}>
-                    <h4 style={{ marginTop: 0, color: '#cc8800' }}>📦 Packet Ticket</h4>
+                    <h4 style={{ marginTop: 0, color: '#cc8800' }}>Packet Ticket</h4>
 
                     {ticket.packetDetails ? (
                       <>
@@ -230,7 +237,7 @@ export const TicketsPage = () => {
 
                         {ticket.packetEvents && ticket.packetEvents.length > 0 && (
                           <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #ffd699' }}>
-                            <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>📅 Included Events:</p>
+                            <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Included Events:</p>
                             <ul style={{ margin: '0', paddingLeft: '20px', fontSize: '0.9em' }}>
                               {ticket.packetEvents.map((evt, i) => (
                                 <li key={i} style={{ marginBottom: '4px' }}>

@@ -52,13 +52,10 @@ export const userService = {
         if (packetId) data.packet_id = packetId;
         if (eventId) data.event_id = eventId;
 
-        console.log('Creating ticket with data:', { userId, packetId, eventId, requestBody: data });
-
         const response = await axios.post(`${BASE_URL}/clients/${userId}/tickets`, data, {
             headers: createAuthHeaders()
         });
 
-        console.log('Ticket created, response:', response.data);
         return response.data.ticket_code;
     },
 

@@ -1,0 +1,207 @@
+@startuml ideal_vs_current
+!theme plain
+
+title Ideal Clean Architecture vs Current Implementation
+
+skinparam component {
+    BackgroundColor<<ideal>> LightGreen
+    BackgroundColor<<current>> Yellow
+    BackgroundColor<<missing>> LightCoral
+}
+
+package "IDEAL - EventManager" {
+    [Handler] as IEH <<ideal>>
+    [UseCase] as IEUC <<ideal>>
+    [Service] as IES <<ideal>>
+    [Repository] as IER <<ideal>>
+    [Domain] as IED <<ideal>>
+
+    IEH --> IEUC : orchestrates
+    IEUC --> IES : delegates business logic
+    IES --> IER : persists
+    IES --> IED : uses
+    IER --> IED : uses
+
+    note right of IEUC
+        ✅ UseCase only:
+        • Authenticates
+        • Authorizes
+        • Calls service
+        • Returns result
+    end note
+
+    note right of IES
+        ✅ Service contains:
+        • ALL validation
+        • Business rules
+        • Cross-aggregate logic
+        • State transitions
+    end note
+}
+
+package "CURRENT - EventManager" {
+    [Handler] as CEH <<current>>
+    [UseCase] as CEUC <<current>>
+    [Service] as CES <<current>>
+    [Repository] as CER <<current>>
+    [Domain] as CED <<current>>
+
+    CEH --> CEUC
+    CEUC --> CES : sometimes
+    CEUC --> CER : ❌ direct calls
+    CES --> CER
+    CES --> CED
+    CER --> CED
+    CEUC --> CED
+
+    note right of CEUC
+        ⚠️ UseCase does:
+        • Authentication ✅
+        • Authorization ✅
+        • Sometimes calls service ✅
+        • Sometimes bypasses service ❌
+        • Direct repo.Create() ❌
+        • Duplicate validation ❌
+    end note
+
+    note right of CES
+        ⚠️ Service has:
+        • Good validation ✅
+        • Business rules ✅
+        • But UseCase bypasses it ❌
+    end note
+}
+
+package "IDEAL - User Service" {
+    [Handler] as IUH <<ideal>>
+    [UseCase] as IUUC <<ideal>>
+    [UserService] as IUS <<ideal>>
+    [Repository] as IUR <<ideal>>
+    [Domain] as IUD <<ideal>>
+    [AuthZ] as IUAZ <<ideal>>
+
+    IUH --> IUUC
+    IUUC --> IUS : delegates
+    IUUC --> IUAZ : checks permissions
+    IUS --> IUR
+    IUS --> IUD
+    IUR --> IUD
+
+    note right of IUUC
+        ✅ UseCase only:
+        • Authenticates
+        • Checks AuthZ service
+        • Calls UserService
+        • Coordinates ext. services
+    end note
+
+    note right of IUS
+        ✅ Service contains:
+        • Email validation
+        • Privacy filtering
+        • Business logic
+    end note
+}
+
+package "CURRENT - User Service" {
+    [Handler] as CUH <<current>>
+    [UseCase] as CUUC <<current>>
+    [UserService] as CUS <<missing>>
+    [Repository] as CUR <<current>>
+    [Domain] as CUD <<current>>
+    [AuthZ] as CUAZ <<current>>
+
+    CUH --> CUUC
+    CUUC --> CUR : ❌ direct
+    CUUC --> CUD
+    CUR --> CUD
+    CUUC .> CUAZ : ⚠️ sometimes
+
+    note right of CUUC
+        ❌ UseCase does:
+        • Authentication ✅
+        • Email validation ❌ (should be service)
+        • Privacy filtering ❌ (should be service)
+        • Inline role checks ❌
+        • Direct repo calls ❌
+        • Too much responsibility!
+    end note
+
+    note right of CUS
+        ❌ MISSING!
+        No service layer exists.
+        All logic in UseCase.
+    end note
+
+    note right of CUAZ
+        ⚠️ Exists but:
+        • Not used everywhere
+        • Some inline checks bypass it
+    end note
+}
+
+package "IDM Service - Already Good!" {
+    [gRPC Server] as IGS <<ideal>>
+    [LoginUseCase] as ILUC <<ideal>>
+    [VerifyUseCase] as IVUC <<ideal>>
+    [TokenService] as ITS <<ideal>>
+    [Repository] as IR <<ideal>>
+    [Domain] as IDO <<ideal>>
+
+    IGS --> ILUC
+    IGS --> IVUC
+    ILUC --> ITS
+    ILUC --> IR
+    IVUC --> ITS
+    IR --> IDO
+    ITS --> IDO
+
+    note right of ILUC
+        ✅ Thin use case:
+        • Find user
+        • Generate token
+        • Return result
+
+        ⚠️ Minor issues:
+        • Plain text password
+    end note
+
+    note right of ITS
+        ✅ Clean interface:
+        • Well abstracted
+        • Single responsibility
+
+        ⚠️ Minor issues:
+        • Hardcoded secret
+    end note
+}
+
+note as ComparisonSummary
+    **Key Differences & Recommendations**
+
+    **EventManager:**
+    Current: 7.5/10 → Target: 9/10
+    • Remove direct UseCase → Repository calls
+    • Always go through Service layer
+    • Remove duplicate validation
+
+    **User Service:**
+    Current: 6.5/10 → Target: 9/10
+    • CREATE UserService layer
+    • Move business logic from UseCase to Service
+    • Always use AuthZ service, no inline checks
+    • Complete authorization logic
+
+    **IDM Service:**
+    Current: 8.5/10 → Target: 10/10
+    • Add password hashing service
+    • Externalize secret management
+    • Add refresh token support
+
+    **Overall System:**
+    • Consistent layer usage across all services
+    • No layer-skipping
+    • Complete separation of concerns
+end note
+
+@enduml

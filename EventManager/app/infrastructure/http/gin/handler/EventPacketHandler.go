@@ -2,6 +2,7 @@ package handler
 
 import (
 	"eventManager/application/domain"
+	"eventManager/application/repository"
 	"eventManager/application/usecase"
 	"eventManager/infrastructure/http/config"
 	"eventManager/infrastructure/http/gin/middleware"
@@ -13,12 +14,14 @@ import (
 
 type GinEventPacketHandler struct {
 	usecase     usecase.EventPacketUseCase
+	repo        repository.EventPacketRepository
 	serviceURLs *config.ServiceURLs
 }
 
-func NewGinEventPacketHandler(usecase usecase.EventPacketUseCase, serviceURLs *config.ServiceURLs) *GinEventPacketHandler {
+func NewGinEventPacketHandler(usecase usecase.EventPacketUseCase, repo repository.EventPacketRepository, serviceURLs *config.ServiceURLs) *GinEventPacketHandler {
 	return &GinEventPacketHandler{
 		usecase:     usecase,
+		repo:        repo,
 		serviceURLs: serviceURLs,
 	}
 }
@@ -208,6 +211,11 @@ func (h *GinEventPacketHandler) FilterEventPackets(c *gin.Context) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseEventPacketListWithPagination(packets, domainFilter, h.serviceURLs)
+	totalCount, err := h.repo.CountEventPackets(c.Request.Context(), domainFilter)
+	if handleError(c, err) {
+		return
+	}
+
+	resp := httpdto.ToHttpResponseEventPacketListWithPagination(packets, domainFilter, totalCount, h.serviceURLs)
 	c.JSON(http.StatusOK, resp)
 }

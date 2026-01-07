@@ -19,7 +19,7 @@ func (r *GormEventRepository) Create(ctx context.Context, event *domain.Event) (
 	gormEvent := gormmodel.FromEvent(event)
 
 	if err := r.DB.WithContext(ctx).Create(gormEvent).Error; err != nil {
-		
+
 		if strings.Contains(err.Error(), "duplicate key") ||
 			strings.Contains(err.Error(), "23505") {
 			return nil, &domain.AlreadyExistsError{Name: gormEvent.Name}
@@ -171,6 +171,41 @@ func (r *GormEventRepository) FilterEvents(ctx context.Context, filter *domain.E
 
 	return domainEvents, nil
 
+}
+
+func (r *GormEventRepository) CountEvents(ctx context.Context, filter *domain.EventFilter) (int, error) {
+	if filter == nil {
+		return 0, &domain.ValidationError{Reason: "filter cannot be nil"}
+	}
+
+	query := r.DB.WithContext(ctx).Model(&gormmodel.GormEvent{})
+
+	if filter.Name != nil {
+		query = query.Where("name LIKE ?", "%"+*filter.Name+"%")
+	}
+
+	if filter.Location != nil {
+		query = query.Where("location LIKE ?", "%"+*filter.Location+"%")
+	}
+
+	if filter.Description != nil {
+		query = query.Where("description LIKE ?", "%"+*filter.Description+"%")
+	}
+
+	if filter.MinSeats != nil {
+		query = query.Where("seats >= ?", *filter.MinSeats)
+	}
+
+	if filter.MaxSeats != nil {
+		query = query.Where("seats <= ?", *filter.MaxSeats)
+	}
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return 0, &domain.InternalError{Msg: "failed to count events", Err: err}
+	}
+
+	return int(count), nil
 }
 
 func (r *GormEventRepository) CountSoldTickets(ctx context.Context, eventID int) (int, error) {

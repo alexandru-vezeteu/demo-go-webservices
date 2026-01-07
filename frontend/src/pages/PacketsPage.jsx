@@ -24,17 +24,15 @@ export const PacketsPage = () => {
     setLoading(true);
     setMessage('');
     try {
-      // The backend doesn't have a filter endpoint, so we need to create one
-      // or fetch a specific packet. For now, we'll show a message.
-      // TODO: Backend needs to implement GET /event-packets?owner_id={id}
-
-      // Temporary: Just create packets and they'll show up
-      setMessage('ℹ️ Note: Packet listing will be available once you create packets. The backend needs a filter endpoint.');
-      setPackets([]);
+      const response = await eventService.filterPackets();
+      const packetList = response.event_packets || [];
+      const ownerID = parseInt(userInfo?.user_id);
+      const ownerPackets = packetList.filter(p => p.id_owner === ownerID);
+      setPackets(ownerPackets);
     } catch (err) {
       console.error('Load packets error:', err.response?.status, err.response?.data?.error || err.message);
       const errorMsg = parseErrorMessage(err, 'Failed to load packets');
-      setMessage(`❌ ${errorMsg}`);
+      setMessage(`Error: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -52,13 +50,13 @@ export const PacketsPage = () => {
         allocated_seats: formData.allocated_seats ? parseInt(formData.allocated_seats) : undefined,
         id_owner: parseInt(userInfo.user_id),
       });
-      setMessage('✓ Packet created successfully!');
+      setMessage('Packet created successfully!');
       setFormData({ name: '', location: '', description: '', allocated_seats: '' });
       loadPackets();
     } catch (err) {
       console.error('Create packet error:', err.response?.status, err.response?.data?.error || err.message);
       const errorMsg = parseErrorMessage(err, 'Failed to create packet');
-      setMessage(`❌ ${errorMsg}`);
+      setMessage(`Error: ${errorMsg}`);
     }
   };
 
@@ -73,14 +71,14 @@ export const PacketsPage = () => {
         description: formData.description || undefined,
         allocated_seats: formData.allocated_seats ? parseInt(formData.allocated_seats) : undefined,
       });
-      setMessage('✓ Packet updated successfully!');
+      setMessage('Packet updated successfully!');
       setEditingId(null);
       setFormData({ name: '', location: '', description: '', allocated_seats: '' });
       loadPackets();
     } catch (err) {
       console.error('Update packet error:', err.response?.status, err.response?.data?.error || err.message);
       const errorMsg = parseErrorMessage(err, 'Failed to update packet');
-      setMessage(`❌ ${errorMsg}`);
+      setMessage(`Error: ${errorMsg}`);
     }
   };
 
@@ -105,12 +103,12 @@ export const PacketsPage = () => {
 
     try {
       await eventService.deletePacket(id);
-      setMessage('✓ Packet deleted successfully!');
+      setMessage('Packet deleted successfully!');
       loadPackets();
     } catch (err) {
       console.error('Delete packet error:', err.response?.status, err.response?.data?.error || err.message);
       const errorMsg = parseErrorMessage(err, 'Failed to delete packet');
-      setMessage(`❌ ${errorMsg}`);
+      setMessage(`Error: ${errorMsg}`);
     }
   };
 

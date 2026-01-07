@@ -44,7 +44,7 @@ export const ProfilePage = () => {
                 message: err.message
             });
             const errorMsg = parseErrorMessage(err, 'Failed to load profile');
-            setMessage(`❌ ${errorMsg}`);
+            setMessage(`Error: ${errorMsg}`);
         } finally {
             setLoading(false);
         }
@@ -63,7 +63,7 @@ export const ProfilePage = () => {
         }
 
         if (errors.length > 0) {
-            setMessage(`⚠️ Please fix the following errors:\n${errors.join('\n')}`);
+            setMessage(`Please fix the following errors:\n${errors.join('\n')}`);
             return;
         }
 
@@ -80,13 +80,13 @@ export const ProfilePage = () => {
             }
 
             await userService.updateUser(parseInt(userInfo.user_id), updateData);
-            setMessage('✓ Profile updated successfully!');
+            setMessage('Profile updated successfully!');
             setEditing(false);
             loadUserData();
         } catch (err) {
             console.error('Profile update error:', err.response?.status, err.response?.data?.error || err.message);
             const errorMsg = parseErrorMessage(err, 'Failed to update profile');
-            setMessage(`❌ ${errorMsg}`);
+            setMessage(`Error: ${errorMsg}`);
         }
     };
 
@@ -109,19 +109,19 @@ export const ProfilePage = () => {
                         padding: '15px',
                         margin: '10px 0',
                         borderRadius: '5px',
-                        backgroundColor: message.includes('❌') || message.includes('⚠️')
+                        backgroundColor: message.startsWith('Error:')
                             ? '#fee'
-                            : message.includes('✓')
+                            : message.includes('successfully')
                                 ? '#efe'
                                 : '#fff3cd',
-                        border: message.includes('❌') || message.includes('⚠️')
+                        border: message.startsWith('Error:')
                             ? '1px solid #fcc'
-                            : message.includes('✓')
+                            : message.includes('successfully')
                                 ? '1px solid #cfc'
                                 : '1px solid #ffd700',
-                        color: message.includes('❌') || message.includes('⚠️')
+                        color: message.startsWith('Error:')
                             ? '#c00'
-                            : message.includes('✓')
+                            : message.includes('successfully')
                                 ? '#0a0'
                                 : '#856404',
                         whiteSpace: 'pre-line'

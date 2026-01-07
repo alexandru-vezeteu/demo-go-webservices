@@ -5,9 +5,9 @@ import (
 )
 
 type Link struct {
-	Href   string
-	Rel    string
-	Method string
+	Href   string `json:"href"`
+	Rel    string `json:"rel"`
+	Method string `json:"method"`
 	Title  string
 }
 

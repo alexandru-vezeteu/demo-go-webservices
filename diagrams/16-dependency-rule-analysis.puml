@@ -1,0 +1,176 @@
+@startuml dependency_rules
+!theme plain
+
+title Clean Architecture Dependency Rule - Compliance Analysis
+
+skinparam rectangle {
+    BackgroundColor<<domain>> #FFD700
+    BackgroundColor<<application>> #90EE90
+    BackgroundColor<<infrastructure>> #87CEEB
+    BackgroundColor<<presentation>> #FFB6C1
+}
+
+rectangle "Clean Architecture Layers" {
+
+    rectangle "Presentation Layer\n(Frameworks & Drivers)" <<presentation>> as P {
+        [Gin Handlers]
+        [HTTP DTOs]
+        [gRPC Server]
+        [FastAPI Gateway]
+        [React Frontend]
+    }
+
+    rectangle "Application Layer\n(Use Cases + Interfaces)" <<application>> as A {
+        [Use Cases]
+        [Domain Services]
+        [Repository Interfaces]
+        [Service Interfaces]
+    }
+
+    rectangle "Domain Layer\n(Entities)" <<domain>> as D {
+        [Event Entity]
+        [User Entity]
+        [Ticket Entity]
+        [Domain Errors]
+        [Business Rules]
+    }
+
+    rectangle "Infrastructure Layer\n(External Interfaces)" <<infrastructure>> as I {
+        [Gorm Repositories]
+        [Mongo Repository]
+        [gRPC Clients]
+        [HTTP Clients]
+        [PostgreSQL]
+        [MongoDB]
+        [Redis]
+    }
+}
+
+' Correct dependencies (pointing inward)
+P -down-> A : ✅ depends on
+A -down-> D : ✅ depends on
+I -up-> A : ✅ implements
+I -up-> D : ✅ uses
+
+' Infrastructure to Application
+[Gorm Repositories] .up.|> [Repository Interfaces] : implements
+[HTTP Clients] .up.|> [Service Interfaces] : implements
+
+' Application to Domain
+[Use Cases] -down-> [Event Entity] : uses
+[Domain Services] -down-> [Business Rules] : enforces
+
+note right of D
+    **Domain Layer**
+    Dependencies: NONE ✅
+
+    The domain has zero dependencies
+    on any other layer. It's pure
+    business logic.
+
+    ✅ All services comply
+end note
+
+note left of A
+    **Application Layer**
+    Dependencies: Domain only ✅
+
+    Contains:
+    • Use Cases (orchestration)
+    • Domain Services (business logic)
+    • Interface definitions (DIP)
+
+    ⚠️ Issues:
+    • Some use cases bypass services
+    • User service missing service layer
+end note
+
+note left of I
+    **Infrastructure Layer**
+    Dependencies: Application interfaces ✅
+
+    Implements:
+    • Repository interfaces
+    • Service interfaces
+
+    ✅ All services comply
+    No domain knowledge leaked
+end note
+
+note right of P
+    **Presentation Layer**
+    Dependencies: Application only ✅
+
+    Responsibilities:
+    • HTTP/gRPC handling
+    • DTO conversion
+    • HATEOAS links
+
+    ✅ All services comply
+end note
+
+package "Dependency Rule Violations" {
+
+    rectangle "EventManager Violations" #FFCCCC {
+        [EventUseCase] as EUC
+        [EventRepository] as ER
+        [EventService] as ES
+
+        EUC -down-> ER : ❌ Direct call\n(skips service)
+        EUC .down.> ES : ✅ Should always\ngo through here
+        ES -down-> ER : ✅ Correct
+    }
+
+    rectangle "User Service Violations" #FFCCCC {
+        [UserUseCase] as UUC
+        [UserRepository] as UR
+        [Missing UserService] as MUS #DDDDDD
+
+        UUC -down-> UR : ❌ No service layer
+        UUC .down.> MUS : ❌ Should exist
+        MUS -down-> UR : ✅ Would be correct
+    }
+
+    rectangle "IDM Service - No Violations" #CCFFCC {
+        [LoginUseCase] as LUC
+        [TokenService] as TS
+        [UserRepository] as IUR
+
+        LUC -down-> TS : ✅ Correct
+        LUC -down-> IUR : ✅ Correct
+    }
+}
+
+note bottom
+    **Dependency Rule Compliance Summary**
+
+    **Domain Layer: 10/10** ✅
+    • Zero dependencies on other layers
+    • Pure business entities
+    • Domain errors well-defined
+
+    **Application Layer: 7/10** ⚠️
+    • Interfaces properly defined ✅
+    • Use cases orchestrate ✅
+    • Some use cases bypass services ❌
+    • User service layer missing ❌
+
+    **Infrastructure Layer: 10/10** ✅
+    • Properly implements interfaces
+    • No domain knowledge in infrastructure
+    • Clean separation of concerns
+
+    **Presentation Layer: 10/10** ✅
+    • Depends only on application
+    • Good DTO mapping
+    • HATEOAS implementation
+
+    **Overall System Score: 8.0/10**
+
+    Main improvement needed:
+    • Enforce strict service layer usage
+    • Create missing UserService
+    • Remove use case → repository shortcuts
+end note
+
+@enduml
