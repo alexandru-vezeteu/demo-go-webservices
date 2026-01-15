@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	appservice "userService/application/service"
 	"userService/application/usecase"
 	_ "userService/docs"
 	"userService/infrastructure/http"
@@ -93,7 +94,10 @@ func main() {
 
 	authzService := infrastructureservice.NewDummyAuthorizationService(userRepo)
 
-	userUsecase := usecase.NewUserUsecase(userRepo, eventManagerService, authenService, authzService)
+	// Create UserService layer
+	userService := appservice.NewUserService(userRepo)
+
+	userUsecase := usecase.NewUserUsecase(userService, eventManagerService, authenService, authzService)
 
 	serviceURLs := config.NewServiceURLs()
 

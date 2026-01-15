@@ -99,6 +99,156 @@ const docTemplate = `{
                 }
             }
         },
+        "/events/{event_id}/customers": {
+            "get": {
+                "description": "Retrieve all customers who have purchased tickets for a specific event (owner only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "customers"
+                ],
+                "summary": "Get customers who purchased tickets for an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Event ID",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of customers",
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpResponseUserList"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid event ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - only event owners can view customers",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/packets/{packet_id}/customers": {
+            "get": {
+                "description": "Retrieve all customers who have purchased tickets for a specific packet (owner only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "customers"
+                ],
+                "summary": "Get customers who purchased tickets for a packet",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Packet ID",
+                        "name": "packet_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of customers",
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpResponseUserList"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid packet ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - missing or invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - only packet owners can view customers",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "post": {
                 "description": "Create a new user account with the provided details",
@@ -501,6 +651,17 @@ const docTemplate = `{
                 }
             }
         },
+        "httpdto.HttpResponseUserList": {
+            "type": "object",
+            "properties": {
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/httpdto.httpResponseUser"
+                    }
+                }
+            }
+        },
         "httpdto.HttpTicket": {
             "type": "object",
             "properties": {
@@ -528,10 +689,16 @@ const docTemplate = `{
                     "maxLength": 100,
                     "minLength": 1
                 },
+                "first_name_private": {
+                    "type": "boolean"
+                },
                 "last_name": {
                     "type": "string",
                     "maxLength": 100,
                     "minLength": 1
+                },
+                "last_name_private": {
+                    "type": "boolean"
                 },
                 "social_media_links": {
                     "type": "string",

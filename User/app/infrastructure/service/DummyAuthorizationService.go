@@ -39,6 +39,14 @@ func (s *DummyAuthorizationService) CanUserBuyTicket(ctx context.Context, userID
 	return true, nil
 }
 
+func (s *DummyAuthorizationService) CanUserViewEventCustomers(ctx context.Context, identity *service.UserIdentity, eventID int) (bool, error) {
+	return identity.Role == "owner-event", nil
+}
+
+func (s *DummyAuthorizationService) CanUserViewPacketCustomers(ctx context.Context, identity *service.UserIdentity, packetID int) (bool, error) {
+	return identity.Role == "owner-event", nil
+}
+
 func (s *DummyAuthorizationService) userOwnsTicket(ctx context.Context, userID uint, ticketCode string) (bool, error) {
 	user, err := s.userRepo.GetByID(ctx, int(userID))
 	if err != nil {

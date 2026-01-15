@@ -13,7 +13,7 @@ type EventUseCase interface {
 	GetEventByID(ctx context.Context, token string, id int) (*domain.Event, error)
 	UpdateEvent(ctx context.Context, token string, id int, updates map[string]interface{}) (*domain.Event, error)
 	DeleteEvent(ctx context.Context, token string, id int) (*domain.Event, error)
-	FilterEvents(ctx context.Context, token string, filter *domain.EventFilter) ([]*domain.Event, error)
+	FilterEvents(ctx context.Context, token string, filter *domain.EventFilter) ([]*domain.Event, int, error)
 }
 
 type eventUseCase struct {
@@ -45,21 +45,6 @@ func (uc *eventUseCase) authenticate(ctx context.Context, token string) (*servic
 	return identity, nil
 }
 
-func (uc *eventUseCase) validateEvent(event *domain.Event) error {
-	if event == nil {
-		return &domain.ValidationError{Reason: "invalid object received"}
-	}
-
-	if event.OwnerID < 1 {
-		return &domain.ValidationError{Reason: "owner_id must be positive"}
-	}
-
-	if event.Name == "" {
-		return &domain.ValidationError{Reason: "name must be set"}
-	}
-	return nil
-}
-
 func (uc *eventUseCase) CreateEvent(ctx context.Context, token string, event *domain.Event) (*domain.Event, error) {
 	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
@@ -74,25 +59,11 @@ func (uc *eventUseCase) CreateEvent(ctx context.Context, token string, event *do
 		return nil, &domain.ForbiddenError{Reason: "you don't have permission to create events"}
 	}
 
-	if err := uc.validateEvent(event); err != nil {
-		return nil, err
-	}
-
-	return uc.repo.Create(ctx, event)
+	return uc.eventService.CreateEvent(ctx, event)
 }
 
 func (uc *eventUseCase) GetEventByID(ctx context.Context, token string, id int) (*domain.Event, error) {
-	if id < 1 {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
-	}
-
-	event, err := uc.repo.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return event, nil
-
+	return uc.eventService.GetEventByID(ctx, id)
 }
 
 func (uc *eventUseCase) UpdateEvent(ctx context.Context, token string, id int, updates map[string]interface{}) (*domain.Event, error) {
@@ -118,16 +89,12 @@ func (uc *eventUseCase) UpdateEvent(ctx context.Context, token string, id int, u
 }
 
 func (uc *eventUseCase) DeleteEvent(ctx context.Context, token string, id int) (*domain.Event, error) {
-	if id < 1 {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
-	}
-
 	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	event, err := uc.repo.GetByID(ctx, id)
+	event, err := uc.eventService.GetEventByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -140,15 +107,19 @@ func (uc *eventUseCase) DeleteEvent(ctx context.Context, token string, id int) (
 		return nil, &domain.ForbiddenError{Reason: "you don't have permission to delete this event"}
 	}
 
-	return uc.repo.Delete(ctx, id)
+	return uc.eventService.DeleteEvent(ctx, id)
 }
 
-func (uc *eventUseCase) FilterEvents(ctx context.Context, token string, filter *domain.EventFilter) ([]*domain.Event, error) {
-
-	events, err := uc.repo.FilterEvents(ctx, filter)
+func (uc *eventUseCase) FilterEvents(ctx context.Context, token string, filter *domain.EventFilter) ([]*domain.Event, int, error) {
+	events, err := uc.eventService.FilterEvents(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return events, nil
 
+	totalCount, err := uc.repo.CountEvents(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return events, totalCount, nil
 }

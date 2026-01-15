@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"eventManager/application/domain"
-	"eventManager/application/repository"
 	"eventManager/application/usecase"
 	"eventManager/infrastructure/http/config"
 	"eventManager/infrastructure/http/gin/middleware"
@@ -16,14 +15,12 @@ import (
 
 type GinEventHandler struct {
 	usecase     usecase.EventUseCase
-	repo        repository.EventRepository
 	serviceURLs *config.ServiceURLs
 }
 
-func NewGinEventHandler(usecase usecase.EventUseCase, repo repository.EventRepository, serviceURLs *config.ServiceURLs) *GinEventHandler {
+func NewGinEventHandler(usecase usecase.EventUseCase, serviceURLs *config.ServiceURLs) *GinEventHandler {
 	return &GinEventHandler{
 		usecase:     usecase,
-		repo:        repo,
 		serviceURLs: serviceURLs,
 	}
 }
@@ -298,13 +295,7 @@ func (h *GinEventHandler) FilterEvents(c *gin.Context) {
 	}
 
 	token := getTokenFromHeader(c)
-	events, err := h.usecase.FilterEvents(c.Request.Context(), token, domainFilter)
-	if handleError(c, err) {
-		return
-	}
-
-	// Get total count for pagination
-	totalCount, err := h.repo.CountEvents(c.Request.Context(), domainFilter)
+	events, totalCount, err := h.usecase.FilterEvents(c.Request.Context(), token, domainFilter)
 	if handleError(c, err) {
 		return
 	}

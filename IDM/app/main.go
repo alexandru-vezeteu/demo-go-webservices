@@ -74,8 +74,12 @@ func main() {
 	userServiceClient := service.NewUserServiceHTTPClient()
 	fmt.Println("User service client initialized")
 
-	registerUseCase := usecase.NewRegisterUseCase(userRepo, userServiceClient)
-	loginUseCase := usecase.NewLoginUseCase(userRepo, tokenService)
+	// Initialize password hasher for secure password storage
+	passwordHasher := service.NewBcryptPasswordHasher()
+	fmt.Println("Password hasher initialized with bcrypt")
+
+	registerUseCase := usecase.NewRegisterUseCase(userRepo, userServiceClient, passwordHasher)
+	loginUseCase := usecase.NewLoginUseCase(userRepo, tokenService, passwordHasher)
 	verifyTokenUseCase := usecase.NewVerifyTokenUseCase(userRepo, tokenService, tokenBlacklist)
 	revokeTokenUseCase := usecase.NewRevokeTokenUseCase(tokenBlacklist, tokenService)
 

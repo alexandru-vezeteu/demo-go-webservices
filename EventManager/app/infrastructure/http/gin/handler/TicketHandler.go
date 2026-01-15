@@ -65,11 +65,10 @@ func (h *GinTicketHandler) CreateTicket(c *gin.Context) {
 // @Description Create a new ticket with a specified code or replace an existing one (idempotent)
 // @Tags tickets
 // @Accept json
-// @Produce json
 // @Param Authorization header string true "Bearer token"
 // @Param code path string true "Ticket code (UUID)"
 // @Param ticket body httpdto.HttpCreateTicket true "Ticket details"
-// @Success 200 {object} httpdto.HttpResponseTicket "Ticket created or updated successfully"
+// @Success 204 "Ticket created or updated successfully"
 // @Failure 400 {object} map[string]string "Invalid request body or ticket code"
 // @Failure 401 {object} map[string]string "Unauthorized - missing or invalid token"
 // @Failure 404 {object} map[string]string "Event or packet not found"
@@ -95,13 +94,12 @@ func (h *GinTicketHandler) PutTicket(c *gin.Context) {
 
 	ticket := req.ToTicket()
 
-	ret, err := h.usecase.PutTicket(c.Request.Context(), token, code, ticket)
+	_, err := h.usecase.PutTicket(c.Request.Context(), token, code, ticket)
 	if handleError(c, err) {
 		return
 	}
 
-	resp := httpdto.ToHttpResponseTicket(ret, h.serviceURLs)
-	c.JSON(http.StatusOK, resp)
+	c.Status(http.StatusNoContent)
 }
 
 // GetTicketByCode godoc

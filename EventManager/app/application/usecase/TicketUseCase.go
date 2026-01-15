@@ -59,15 +59,7 @@ func (uc *ticketUseCase) CreateTicket(ctx context.Context, token string, ticket 
 		return nil, &domain.ForbiddenError{Reason: "you don't have permission to create tickets"}
 	}
 
-	if ticket == nil {
-		return nil, &domain.ValidationError{Reason: "invalid ticket object"}
-	}
-
-	if ticket.Code == "" {
-		return nil, &domain.ValidationError{Reason: "ticket code is required"}
-	}
-
-	return uc.repo.CreateTicket(ctx, ticket)
+	return uc.ticketService.CreateTicket(ctx, ticket)
 }
 
 func (uc *ticketUseCase) PutTicket(ctx context.Context, token string, code string, ticket *domain.Ticket) (*domain.Ticket, error) {
@@ -93,16 +85,12 @@ func (uc *ticketUseCase) PutTicket(ctx context.Context, token string, code strin
 }
 
 func (uc *ticketUseCase) GetTicketByCode(ctx context.Context, token string, code string) (*domain.Ticket, error) {
-	if code == "" {
-		return nil, &domain.ValidationError{Reason: "ticket code is required"}
-	}
-
 	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	ticket, err := uc.repo.GetTicketByCode(ctx, code)
+	ticket, err := uc.ticketService.GetTicketByCode(ctx, code)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +112,7 @@ func (uc *ticketUseCase) UpdateTicket(ctx context.Context, token string, code st
 		return nil, err
 	}
 
-	ticket, err := uc.repo.GetTicketByCode(ctx, code)
+	ticket, err := uc.ticketService.GetTicketByCode(ctx, code)
 	if err != nil {
 		return nil, err
 	}
@@ -141,16 +129,12 @@ func (uc *ticketUseCase) UpdateTicket(ctx context.Context, token string, code st
 }
 
 func (uc *ticketUseCase) DeleteTicket(ctx context.Context, token string, code string) (*domain.Ticket, error) {
-	if code == "" {
-		return nil, &domain.ValidationError{Reason: "ticket code is required"}
-	}
-
 	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	ticket, err := uc.repo.GetTicketByCode(ctx, code)
+	ticket, err := uc.ticketService.GetTicketByCode(ctx, code)
 	if err != nil {
 		return nil, err
 	}
@@ -163,5 +147,5 @@ func (uc *ticketUseCase) DeleteTicket(ctx context.Context, token string, code st
 		return nil, &domain.ForbiddenError{Reason: "you don't have permission to delete this ticket"}
 	}
 
-	return uc.repo.DeleteEvent(ctx, code)
+	return uc.ticketService.DeleteTicket(ctx, code)
 }

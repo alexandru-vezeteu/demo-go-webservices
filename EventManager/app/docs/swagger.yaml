@@ -87,6 +87,19 @@ definitions:
       id_packet:
         type: integer
     type: object
+  httpdto.HttpResponseEventPacketList:
+    properties:
+      _links:
+        additionalProperties:
+          $ref: '#/definitions/hateoas.Link'
+        type: object
+      _metadata:
+        $ref: '#/definitions/httpdto.PaginationMetadata'
+      event_packets:
+        items:
+          $ref: '#/definitions/httpdto.httpResponseEventPacket'
+        type: array
+    type: object
   httpdto.HttpResponseTicket:
     properties:
       _links:
@@ -147,6 +160,17 @@ definitions:
         type: integer
       packet_id:
         minimum: 1
+        type: integer
+    type: object
+  httpdto.PaginationMetadata:
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total_items:
+        type: integer
+      total_pages:
         type: integer
     type: object
   httpdto.httpResponseEvent:
@@ -465,6 +489,70 @@ paths:
       tags:
       - event-packet-inclusions
   /event-packets:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of event packets with optional filters. No
+        authentication required for public access.
+      parameters:
+      - description: Bearer token (optional)
+        in: header
+        name: Authorization
+        type: string
+      - description: Filter by packet name (partial match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by location (partial match)
+        in: query
+        name: location
+        type: string
+      - description: Filter by description (partial match)
+        in: query
+        name: description
+        type: string
+      - description: Minimum allocated seats
+        in: query
+        name: min_seats
+        type: integer
+      - description: Maximum allocated seats
+        in: query
+        name: max_seats
+        type: integer
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: per_page
+        type: integer
+      - description: Sort field (e.g., 'name_asc', 'seats_desc')
+        in: query
+        name: order_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of event packets
+          schema:
+            $ref: '#/definitions/httpdto.HttpResponseEventPacketList'
+        "400":
+          description: Invalid query parameters
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List and filter event packets
+      tags:
+      - event-packets
     post:
       consumes:
       - application/json
@@ -1178,13 +1266,9 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/httpdto.HttpCreateTicket'
-      produces:
-      - application/json
       responses:
-        "200":
+        "204":
           description: Ticket created or updated successfully
-          schema:
-            $ref: '#/definitions/httpdto.HttpResponseTicket'
         "400":
           description: Invalid request body or ticket code
           schema:

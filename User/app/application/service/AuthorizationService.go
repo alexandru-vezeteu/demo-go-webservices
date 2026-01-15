@@ -13,4 +13,7 @@ type AuthorizationService interface {
 	CanUserViewTicket(ctx context.Context, userID uint, ticketCode string) (bool, error)
 	CanUserEditTicket(ctx context.Context, userID uint, ticketCode string) (bool, error)
 	CanUserBuyTicket(ctx context.Context, userID uint, eventID int) (bool, error)
+
+	CanUserViewEventCustomers(ctx context.Context, identity *UserIdentity, eventID int) (bool, error)
+	CanUserViewPacketCustomers(ctx context.Context, identity *UserIdentity, packetID int) (bool, error)
 }

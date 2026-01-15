@@ -70,7 +70,7 @@ func main() {
 
 	serviceURLs := config.NewServiceURLs()
 
-	eventHandler := handler.NewGinEventHandler(eventUseCase, eventRepo, serviceURLs)
+	eventHandler := handler.NewGinEventHandler(eventUseCase, serviceURLs)
 	eventPacketHandler := handler.NewGinEventPacketHandler(eventPacketUseCase, eventPacketRepo, serviceURLs)
 	eventPacketInclusionHandler := handler.NewGinEventPacketInclusionHandler(eventPacketInclusionUseCase, serviceURLs)
 	ticketHandler := handler.NewGinTicketHandler(ticketUseCase, serviceURLs)

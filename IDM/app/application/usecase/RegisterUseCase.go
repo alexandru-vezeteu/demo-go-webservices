@@ -10,9 +10,7 @@ import (
 )
 
 type RegisterResult struct {
-	Success bool
-	Message string
-	UserID  string
+	UserID string
 }
 
 type RegisterUseCase interface {
@@ -22,15 +20,18 @@ type RegisterUseCase interface {
 type registerUseCase struct {
 	userRepo          repository.UserRepository
 	userServiceClient service.UserServiceClient
+	passwordHasher    service.PasswordHasher
 }
 
 func NewRegisterUseCase(
 	userRepo repository.UserRepository,
 	userServiceClient service.UserServiceClient,
+	passwordHasher service.PasswordHasher,
 ) RegisterUseCase {
 	return &registerUseCase{
 		userRepo:          userRepo,
 		userServiceClient: userServiceClient,
+		passwordHasher:    passwordHasher,
 	}
 }
 
@@ -41,10 +42,19 @@ func (uc *registerUseCase) Execute(ctx context.Context, email, password, role st
 	}
 
 	if existing != nil {
-		return &RegisterResult{
-			Success: false,
-			Message: "User with this email already exists",
-		}, nil
+		return nil, &domain.ValidationError{
+			Field:  "email",
+			Reason: "User with this email already exists",
+		}
+	}
+
+	// Hash password before storing
+	hashedPassword, err := uc.passwordHasher.HashPassword(password)
+	if err != nil {
+		return nil, &domain.InternalError{
+			Operation: "hash password",
+			Err:       fmt.Errorf("failed to hash password: %w", err),
+		}
 	}
 
 	userRole := domain.RoleOwnerEvent
@@ -56,7 +66,7 @@ func (uc *registerUseCase) Execute(ctx context.Context, email, password, role st
 
 	user := &domain.User{
 		Email:  email,
-		Parola: password,
+		Parola: hashedPassword,
 		Rol:    userRole,
 	}
 
@@ -81,8 +91,6 @@ func (uc *registerUseCase) Execute(ctx context.Context, email, password, role st
 	}
 
 	return &RegisterResult{
-		Success: true,
-		Message: "Registration successful",
-		UserID:  fmt.Sprintf("%d", user.ID),
+		UserID: fmt.Sprintf("%d", user.ID),
 	}, nil
 }

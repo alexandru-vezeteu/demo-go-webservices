@@ -10,12 +10,10 @@ import (
 )
 
 type LoginResult struct {
-	Success bool
-	Token   string
-	Message string
-	UserID  string
-	Role    string
-	Email   string
+	Token  string
+	UserID string
+	Role   string
+	Email  string
 }
 
 type LoginUseCase interface {
@@ -23,17 +21,20 @@ type LoginUseCase interface {
 }
 
 type loginUseCase struct {
-	userRepo     repository.UserRepository
-	tokenService service.TokenService
+	userRepo       repository.UserRepository
+	tokenService   service.TokenService
+	passwordHasher service.PasswordHasher
 }
 
 func NewLoginUseCase(
 	userRepo repository.UserRepository,
 	tokenService service.TokenService,
+	passwordHasher service.PasswordHasher,
 ) LoginUseCase {
 	return &loginUseCase{
-		userRepo:     userRepo,
-		tokenService: tokenService,
+		userRepo:       userRepo,
+		tokenService:   tokenService,
+		passwordHasher: passwordHasher,
 	}
 }
 
@@ -44,7 +45,12 @@ func (uc *loginUseCase) Execute(ctx context.Context, email, password string) (*L
 		return nil, err
 	}
 
-	if user == nil || user.Parola != password {
+	if user == nil {
+		return nil, &domain.AuthenticationError{Reason: "invalid email or password"}
+	}
+
+	// Check password using bcrypt
+	if err := uc.passwordHasher.CheckPassword(user.Parola, password); err != nil {
 		return nil, &domain.AuthenticationError{Reason: "invalid email or password"}
 	}
 
@@ -54,11 +60,9 @@ func (uc *loginUseCase) Execute(ctx context.Context, email, password string) (*L
 	}
 
 	return &LoginResult{
-		Success: true,
-		Token:   token,
-		Message: "Login successful",
-		UserID:  fmt.Sprintf("%d", user.ID),
-		Role:    string(user.Rol),
-		Email:   user.Email,
+		Token:  token,
+		UserID: fmt.Sprintf("%d", user.ID),
+		Role:   string(user.Rol),
+		Email:  user.Email,
 	}, nil
 }

@@ -411,6 +411,101 @@
             }
         },
         "/event-packets": {
+            "get": {
+                "description": "Get a paginated list of event packets with optional filters. No authentication required for public access.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "event-packets"
+                ],
+                "summary": "List and filter event packets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token (optional)",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by packet name (partial match)",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by location (partial match)",
+                        "name": "location",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by description (partial match)",
+                        "name": "description",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Minimum allocated seats",
+                        "name": "min_seats",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum allocated seats",
+                        "name": "max_seats",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "per_page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field (e.g., 'name_asc', 'seats_desc')",
+                        "name": "order_by",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated list of event packets",
+                        "schema": {
+                            "$ref": "#/definitions/httpdto.HttpResponseEventPacketList"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Create a new event packet (ticket package/bundle)",
                 "consumes": [
@@ -1292,9 +1387,6 @@
                 "consumes": [
                     "application/json"
                 ],
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "tickets"
                 ],
@@ -1325,11 +1417,8 @@
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Ticket created or updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/httpdto.HttpResponseTicket"
-                        }
+                    "204": {
+                        "description": "Ticket created or updated successfully"
                     },
                     "400": {
                         "description": "Invalid request body or ticket code",
@@ -1653,6 +1742,26 @@
                 }
             }
         },
+        "httpdto.HttpResponseEventPacketList": {
+            "type": "object",
+            "properties": {
+                "_links": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/hateoas.Link"
+                    }
+                },
+                "_metadata": {
+                    "$ref": "#/definitions/httpdto.PaginationMetadata"
+                },
+                "event_packets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/httpdto.httpResponseEventPacket"
+                    }
+                }
+            }
+        },
         "httpdto.HttpResponseTicket": {
             "type": "object",
             "properties": {
@@ -1738,6 +1847,23 @@
                 "packet_id": {
                     "type": "integer",
                     "minimum": 1
+                }
+            }
+        },
+        "httpdto.PaginationMetadata": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total_items": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
                 }
             }
         },

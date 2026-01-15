@@ -45,26 +45,6 @@ func (uc *eventPacketUseCase) authenticate(ctx context.Context, token string) (*
 	return identity, nil
 }
 
-func (uc *eventPacketUseCase) validateEventPacket(event *domain.EventPacket) error {
-	if event == nil {
-		return &domain.ValidationError{Reason: "invalid object received"}
-	}
-
-	if event.OwnerID < 1 {
-		return &domain.ValidationError{Reason: "owner_id must be positive"}
-	}
-
-	if event.Name == "" {
-		return &domain.ValidationError{Reason: "name must be set"}
-	}
-
-	if event.AllocatedSeats != nil && *event.AllocatedSeats < 0 {
-		return &domain.ValidationError{Reason: "allocated_seats must be non-negative"}
-	}
-
-	return nil
-}
-
 func (uc *eventPacketUseCase) CreateEventPacket(ctx context.Context, token string, event *domain.EventPacket) (*domain.EventPacket, error) {
 	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
@@ -79,24 +59,16 @@ func (uc *eventPacketUseCase) CreateEventPacket(ctx context.Context, token strin
 		return nil, &domain.ForbiddenError{Reason: "you don't have permission to create event packets"}
 	}
 
-	if err := uc.validateEventPacket(event); err != nil {
-		return nil, err
-	}
-
-	return uc.repo.Create(ctx, event)
+	return uc.eventPacketService.CreateEventPacket(ctx, event)
 }
 
 func (uc *eventPacketUseCase) GetEventPacketByID(ctx context.Context, token string, id int) (*domain.EventPacket, error) {
-	if id < 1 {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
-	}
-
 	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	packet, err := uc.repo.GetByID(ctx, id)
+	packet, err := uc.eventPacketService.GetEventPacketByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -113,16 +85,12 @@ func (uc *eventPacketUseCase) GetEventPacketByID(ctx context.Context, token stri
 }
 
 func (uc *eventPacketUseCase) UpdateEventPacket(ctx context.Context, token string, id int, updates map[string]interface{}) (*domain.EventPacket, error) {
-	if id < 1 {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
-	}
-
 	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	packet, err := uc.repo.GetByID(ctx, id)
+	packet, err := uc.eventPacketService.GetEventPacketByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -139,16 +107,12 @@ func (uc *eventPacketUseCase) UpdateEventPacket(ctx context.Context, token strin
 }
 
 func (uc *eventPacketUseCase) DeleteEventPacket(ctx context.Context, token string, id int) (*domain.EventPacket, error) {
-	if id < 1 {
-		return nil, &domain.ValidationError{Reason: fmt.Sprintf("id:%d must be positive", id)}
-	}
-
 	identity, err := uc.authenticate(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	packet, err := uc.repo.GetByID(ctx, id)
+	packet, err := uc.eventPacketService.GetEventPacketByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +125,7 @@ func (uc *eventPacketUseCase) DeleteEventPacket(ctx context.Context, token strin
 		return nil, &domain.ForbiddenError{Reason: "you don't have permission to delete this event packet"}
 	}
 
-	return uc.repo.Delete(ctx, id)
+	return uc.eventPacketService.DeleteEventPacket(ctx, id)
 }
 
 func (uc *eventPacketUseCase) FilterEventPackets(ctx context.Context, token string, filter *domain.EventPacketFilter) ([]*domain.EventPacket, error) {
