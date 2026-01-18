@@ -48,7 +48,6 @@ func (uc *registerUseCase) Execute(ctx context.Context, email, password, role st
 		}
 	}
 
-	// Hash password before storing
 	hashedPassword, err := uc.passwordHasher.HashPassword(password)
 	if err != nil {
 		return nil, &domain.InternalError{

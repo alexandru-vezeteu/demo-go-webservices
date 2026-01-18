@@ -85,6 +85,22 @@ func (r *GormEventRepository) Delete(ctx context.Context, id int) (*domain.Event
 			return &domain.InternalError{Msg: "could not find the event", Err: result.Error}
 		}
 
+		var ticketCount int64
+		if err := tx.Model(&gormmodel.GormTicket{}).Where("event_id = ?", id).Count(&ticketCount).Error; err != nil {
+			return &domain.InternalError{Msg: "failed to check tickets", Err: err}
+		}
+		if ticketCount > 0 {
+			return &domain.ValidationError{Reason: "cannot delete event with sold tickets"}
+		}
+
+		var inclusionCount int64
+		if err := tx.Model(&gormmodel.GormEventPacketInclusion{}).Where("event_id = ?", id).Count(&inclusionCount).Error; err != nil {
+			return &domain.InternalError{Msg: "failed to check packet inclusions", Err: err}
+		}
+		if inclusionCount > 0 {
+			return &domain.ValidationError{Reason: "cannot delete event included in packets"}
+		}
+
 		deleteResult := tx.Where("id = ?", id).Delete(&gormmodel.GormEvent{})
 
 		if deleteResult.Error != nil {

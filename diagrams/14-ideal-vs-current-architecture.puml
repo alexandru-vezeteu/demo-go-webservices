@@ -103,55 +103,63 @@ package "IDEAL - User Service" {
     end note
 }
 
-package "CURRENT - User Service" {
-    [Handler] as CUH <<current>>
-    [UseCase] as CUUC <<current>>
-    [UserService] as CUS <<missing>>
-    [Repository] as CUR <<current>>
-    [Domain] as CUD <<current>>
+package "CURRENT - User Service (MATCHES IDEAL!)" {
+    [Handler] as CUH <<ideal>>
+    [UseCase] as CUUC <<ideal>>
+    [UserService] as CUS <<ideal>>
+    [Repository] as CUR <<ideal>>
+    [Domain] as CUD <<ideal>>
     [AuthZ] as CUAZ <<current>>
 
     CUH --> CUUC
-    CUUC --> CUR : ❌ direct
-    CUUC --> CUD
+    CUUC --> CUS : ✅ correct
+    CUS --> CUR : ✅ correct
+    CUS --> CUD
     CUR --> CUD
-    CUUC .> CUAZ : ⚠️ sometimes
+    CUUC .> CUAZ : ⚠️ could be better
 
     note right of CUUC
-        ❌ UseCase does:
+        ✅ UseCase does:
         • Authentication ✅
-        • Email validation ❌ (should be service)
-        • Privacy filtering ❌ (should be service)
-        • Inline role checks ❌
-        • Direct repo calls ❌
-        • Too much responsibility!
+        • Authorization ✅
+        • Delegates to service ✅
+        • Thin orchestration ✅
+        • Properly architected!
     end note
 
     note right of CUS
-        ❌ MISSING!
-        No service layer exists.
-        All logic in UseCase.
+        ✅ EXISTS! UserService.go
+        • Email validation ✅
+        • Privacy filtering ✅
+        • Ticket creation ✅
+        • User validation ✅
     end note
 
     note right of CUAZ
-        ⚠️ Exists but:
-        • Not used everywhere
-        • Some inline checks bypass it
+        ⚠️ Exists:
+        • DummyAuthorizationService
+        • Basic but functional
     end note
 }
 
-package "IDM Service - Already Good!" {
+package "IDM Service - Excellent!" {
     [gRPC Server] as IGS <<ideal>>
+    [RegisterUseCase] as IRUC <<ideal>>
     [LoginUseCase] as ILUC <<ideal>>
     [VerifyUseCase] as IVUC <<ideal>>
     [TokenService] as ITS <<ideal>>
+    [PasswordHasher] as IPH <<ideal>>
     [Repository] as IR <<ideal>>
     [Domain] as IDO <<ideal>>
 
+    IGS --> IRUC
     IGS --> ILUC
     IGS --> IVUC
+    IRUC --> IR
+    IRUC --> IPH
     ILUC --> ITS
     ILUC --> IR
+    ILUC --> IPH
     IVUC --> ITS
     IR --> IDO
     ITS --> IDO
@@ -161,18 +169,14 @@ package "IDM Service - Already Good!" {
         • Find user
         • Generate token
         • Return result
-
-        ⚠️ Minor issues:
-        • Plain text password
+        ✅ No issues!
     end note
 
     note right of ITS
         ✅ Clean interface:
         • Well abstracted
         • Single responsibility
-
-        ⚠️ Minor issues:
-        • Hardcoded secret
+        ✅ JWT secret from env var
     end note
 }
 
@@ -181,27 +185,30 @@ note as ComparisonSummary
 
     **EventManager:**
     Current: 7.5/10 → Target: 9/10
-    • Remove direct UseCase → Repository calls
-    • Always go through Service layer
-    • Remove duplicate validation
+    • Fix 2 direct UseCase → Repository calls (lines 75, 119)
+    • Otherwise properly architected
+    • Service layer exists and mostly used
 
     **User Service:**
-    Current: 6.5/10 → Target: 9/10
-    • CREATE UserService layer
-    • Move business logic from UseCase to Service
-    • Always use AuthZ service, no inline checks
-    • Complete authorization logic
+    Current: 8.5/10 → Target: 9/10
+    • UserService layer EXISTS and properly used! ✓
+    • Good delegation patterns ✓
+    • Strengthen AuthZ (replace Dummy with real)
+    • Already follows clean architecture!
 
     **IDM Service:**
-    Current: 8.5/10 → Target: 10/10
-    • Add password hashing service
-    • Externalize secret management
+    Current: 9.5/10 → Target: 10/10
+    • Bcrypt password hashing ✓
+    • JWT secret from env var ✓
+    • RegisterUseCase for registration ✓
     • Add refresh token support
+    • Excellent architecture!
 
     **Overall System:**
-    • Consistent layer usage across all services
-    • No layer-skipping
-    • Complete separation of concerns
+    • Clean architecture mostly followed ✓
+    • User Service architecture is exemplary
+    • Minor fixes needed in EventManager
+    • Good separation of concerns
 end note
 
 @enduml

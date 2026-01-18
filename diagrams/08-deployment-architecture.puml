@@ -10,7 +10,7 @@ node "Docker Host" {
         }
 
         node "EventManager Container" {
-            component [Go Application\nGin Server\n:12345] as EventMgr
+            component [Go Application\nGin Server\n:8080] as EventMgr
         }
 
         node "User Service Container" {
@@ -60,13 +60,13 @@ node "Docker Host" {
 
     User --> Frontend : http://localhost:3000
 
-    Frontend --> EventMgr : HTTP REST\nlocalhost:12345
+    Frontend --> EventMgr : HTTP REST\nlocalhost:8080
     Frontend --> UserSvc : HTTP REST\nlocalhost:12346
     Frontend --> IDMGateway : HTTP REST\nlocalhost:8000
 
     EventMgr --> IDM : gRPC\nidm:50051
     UserSvc --> IDM : gRPC\nidm:50051
-    UserSvc --> EventMgr : HTTP\neventmanager:12345
+    UserSvc --> EventMgr : HTTP\neventmanager:8080
     IDMGateway --> IDM : gRPC\nidm:50051
 
     EventMgrNet --> EventDB : SQL\nevent-postgres:5432

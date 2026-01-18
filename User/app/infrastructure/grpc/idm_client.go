@@ -17,10 +17,20 @@ type IDMClient struct {
 	conn   *grpc.ClientConn
 }
 
+func resolveIDMServiceURL() (string, error) {
+	host := os.Getenv("IDM_HOST")
+	port := os.Getenv("IDM_PORT")
+	if host == "" || port == "" {
+		return "", fmt.Errorf("missing IDM_HOST/IDM_PORT configuration")
+	}
+
+	return fmt.Sprintf("%s:%s", host, port), nil
+}
+
 func NewIDMClient() (*IDMClient, error) {
-	idmURL := os.Getenv("IDM_SERVICE_URL")
-	if idmURL == "" {
-		idmURL = "localhost:50051"
+	idmURL, err := resolveIDMServiceURL()
+	if err != nil {
+		return nil, err
 	}
 
 	conn, err := grpc.NewClient(idmURL, grpc.WithTransportCredentials(insecure.NewCredentials()))

@@ -12,6 +12,7 @@ package "User Service" {
 
     package "Application Layer" <<Rectangle>> {
         component [UserUseCase] as UserUC
+        component [UserService] as UserService
 
         interface IUserRepository as IUserRepo
         interface IEventManagerService as IEventMgr
@@ -47,12 +48,13 @@ package "User Service" {
     UserH --> UserUC
     UserH --> HttpUser
 
-    UserUC --> IUserRepo
-    UserUC --> IEventMgr
+    UserUC --> UserService
     UserUC --> IAuth
     UserUC --> IAuthz
 
-    UserUC --> User
+    UserService --> IUserRepo
+    UserService --> IEventMgr
+    UserService --> User
     User --> Ticket
     User --> SocialMedia
 
@@ -71,19 +73,29 @@ package "User Service" {
     ServiceAuth --> IDMClient
 
     note right of ServiceAuth
-        Manages service-to-service
-        authentication with EventManager
-        clients_service@system.local
+        ServiceAuthClient
+        Caches token with 5min buffer
+        RWMutex for thread safety
+        serviciu_clienti account
     end note
 
     note right of EventMgrAdapter
         Converts EventManager HTTP
         responses to domain models
+        Calls /api/event-manager/tickets
+    end note
+
+    note right of UserService
+        Business Logic Layer:
+        • Email validation
+        • Privacy filtering
+        • Ticket creation
+        • User validation
     end note
 }
 
 cloud "EventManager Service" as EventMgr {
-    component [REST API\n:12345] as EventAPI
+    component [REST API\n:8080] as EventAPI
 }
 
 EventMgrAdapter --> EventAPI : HTTP

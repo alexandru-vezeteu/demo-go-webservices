@@ -95,13 +95,15 @@ deactivate EMHA
 EMS --> UUC : TicketResponse
 deactivate EMS
 
-UUC -> UUC : Update user.TicketList
+UUC -> UUC : Delegate to UserService
 note right
-    ⚠️ This should probably be
-    in a UserService, not UseCase
+    ✅ UserService handles:
+    • Ticket creation coordination
+    • User ticket list updates
+    • Business logic
 end note
 
-UUC -> UUC : userRepo.Update(userID, updates)
+UUC -> UUC : userService.CreateTicketForUser()
 
 UUC --> UH : ticketCode
 deactivate UUC
@@ -121,10 +123,14 @@ note bottom
     • Adapter pattern for HTTP client
     • Service-to-service authentication
 
-    ⚠️ Issues:
-    • Business logic in UseCase (should be in UserService)
-    • Repository update directly from UseCase
-    • No compensation/rollback if ticket list update fails
+    ⚠️ Minor Issues:
+    • No compensation/rollback for distributed failures
+    • Could benefit from event-driven architecture
+
+    ✅ Good Architecture:
+    • UserService layer exists and used properly
+    • Clean separation of concerns
+    • Proper delegation patterns
 end note
 
 @enduml

@@ -42,13 +42,7 @@ func main() {
 	ticketService := service.NewTicketService(ticketRepo, eventRepo, eventPacketRepo, eventPacketInclusionRepo)
 
 	idmHost := os.Getenv("IDM_HOST")
-	if idmHost == "" {
-		idmHost = "localhost"
-	}
 	idmPort := os.Getenv("IDM_PORT")
-	if idmPort == "" {
-		idmPort = "50051"
-	}
 
 	authenService, err := infrastructureservice.NewRealAuthenticationService(idmHost, idmPort)
 	if err != nil {
@@ -94,9 +88,6 @@ func main() {
 	router.RegisterTicketRoutes(eventAPI, ticketHandler)
 
 	port := os.Getenv("EVENT_MANAGER_PORT")
-	if port == "" {
-		port = "8080"
-	}
 
 	if err := r.Run(":" + port); err != nil {
 		fmt.Println(err.Error())

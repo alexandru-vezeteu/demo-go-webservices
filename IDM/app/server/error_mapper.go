@@ -6,7 +6,6 @@ import (
 	pb "idmService/proto"
 )
 
-// mapRegisterError maps domain errors to RegisterResponse
 func mapRegisterError(err error) *pb.RegisterResponse {
 	var validationErr *domain.ValidationError
 	if errors.As(err, &validationErr) {
@@ -30,7 +29,6 @@ func mapRegisterError(err error) *pb.RegisterResponse {
 	}
 }
 
-// mapLoginError maps domain errors to LoginResponse
 func mapLoginError(err error) *pb.LoginResponse {
 	var authErr *domain.AuthenticationError
 	if errors.As(err, &authErr) {
@@ -57,7 +55,6 @@ func mapLoginError(err error) *pb.LoginResponse {
 	}
 }
 
-// mapVerifyTokenError maps domain errors to VerifyTokenResponse
 func mapVerifyTokenError(err error) *pb.VerifyTokenResponse {
 	var tokenErr *domain.TokenError
 	if errors.As(err, &tokenErr) {
@@ -75,7 +72,6 @@ func mapVerifyTokenError(err error) *pb.VerifyTokenResponse {
 	}
 }
 
-// mapRevokeTokenError maps domain errors to RevokeTokenResponse
 func mapRevokeTokenError(err error) *pb.RevokeTokenResponse {
 	return &pb.RevokeTokenResponse{
 		Success: false,

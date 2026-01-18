@@ -48,13 +48,7 @@ func main() {
 	}
 
 	idmHost := os.Getenv("IDM_HOST")
-	if idmHost == "" {
-		idmHost = "localhost"
-	}
 	idmPort := os.Getenv("IDM_PORT")
-	if idmPort == "" {
-		idmPort = "50051"
-	}
 
 	idmAddress := fmt.Sprintf("%s:%s", idmHost, idmPort)
 	idmConn, err := grpc.NewClient(idmAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -94,7 +88,6 @@ func main() {
 
 	authzService := infrastructureservice.NewDummyAuthorizationService(userRepo)
 
-	// Create UserService layer
 	userService := appservice.NewUserService(userRepo)
 
 	userUsecase := usecase.NewUserUsecase(userService, eventManagerService, authenService, authzService)
@@ -114,16 +107,12 @@ func main() {
 		MaxAge:           12 * 3600,
 	}))
 
-	// Swagger UI endpoint
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	userAPI := r.Group("/api/user-manager")
 	router.RegisterUserRoutes(userAPI, userHandler)
 
 	port := os.Getenv("USER_PORT")
-	if port == "" {
-		port = "12346"
-	}
 
 	if err := r.Run(":" + port); err != nil {
 		fmt.Println(err.Error())

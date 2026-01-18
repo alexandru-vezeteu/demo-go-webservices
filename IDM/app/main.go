@@ -39,9 +39,15 @@ func main() {
 	}
 	fmt.Println("Database migrations completed")
 
+	passwordHasher := service.NewBcryptPasswordHasher()
+	fmt.Println("Password hasher initialized with bcrypt")
+
 	serviceEmail := "clients_service@system.local"
 	servicePassword := "service_secret_password"
-	if err := userRepo.SeedServiceAccount(serviceEmail, servicePassword); err != nil {
+	hashedServicePassword, err := passwordHasher.HashPassword(servicePassword)
+	if err != nil {
+		log.Printf("Warning: Failed to hash service account password: %v", err)
+	} else if err := userRepo.SeedServiceAccount(serviceEmail, hashedServicePassword); err != nil {
 		log.Printf("Warning: Failed to seed service account: %v", err)
 	} else {
 		fmt.Println("Service account seeded successfully")
@@ -73,10 +79,6 @@ func main() {
 
 	userServiceClient := service.NewUserServiceHTTPClient()
 	fmt.Println("User service client initialized")
-
-	// Initialize password hasher for secure password storage
-	passwordHasher := service.NewBcryptPasswordHasher()
-	fmt.Println("Password hasher initialized with bcrypt")
 
 	registerUseCase := usecase.NewRegisterUseCase(userRepo, userServiceClient, passwordHasher)
 	loginUseCase := usecase.NewLoginUseCase(userRepo, tokenService, passwordHasher)

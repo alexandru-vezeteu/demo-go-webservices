@@ -49,7 +49,6 @@ func (uc *loginUseCase) Execute(ctx context.Context, email, password string) (*L
 		return nil, &domain.AuthenticationError{Reason: "invalid email or password"}
 	}
 
-	// Check password using bcrypt
 	if err := uc.passwordHasher.CheckPassword(user.Parola, password); err != nil {
 		return nil, &domain.AuthenticationError{Reason: "invalid email or password"}
 	}

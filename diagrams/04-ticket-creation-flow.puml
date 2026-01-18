@@ -5,17 +5,17 @@ actor User
 participant "React\nFrontend" as Frontend
 participant "User Service\n:12346" as UserSvc
 participant "IDM Service\n:50051" as IDM
-participant "EventManager\n:12345" as EventMgr
+participant "EventManager\n:8080" as EventMgr
 database "MongoDB\nuser_db" as MongoDB
 database "PostgreSQL\nevent_db" as PostgresDB
 
 == Service Authentication ==
-UserSvc -> UserSvc: Startup: Get service token
-UserSvc -> IDM: gRPC Login\n{clients_service@system.local}
+UserSvc -> UserSvc: ServiceAuthClient\ncaches token with 5min buffer
+UserSvc -> IDM: gRPC Login\n{serviciu_clienti account}
 activate IDM
 IDM --> UserSvc: Service token
 deactivate IDM
-UserSvc -> UserSvc: Cache service token
+UserSvc -> UserSvc: Cache with RWMutex protection
 
 == User Creates Ticket ==
 User -> Frontend: Create ticket for user

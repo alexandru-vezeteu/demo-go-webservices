@@ -1,0 +1,31 @@
+@startuml user_service_contract
+!theme plain
+
+title User Service Contract
+caption Base Path: /api/user-manager
+footer Port: 12346
+
+interface "Users API" {
+    + POST /users
+    + GET /users/{id}
+    + PATCH /users/{id}
+    + DELETE /users/{id}
+}
+
+interface "Cross-Service API" {
+    + GET /events/{event_id}/customers
+    + GET /packets/{packet_id}/customers
+    + POST /clients/{user_id}/tickets
+}
+
+note right of "Users API"
+    Manages user profiles:
+    email, names, social media links
+end note
+
+note right of "Cross-Service API"
+    Endpoints for service interaction
+    and data aggregation
+end note
+
+@enduml

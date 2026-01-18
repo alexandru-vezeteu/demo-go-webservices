@@ -10,6 +10,7 @@ package "IDM Service (gRPC)" {
     }
 
     package "Application Layer" <<Rectangle>> {
+        component [RegisterUseCase] as RegisterUC
         component [LoginUseCase] as LoginUC
         component [VerifyTokenUseCase] as VerifyUC
         component [RevokeTokenUseCase] as RevokeUC
@@ -21,6 +22,7 @@ package "IDM Service (gRPC)" {
         interface IRelationshipRepository as IRelRepo
         interface IBlacklist as IBlacklist
         interface ITokenService as ITokenSvc
+        interface IPasswordHasher as IPassHash
     }
 
     package "Domain Layer" <<Rectangle>> {
@@ -35,6 +37,7 @@ package "IDM Service (gRPC)" {
         component [RedisBlacklist] as RedisBlacklist
         component [InMemoryBlacklist] as MemBlacklist
         component [JWTTokenService] as TokenService
+        component [BcryptPasswordHasher] as BcryptHasher
         database [PostgreSQL\nidm_db] as PostgresDB
         database [Redis\nBlacklist Cache] as Redis
     }
@@ -42,6 +45,7 @@ package "IDM Service (gRPC)" {
     gRPCServer --> IDMServer
     IDMServer --> Proto
 
+    IDMServer --> RegisterUC
     IDMServer --> LoginUC
     IDMServer --> VerifyUC
     IDMServer --> RevokeUC
@@ -49,8 +53,11 @@ package "IDM Service (gRPC)" {
     IDMServer --> WriteRelUC
     IDMServer --> CheckPermUC
 
+    RegisterUC --> IUserRepo
+    RegisterUC --> IPassHash
     LoginUC --> IUserRepo
     LoginUC --> ITokenSvc
+    LoginUC --> IPassHash
     VerifyUC --> ITokenSvc
     VerifyUC --> IBlacklist
     RevokeUC --> IBlacklist
@@ -67,6 +74,7 @@ package "IDM Service (gRPC)" {
     IBlacklist <|.. RedisBlacklist
     IBlacklist <|.. MemBlacklist
     ITokenSvc <|.. TokenService
+    IPassHash <|.. BcryptHasher
 
     UserRepo --> PostgresDB
     RedisBlacklist --> Redis
@@ -74,7 +82,9 @@ package "IDM Service (gRPC)" {
     note right of TokenService
         JWT Generation & Validation
         Claims: iss, sub, exp, jti, role
-        Signing with secret key
+        Algorithm: HS256 (HMAC-SHA256)
+        Expiration: 1 hour
+        ✅ Secret from JWT_SECRET env var
     end note
 
     note right of RedisBlacklist
@@ -97,6 +107,7 @@ package "IDM Gateway (HTTP Bridge)" {
 note bottom of FastAPI
     HTTP to gRPC Adapter
     Endpoints:
+    - POST /api/idm/auth/register
     - POST /api/idm/auth/login
     - POST /api/idm/auth/verify
     - POST /api/idm/auth/revoke

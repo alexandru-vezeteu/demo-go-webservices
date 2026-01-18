@@ -16,7 +16,7 @@ package "Frontend" <<presentation>> {
     [HTTP Client]
 }
 
-package "EventManager Service\n:12345" {
+package "EventManager Service\n:8080" {
 
     rectangle "Presentation" <<presentation>> {
         [Gin Router] as EM_Router
@@ -88,8 +88,8 @@ package "User Service\n:12346" {
         [UserUseCase] as U_UUC
     }
 
-    rectangle "Application - Missing!" <<application>> #FFCCCC {
-        [UserService\n❌ MISSING] as U_US
+    rectangle "Application - Services" <<application>> {
+        [UserService\n✅ EXISTS] as U_US
     }
 
     rectangle "Application - Interfaces" <<application>> {
@@ -115,9 +115,9 @@ package "User Service\n:12346" {
     ' User Service connections
     U_Router --> U_UH
     U_UH --> U_UUC
-    U_UUC -.-> U_US : ❌ should exist
-    U_UUC --> U_IUR : ❌ direct call
-    U_UUC --> U_IEMS
+    U_UUC --> U_US : ✅ correct flow
+    U_US --> U_IUR : ✅ correct
+    U_US --> U_IEMS
     U_UUC --> U_IAN
     U_UUC --> U_U
     U_IUR <|.. U_MUR
@@ -209,13 +209,13 @@ note right of EM_EUC
 end note
 
 note right of U_UUC
-    ❌ User Service Issues:
-    • Missing service layer
-    • Business logic in use case
-    • Inline authorization
-    • Incomplete authZ
+    ✅ User Service Strengths:
+    • Service layer exists and used properly
+    • Good delegation patterns
+    • Proper architecture
+    • Clean separation of concerns
 
-    Score: 6.5/10
+    Score: 8.5/10
 end note
 
 note right of I_LUC
@@ -223,9 +223,11 @@ note right of I_LUC
     • Clean architecture
     • Thin use cases
     • Well abstracted
-    • Minor issues only
+    • Bcrypt password hashing
+    • JWT secret from env var
+    • RegisterUseCase for registration
 
-    Score: 8.5/10
+    Score: 9.5/10
 end note
 
 note bottom
@@ -233,30 +235,29 @@ note bottom
 
     **Layer Compliance:**
     ✅ Domain Layer: 10/10 - Zero dependencies, pure business logic
-    ⚠️ Application Layer: 7/10 - Some violations, missing service in User
-    ✅ Infrastructure Layer: 9/10 - Good interface implementation
+    ✅ Application Layer: 8.5/10 - User Service excellent, minor EventManager issues
+    ✅ Infrastructure Layer: 9.5/10 - Good interface implementation, secrets from env
     ✅ Presentation Layer: 9/10 - Proper HTTP/gRPC handling
 
     **Service Scores:**
-    • EventManager: 7.5/10 (Good, needs service layer enforcement)
-    • User Service: 6.5/10 (Needs service layer creation)
-    • IDM Service: 8.5/10 (Excellent, minor security improvements)
+    • EventManager: 7.5/10 (Good, minor layer violations)
+    • User Service: 8.5/10 (Excellent, service layer properly used)
+    • IDM Service: 9.5/10 (Excellent, proper secret management)
 
-    **Overall System: 7.5/10**
+    **Overall System: 8.5/10**
 
     **Key Principles Followed:**
-    ✅ Dependency Rule (mostly)
+    ✅ Dependency Rule (well followed)
     ✅ Dependency Inversion Principle
     ✅ Separation of Concerns
     ✅ Domain-Driven Design
-    ⚠️ Single Responsibility (some violations)
+    ✅ Single Responsibility (mostly)
 
     **Main Improvements Needed:**
-    1. Create UserService layer
-    2. Enforce service layer in EventManager
-    3. Complete authorization implementation
-    4. Add password hashing
-    5. Externalize secrets
+    1. Fix 2 EventManager layer violations (lines 75, 119)
+    2. Strengthen authorization (Zanzibar/SpiceDB)
+    3. Move token to httpOnly cookies
+    4. Add refresh token support
 end note
 
 @enduml

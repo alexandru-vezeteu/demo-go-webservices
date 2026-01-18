@@ -42,7 +42,9 @@ idm --> redis : Token Cache
 
 note right of usersvc
   Service Authentication:
-  clients_service@system.local
+  serviciu_clienti account
+  via ServiceAuthClient
+  Token cached with 5min buffer
 end note
 
 note right of idm

@@ -8,11 +8,14 @@ services:
       dockerfile: EventManager/app.dockerfile
     image: event_manager_image
     container_name: ${EVENT_MANAGER_HOST}
+    env_file:
+      - ../EventManager/.env
     depends_on:
       eventManagerDB:
         condition: service_healthy
     environment:
       EVENT_MANAGER_PORT: ${EVENT_MANAGER_PORT}
+      EVENT_MANAGER_HOST: ${EVENT_MANAGER_HOST}
 
       EVENT_MANAGER_DB_HOST: ${EVENT_MANAGER_DB_HOST}
       EVENT_MANAGER_DB_USER: ${EVENT_MANAGER_DB_USER}
@@ -20,8 +23,11 @@ services:
       EVENT_MANAGER_DB_NAME: ${EVENT_MANAGER_DB_NAME}
       EVENT_MANAGER_DB_PORT: ${EVENT_MANAGER_DB_PORT}
 
-      IDM_HOST: idm-service
-      IDM_PORT: "50051"
+      IDM_HOST: ${IDM_HOST}
+      IDM_PORT: ${IDM_PORT}
+
+      USER_HOST: ${USER_HOST}
+      USER_PORT: ${USER_PORT}
     ports:
       - "${EVENT_MANAGER_PORT}:${EVENT_MANAGER_PORT}"
     restart: always
@@ -43,7 +49,7 @@ services:
     networks:
       - event-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${EVENT_MANAGER_DB_USER} -d ${EVENT_MANAGER_DB_NAME}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${EVENT_MANAGER_DB_USER} -d ${EVENT_MANAGER_DB_NAME}" ]
       interval: 10s
       timeout: 5s
       retries: 5

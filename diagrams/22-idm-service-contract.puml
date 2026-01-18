@@ -1,0 +1,74 @@
+@startuml idm_service_contract
+!theme plain
+
+title IDM Service Contract (gRPC)
+footer Port: 50051
+
+class "IdentityService" {
+    + Register(RegisterRequest): RegisterResponse
+    + Login(LoginRequest): LoginResponse
+    + VerifyToken(VerifyTokenRequest): VerifyTokenResponse
+    + RevokeToken(RevokeTokenRequest): RevokeTokenResponse
+}
+
+class RegisterRequest {
+    + string email
+    + string password
+    + string role
+}
+
+class RegisterResponse {
+    + bool success
+    + string message
+    + string user_id
+}
+
+class LoginRequest {
+    + string email
+    + string password
+}
+
+class LoginResponse {
+    + bool success
+    + string token
+    + string message
+    + string user_id
+    + string role
+    + string email
+}
+
+class VerifyTokenRequest {
+    + string token
+}
+
+class VerifyTokenResponse {
+    + bool valid
+    + string email
+    + string message
+    + string user_id
+    + string role
+    + string issuer
+    + int64 expires_at
+    + bool expired
+    + bool blacklisted
+}
+
+class RevokeTokenRequest {
+    + string token
+}
+
+class RevokeTokenResponse {
+    + bool success
+    + string message
+}
+
+IdentityService ..> RegisterRequest : uses
+IdentityService ..> RegisterResponse : returns
+IdentityService ..> LoginRequest : uses
+IdentityService ..> LoginResponse : returns
+IdentityService ..> VerifyTokenRequest : uses
+IdentityService ..> VerifyTokenResponse : returns
+IdentityService ..> RevokeTokenRequest : uses
+IdentityService ..> RevokeTokenResponse : returns
+
+@enduml

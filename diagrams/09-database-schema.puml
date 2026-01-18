@@ -110,14 +110,16 @@ package "IDM Service - PostgreSQL (idm_db)" {
         **<u>id : UUID</u>**
         --
         email : VARCHAR (UNIQUE)
-        parola : VARCHAR
+        parola : VARCHAR (bcrypt hash)
+        rol : VARCHAR (role)
         created_at : TIMESTAMP
         updated_at : TIMESTAMP
     }
 
     note right of idm_users
-        Password stored
-        as bcrypt hash
+        Password stored as bcrypt hash
+        Roles: owner-event, client
+        serviciu_clienti for services
     end note
 }
 

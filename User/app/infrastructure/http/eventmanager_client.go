@@ -34,17 +34,25 @@ type TicketResponse struct {
 	EventID  *int   `json:"event_id"`
 }
 
-func NewEventManagerClient(tokenProvider ServiceTokenProvider) *EventManagerClient {
-	host := os.Getenv("EVENT_MANAGER_HOST")
-	if host == "" {
-		host = "localhost"
-	}
-	port := os.Getenv("EVENT_MANAGER_PORT")
-	if port == "" {
-		port = "8080"
+func resolveEventManagerURL() (string, error) {
+	if url := os.Getenv("EVENT_MANAGER_URL"); url != "" {
+		return url, nil
 	}
 
-	baseURL := fmt.Sprintf("http://%s:%s", host, port)
+	host := os.Getenv("EVENT_MANAGER_HOST")
+	port := os.Getenv("EVENT_MANAGER_PORT")
+	if host == "" || port == "" {
+		return "", fmt.Errorf("missing EVENT_MANAGER host/port")
+	}
+
+	return fmt.Sprintf("http://%s:%s", host, port), nil
+}
+
+func NewEventManagerClient(tokenProvider ServiceTokenProvider) *EventManagerClient {
+	baseURL, err := resolveEventManagerURL()
+	if err != nil {
+		panic(err)
+	}
 
 	return &EventManagerClient{
 		baseURL: baseURL,
@@ -110,8 +118,12 @@ func (c *EventManagerClient) CreateTicket(ctx context.Context, code string, pack
 		return nil, &domain.ValidationError{Field: "ticket", Reason: fmt.Sprintf("failed to create ticket: %s", string(body))}
 	}
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
 		return nil, &domain.InternalError{Msg: "unexpected response from event manager", Err: fmt.Errorf("status %d", resp.StatusCode)}
+	}
+
+	if resp.StatusCode == http.StatusNoContent {
+		return &TicketResponse{Code: code}, nil
 	}
 
 	var ticketResp TicketResponse

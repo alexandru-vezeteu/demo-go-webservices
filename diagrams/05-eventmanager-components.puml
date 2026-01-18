@@ -101,9 +101,9 @@ package "EventManager Service" {
     end note
 
     note right of DummyAuthz
-        Currently allows all operations
-        Can be replaced with real
-        authorization logic
+        Returns true for most operations
+        Only basic owner checks
+        TODO: Replace with Zanzibar/SpiceDB
     end note
 }
 

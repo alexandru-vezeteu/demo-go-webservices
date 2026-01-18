@@ -13,9 +13,9 @@ package "EventManager - Issues" {
 
     component "EventUseCase" <<warning>> {
         note right
-            ❌ Bypasses service layer
-            Calls repo.Create() directly
-            Should call eventService.Create()
+            ⚠️ Minor violations (lines 75, 119)
+            Sometimes calls repo.GetByID() directly
+            Mostly delegates to service layer
         end note
     }
 
@@ -46,57 +46,55 @@ package "EventManager - Issues" {
     [EventService] -down-> [EventRepository] : ✅ Correct flow
 }
 
-package "User Service - Issues" {
+package "User Service - Good Architecture!" {
 
-    component "UserUseCase" <<violation>> {
+    component "UserUseCase" <<good>> {
         note right
-            ❌ Line 246: Inline role check
-            if identity.Role != "owner-event"
-
-            ❌ Line 250: TODO comment
-            "should verify event belongs to owner
-            but... no time"
-
-            ❌ Business logic in usecase
-            - Email validation
-            - Privacy filtering
+            ✅ Delegates to UserService
+            ✅ Handles auth/authz
+            ✅ Thin orchestration layer
+            ✅ Properly architected
         end note
     }
 
     component "AuthorizationService" <<warning>> {
         note right
-            ⚠️ Exists but not fully used
-            Some checks hardcoded in UseCase
+            ⚠️ DummyAuthorizationService
+            Only basic ownership checks
+            Should use Zanzibar/SpiceDB
         end note
     }
 
-    component "UserService" <<violation>> {
+    component "UserService" <<good>> {
         note right
-            ❌ MISSING!
-            No service layer exists
-            Business logic in UseCase
+            ✅ EXISTS! (lines 98 in main.go)
+            • Email validation (line 37)
+            • Privacy filtering (line 166)
+            • Ticket creation (line 132)
+            • User validation (line 42)
         end note
     }
 
-    [UserUseCase] -down-> [UserRepository] : ❌ No service layer
-    [UserUseCase] .right.> [AuthorizationService] : ⚠️ Bypassed in places
+    [UserUseCase] -down-> [UserService] : ✅ Correct flow
+    [UserService] -down-> [UserRepository] : ✅ Correct
+    [UserUseCase] .right.> [AuthorizationService] : ⚠️ Could be better
 }
 
-package "IDM Service - Minor Issues" {
+package "IDM Service - Excellent Architecture!" {
 
-    component "LoginUseCase" <<warning>> {
+    component "LoginUseCase" <<good>> {
         note right
-            ⚠️ Plain text password
-            user.Parola != password
-            Should use hashing service
+            ✅ Uses bcrypt hashing
+            BcryptPasswordHasher (line 53)
+            Properly validates passwords
         end note
     }
 
-    component "JWTTokenService" <<warning>> {
+    component "JWTTokenService" <<good>> {
         note right
-            ⚠️ Hardcoded secret
-            jwtSecret = []byte("...")
-            Should use secret manager
+            ✅ Secret from JWT_SECRET env var
+            No more hardcoded secrets
+            Properly configured
         end note
     }
 
@@ -107,28 +105,36 @@ package "IDM Service - Minor Issues" {
         end note
     }
 
+    component "RegisterUseCase" <<good>> {
+        note right
+            ✅ Proper user registration
+            ✅ Password hashing with bcrypt
+        end note
+    }
+
     [LoginUseCase] -down-> [TokenService] : ✅ Good
     [TokenService] <|.. [JWTTokenService] : implements
 }
 
 note as Summary
-    **Summary of Violations**
+    **Summary of Architecture Quality**
 
     **EventManager (7.5/10)**
-    • Use cases bypass service layer
-    • Duplicate validation logic
-    • Business logic in repositories
+    • Minor layer violations (2 direct repo calls)
+    • Otherwise good separation
+    • Service layer mostly used correctly
 
-    **User Service (6.5/10)**
-    • Missing service layer entirely
-    • Inline authorization checks
-    • Business logic in use cases
-    • Incomplete authorization
+    **User Service (8.5/10)**
+    • Service layer EXISTS and properly used ✓
+    • Good delegation patterns
+    • Authorization could be stronger
+    • Clean architecture followed
 
-    **IDM Service (8.5/10)**
-    • Plain text passwords
-    • Hardcoded secrets
-    • Otherwise very clean
+    **IDM Service (9.5/10)**
+    • Bcrypt password hashing ✓
+    • JWT secret from env var ✓
+    • RegisterUseCase for user registration ✓
+    • Excellent architecture
 end note
 
 @enduml

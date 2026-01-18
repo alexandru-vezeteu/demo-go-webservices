@@ -16,12 +16,14 @@ services:
     environment:
       IDM_PORT: ${IDM_PORT}
       IDM_SERVICE_URL: http://${IDM_HOST}:${IDM_PORT}
+      JWT_SECRET: ${JWT_SECRET}
 
       DB_HOST: ${IDM_DB_HOST}
       DB_USER: ${IDM_DB_USER}
       DB_PASSWORD: ${IDM_DB_PASSWORD}
       DB_NAME: ${IDM_DB_NAME}
       DB_PORT: ${IDM_DB_PORT}
+      DB_SSLMODE: disable
 
       REDIS_ADDR: ${IDM_REDIS_HOST}:${IDM_REDIS_PORT}
       REDIS_PASSWORD: ${IDM_REDIS_PASSWORD}
@@ -46,7 +48,7 @@ services:
     networks:
       - idm-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${IDM_DB_USER} -d ${IDM_DB_NAME}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${IDM_DB_USER} -d ${IDM_DB_NAME}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -62,7 +64,7 @@ services:
     networks:
       - idm-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -13,18 +13,44 @@ import (
 	"github.com/google/uuid"
 )
 
-var jwtSecret = []byte("your-secret-key-change-this-in-production")
-
 type tokenService struct{}
+
+func getJWTSecret() ([]byte, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return nil, fmt.Errorf("JWT_SECRET environment variable is not set")
+	}
+	return []byte(secret), nil
+}
 
 func NewTokenService() appservice.TokenService {
 	return &tokenService{}
 }
 
+func resolveIDMServiceURL() (string, error) {
+	existing := os.Getenv("IDM_SERVICE_URL")
+	if existing != "" {
+		return existing, nil
+	}
+
+	host := os.Getenv("IDM_HOST")
+	port := os.Getenv("IDM_PORT")
+	if host == "" || port == "" {
+		return "", fmt.Errorf("missing IDM_SERVICE_URL or IDM_HOST/IDM_PORT configuration")
+	}
+
+	return fmt.Sprintf("http://%s:%s", host, port), nil
+}
+
 func (s *tokenService) GenerateJWT(user *domain.User) (string, error) {
-	issuer := os.Getenv("IDM_SERVICE_URL")
-	if issuer == "" {
+	issuer, err := resolveIDMServiceURL()
+	if err != nil {
 		return "", &domain.ConfigurationError{Key: "IDM_SERVICE_URL"}
+	}
+
+	jwtSecret, err := getJWTSecret()
+	if err != nil {
+		return "", &domain.ConfigurationError{Key: "JWT_SECRET"}
 	}
 
 	tokenID := uuid.New().String()
@@ -46,6 +72,11 @@ func (s *tokenService) GenerateJWT(user *domain.User) (string, error) {
 }
 
 func (s *tokenService) ParseToken(tokenString string) (*appservice.TokenClaims, error) {
+	jwtSecret, err := getJWTSecret()
+	if err != nil {
+		return nil, &domain.ConfigurationError{Key: "JWT_SECRET"}
+	}
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])

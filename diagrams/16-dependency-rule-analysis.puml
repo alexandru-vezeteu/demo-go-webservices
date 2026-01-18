@@ -121,21 +121,29 @@ package "Dependency Rule Violations" {
         ES -down-> ER : ✅ Correct
     }
 
-    rectangle "User Service Violations" #FFCCCC {
+    rectangle "User Service - Correct Architecture!" #CCFFCC {
         [UserUseCase] as UUC
+        [UserService] as US
         [UserRepository] as UR
-        [Missing UserService] as MUS #DDDDDD
 
-        UUC -down-> UR : ❌ No service layer
-        UUC .down.> MUS : ❌ Should exist
-        MUS -down-> UR : ✅ Would be correct
+        UUC -down-> US : ✅ Correct\n(delegates to service)
+        US -down-> UR : ✅ Correct
+        note right of US
+            ✅ UserService.go EXISTS!
+            • Email validation
+            • Privacy filtering
+            • Ticket creation
+            • User validation
+        end note
     }
 
     rectangle "IDM Service - No Violations" #CCFFCC {
+        [RegisterUseCase] as RUC
         [LoginUseCase] as LUC
         [TokenService] as TS
         [UserRepository] as IUR
 
+        RUC -down-> IUR : ✅ Correct
         LUC -down-> TS : ✅ Correct
         LUC -down-> IUR : ✅ Correct
     }
@@ -149,11 +157,11 @@ note bottom
     • Pure business entities
     • Domain errors well-defined
 
-    **Application Layer: 7/10** ⚠️
+    **Application Layer: 8.5/10** ✅
     • Interfaces properly defined ✅
     • Use cases orchestrate ✅
-    • Some use cases bypass services ❌
-    • User service layer missing ❌
+    • User service layer EXISTS ✅
+    • Minor EventManager repo bypasses ⚠️
 
     **Infrastructure Layer: 10/10** ✅
     • Properly implements interfaces
@@ -165,12 +173,11 @@ note bottom
     • Good DTO mapping
     • HATEOAS implementation
 
-    **Overall System Score: 8.0/10**
+    **Overall System Score: 8.5/10**
 
     Main improvement needed:
-    • Enforce strict service layer usage
-    • Create missing UserService
-    • Remove use case → repository shortcuts
+    • Fix 2 EventManager use case → repository shortcuts
+    • Already excellent architecture overall!
 end note
 
 @enduml

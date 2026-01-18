@@ -24,8 +24,8 @@ activate IDM
 IDM -> IDM : LoginUseCase.Execute()
 note right
     1. Find user by email
-    2. Verify password (plain text ⚠️)
-    3. Generate JWT token
+    2. Verify password (bcrypt ✓)
+    3. Generate JWT token (1h exp)
 end note
 
 IDM --> FE : {token: "eyJ...", userId, role}
@@ -124,17 +124,18 @@ note bottom
     • Middleware properly separates concerns
 
     ⚠️ Issues:
-    • Plain text passwords in IDM
     • DummyAuthorizationService (not production-ready)
-    • User service has inline role checks (bypasses AuthZ)
+    • Some inline role checks (bypasses AuthZ)
     • No refresh token mechanism
     • JWT secret hardcoded
+    • Token in localStorage (XSS vulnerability)
 
     💡 Recommendations:
-    • Implement bcrypt password hashing
-    • Use proper secret management (env vars/vault)
+    • Implement proper AuthZ (Zanzibar/SpiceDB)
+    • Use environment variables for secrets
     • Implement refresh tokens
-    • Complete AuthorizationService for all services
+    • Move token to httpOnly cookies
+    • Complete AuthorizationService
 end note
 
 @enduml

@@ -36,13 +36,7 @@ type UserServiceHTTPClient struct {
 
 func NewUserServiceHTTPClient() *UserServiceHTTPClient {
 	userServiceHost := os.Getenv("USER_SERVICE_HOST")
-	if userServiceHost == "" {
-		userServiceHost = "localhost"
-	}
 	userServicePort := os.Getenv("USER_SERVICE_PORT")
-	if userServicePort == "" {
-		userServicePort = "12346"
-	}
 
 	baseURL := fmt.Sprintf("http://%s:%s/api/user-manager", userServiceHost, userServicePort)
 

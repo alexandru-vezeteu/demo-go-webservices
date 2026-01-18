@@ -119,7 +119,6 @@ func (s *userService) UpdateUser(ctx context.Context, id int, updates map[string
 		return nil, err
 	}
 
-	// Prevent direct modification of ticket list
 	delete(updates, "ticket_list")
 
 	return s.repo.Update(ctx, id, updates)

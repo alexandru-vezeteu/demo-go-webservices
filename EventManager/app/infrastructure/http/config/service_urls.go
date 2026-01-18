@@ -17,26 +17,32 @@ func NewServiceURLs() *ServiceURLs {
 	}
 }
 
+func resolveServiceURL(envURL, hostKey, portKey, apiPath string) (string, error) {
+	if url := os.Getenv(envURL); url != "" {
+		return url, nil
+	}
+
+	host := os.Getenv(hostKey)
+	port := os.Getenv(portKey)
+	if host == "" || port == "" {
+		return "", fmt.Errorf("missing %s/%s configuration", hostKey, portKey)
+	}
+
+	return fmt.Sprintf("http://%s:%s/api/%s", host, port, apiPath), nil
+}
+
 func getEventManagerBaseURL() string {
-	host := os.Getenv("EVENT_MANAGER_HOST")
-	if host == "" {
-		host = "localhost"
+	url, err := resolveServiceURL("EVENT_MANAGER_URL", "EVENT_MANAGER_HOST", "EVENT_MANAGER_PORT", "event-manager")
+	if err != nil {
+		panic(err)
 	}
-	port := os.Getenv("EVENT_MANAGER_PORT")
-	if port == "" {
-		port = "12345"
-	}
-	return fmt.Sprintf("http://%s:%s/api/event-manager", host, port)
+	return url
 }
 
 func getUserManagerBaseURL() string {
-	host := os.Getenv("USER_HOST")
-	if host == "" {
-		host = "localhost"
+	url, err := resolveServiceURL("USER_MANAGER_URL", "USER_HOST", "USER_PORT", "user-manager")
+	if err != nil {
+		panic(err)
 	}
-	port := os.Getenv("USER_PORT")
-	if port == "" {
-		port = "12346"
-	}
-	return fmt.Sprintf("http://%s:%s/api/user-manager", host, port)
+	return url
 }

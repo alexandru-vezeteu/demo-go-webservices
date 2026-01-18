@@ -6,8 +6,37 @@ actor User
 participant "React\nFrontend" as Frontend
 participant "IDM Gateway\n(FastAPI)" as Gateway
 participant "IDM Service\n(gRPC)" as IDM
+participant "User Service\n(HTTP)" as UserSvc
 database "PostgreSQL\nidm_db" as DB
+database "MongoDB\nuser_db" as UserDB
 database "Redis\nBlacklist" as Redis
+
+== User Registration ==
+User -> Frontend: Register with\nemail + password
+Frontend -> Gateway: POST /api/idm/auth/register\n{email, password, role}
+activate Gateway
+Gateway -> IDM: gRPC RegisterRequest\n{email, password, role}
+activate IDM
+
+IDM -> DB: Check if email exists
+DB --> IDM: Not found
+
+IDM -> IDM: Hash password\n(bcrypt)
+
+IDM -> DB: INSERT user\n(email, hashed_password, role)
+DB --> IDM: User created (ID: 123)
+
+IDM -> UserSvc: POST /api/user-manager/users\n{id: 123, email}
+activate UserSvc
+UserSvc -> UserDB: Create user profile
+UserDB --> UserSvc: Profile created
+UserSvc --> IDM: HTTP 201 {user}
+deactivate UserSvc
+
+IDM --> Gateway: RegisterResponse\n{success, userId}
+deactivate IDM
+Gateway --> Frontend: HTTP 200\n{success, user_id}
+deactivate Gateway
 
 == User Login ==
 User -> Frontend: Enter credentials
@@ -16,8 +45,8 @@ activate Gateway
 Gateway -> IDM: gRPC LoginRequest\n{email, password}
 activate IDM
 IDM -> DB: Query user by email
-DB --> IDM: User record
-IDM -> IDM: Validate password
+DB --> IDM: User record (with bcrypt hash)
+IDM -> IDM: Validate password\nusing bcrypt.CompareHashAndPassword
 IDM -> IDM: Generate JWT token\n(iss, sub, exp, jti, role)
 IDM --> Gateway: LoginResponse\n{token, userId, role}
 deactivate IDM

@@ -79,7 +79,7 @@ func (r *PostgresUserRepository) MigrateSchema() error {
 	return nil
 }
 
-func (r *PostgresUserRepository) SeedServiceAccount(email, password string) error {
+func (r *PostgresUserRepository) SeedServiceAccount(email, hashedPassword string) error {
 	ctx := context.Background()
 
 	existing, err := r.FindByEmail(ctx, email)
@@ -92,7 +92,7 @@ func (r *PostgresUserRepository) SeedServiceAccount(email, password string) erro
 
 	serviceAccount := &domain.User{
 		Email:  email,
-		Parola: password,
+		Parola: hashedPassword,
 		Rol:    domain.RoleServiceClient,
 	}
 
