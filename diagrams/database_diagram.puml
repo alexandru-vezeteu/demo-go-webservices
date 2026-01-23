@@ -1,0 +1,110 @@
+@startuml Database_Diagram
+
+skinparam backgroundColor #FEFEFE
+skinparam classAttributeIconSize 0
+
+title POS Event Manager - Database Schema
+
+!define primary_key(x) <b><color:#2980B9>x</color></b>
+!define foreign_key(x) <color:#27AE60>x</color>
+!define nullable(x) <i>x</i>
+
+package "IDM PostgreSQL" #E8F8F5 {
+    entity "users" as idm_users {
+        primary_key(id) : SERIAL <<PK>>
+        --
+        email : VARCHAR(255) <<UNIQUE, NOT NULL>>
+        parola : VARCHAR(255) <<NOT NULL>>
+        rol : VARCHAR(50) <<NOT NULL>>
+        ..
+        roles: admin, owner-event, 
+        client, serviciu_clienti
+    }
+}
+
+package "IDM Redis" #FCE4EC {
+    entity "token_blacklist" as blacklist {
+        primary_key(token) : STRING <<KEY>>
+        --
+        ttl : expiration time
+        ..
+        Stores revoked JWT tokens
+        until their natural expiration
+    }
+}
+
+package "User Service MongoDB" #FFF9C4 {
+    entity "users (collection)" as mongo_users {
+        primary_key(id) : INT <<_id from IDM>>
+        --
+        email : STRING
+        first_name : STRING
+        last_name : STRING
+        nullable(social_media_links) : STRING
+        first_name_private : BOOL
+        last_name_private : BOOL
+        ticket_list : ARRAY<Ticket>
+        ..
+        **Embedded Ticket:**
+        - nullable(packet_id) : INT
+        - nullable(event_id) : INT
+        - code : STRING
+    }
+}
+
+package "EventManager PostgreSQL" #E8EAF6 {
+    entity "events" as events {
+        primary_key(id) : SERIAL <<PK>>
+        --
+        foreign_key(id_owner) : INT <<FK to IDM.users>>
+        name : VARCHAR <<UNIQUE, NOT NULL>>
+        nullable(location) : VARCHAR
+        nullable(description) : VARCHAR
+        nullable(seats) : INT
+    }
+    
+    entity "eventsPacket" as packets {
+        primary_key(id) : SERIAL <<PK>>
+        --
+        foreign_key(id_owner) : INT <<FK to IDM.users>>
+        name : VARCHAR <<UNIQUE, NOT NULL>>
+        nullable(location) : VARCHAR
+        nullable(description) : VARCHAR
+        nullable(allocated_seats) : INT
+    }
+    
+    entity "events_packet_inclusion" as inclusions {
+        primary_key(packet_id) : INT <<PK, FK>>
+        primary_key(event_id) : INT <<PK, FK>>
+        --
+        Many-to-Many relationship
+        between Events and Packets
+    }
+    
+    entity "tickets" as tickets {
+        primary_key(code) : VARCHAR <<PK>>
+        --
+        nullable(foreign_key(packet_id)) : INT <<FK>>
+        nullable(foreign_key(event_id)) : INT <<FK>>
+        ..
+        Either packet_id OR event_id
+        must be set (business logic)
+    }
+}
+
+' Relationships
+events ||--o{ inclusions : "event_id"
+packets ||--o{ inclusions : "packet_id"
+events ||--o{ tickets : "event_id"
+packets ||--o{ tickets : "packet_id"
+
+' Cross-database references (logical)
+note right of idm_users
+  Master user registry.
+  user.id is replicated to:
+  - MongoDB users collection
+  - events.id_owner
+  - eventsPacket.id_owner
+end note
+
+@enduml

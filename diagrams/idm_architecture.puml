@@ -1,0 +1,83 @@
+@startuml IDM_Service_Architecture
+
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle uml2
+skinparam packageStyle rectangle
+
+title IDM Service - Clean Architecture
+
+package "IDM Service (Go)" {
+    
+    package "Server Layer" #E8F8F5 {
+        component "gRPC Server\n(port 50051)" as grpcServer
+        component "IdentityServer" as identityServer
+    }
+    
+    package "Application Layer" #FFF9C4 {
+        package "Use Cases" {
+            component "RegisterUseCase" as regUC
+            component "LoginUseCase" as loginUC
+            component "VerifyTokenUseCase" as verifyUC
+            component "RevokeTokenUseCase" as revokeUC
+        }
+        
+        package "Domain" {
+            component "User" as userDomain
+            component "TokenBlacklist\n(interface)" as blacklistDomain
+        }
+        
+        interface "UserRepository" as userRepoInt
+    }
+    
+    package "Infrastructure Layer" #E8EAF6 {
+        component "PostgresUserRepository" as pgRepo
+        component "RedisBlacklist" as redisBlacklist
+        component "InMemoryBlacklist" as memBlacklist
+        component "TokenService (JWT)" as tokenSvc
+        component "BcryptHasher" as bcrypt
+        component "UserServiceClient" as userSvcClient
+    }
+}
+
+database "PostgreSQL" as pg
+database "Redis" as redis
+component "User Service" as userSvc
+
+grpcServer --> identityServer
+identityServer --> regUC
+identityServer --> loginUC
+identityServer --> verifyUC
+identityServer --> revokeUC
+
+regUC --> userRepoInt
+loginUC --> userRepoInt
+verifyUC --> blacklistDomain
+revokeUC --> blacklistDomain
+
+userRepoInt <|.. pgRepo
+blacklistDomain <|.. redisBlacklist
+blacklistDomain <|.. memBlacklist
+
+pgRepo --> pg
+redisBlacklist --> redis
+userSvcClient --> userSvc
+
+note right of userDomain
+  **✓ PROS**
+  • Domain layer has no external deps
+  • Use cases = single responsibility
+  • Interfaces enable unit testing
+  • Redis fallback = resilience
+
+  **✗ CONS**
+  • More boilerplate
+  • Sync call to UserService may fail
+end note
+
+note bottom of identityServer
+  **Clean Architecture:**
+  Dependency flows inward.
+  gRPC is just a delivery mechanism.
+end note
+
+@enduml

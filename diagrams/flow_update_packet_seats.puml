@@ -1,0 +1,77 @@
+@startuml Flow_Update_Packet_Seats
+
+skinparam backgroundColor #FEFEFE
+skinparam activityBackgroundColor #FFFFCC
+skinparam activityBorderColor #2C3E50
+
+title Update EventPacket Allocated Seats Flow
+
+start
+
+:Client sends PATCH /event-packets/:id\n{allocated_seats: newValue};
+
+:Authenticate via IDM (VerifyToken);
+
+if (allocated_seats < 0?) then (yes)
+  :Return 400\n"allocated_seats must be non-negative";
+  stop
+else (no)
+endif
+
+:Count **soldTickets** for this packet;
+
+if (newValue < soldTickets?) then (yes)
+  :Return 400\n"cannot reduce to X:\nY tickets already sold";
+  stop
+else (no)
+endif
+
+:Get all **Events** linked\nto this packet via inclusions;
+
+repeat :For each linked Event
+  
+  if (event.seats == null?) then (yes)
+    :Skip event\n(unlimited seats);
+  else (no)
+    :Count **directSold** tickets for event;
+    
+    :Get all other packets linked to event;
+    
+    :Sum **otherPacketsAllocated**\n(excluding current packet);
+    
+    :Calculate **availableSeats** =\nevent.seats - directSold - otherPacketsAllocated;
+    
+    if (newValue > availableSeats?) then (yes)
+      :Return 400\n"cannot allocate X seats:\nevent 'NAME' only has Y available\n(Z total - A sold - B in other packets)";
+      stop
+    else (no)
+    endif
+  endif
+
+repeat while (more events?)
+
+:Update packet.allocated_seats in PostgreSQL;
+
+:Return 200 OK\nwith updated EventPacket;
+
+stop
+
+note right
+  **Decreasing seats:** 
+  • Must be >= tickets already sold
+  
+  **Increasing seats:**
+  • Must fit in ALL linked events
+  • Check each event has room:
+    available = total - direct - others
+  
+  Example: Packet has 30 allocated
+  Linked to Event A (100 seats):
+  - 20 direct sold
+  - Packet B has 25 allocated
+  - Available for this packet: 55
+  
+  Can increase up to 55 seats.
+end note
+
+@enduml

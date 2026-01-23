@@ -1,0 +1,14 @@
+@startuml IDM_Service_Contract
+
+skinparam backgroundColor #FEFEFE
+
+title IDM Service Contract (gRPC :50051)
+
+map "IdentityService" as idm {
+  Register => (email, password, role) → (success, message, user_id)
+  Login => (email, password) → (success, token, user_id, role, email)
+  VerifyToken => (token) → (valid, email, user_id, role, expires_at, expired, blacklisted)
+  RevokeToken => (token) → (success, message)
+}
+
+@enduml

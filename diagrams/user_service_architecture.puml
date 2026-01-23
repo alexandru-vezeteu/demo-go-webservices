@@ -1,0 +1,77 @@
+@startuml User_Service_Architecture
+
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle uml2
+skinparam packageStyle rectangle
+
+title User Service - Clean Architecture
+
+package "User Service (Go/Gin)" {
+    
+    package "HTTP Layer" #E8F8F5 {
+        component "Gin Router" as router
+        component "GinUserHandler" as handler
+        component "CORS / Swagger" as middleware
+    }
+    
+    package "Application Layer" #FFF9C4 {
+        component "UserUsecase" as userUC
+        
+        package "Domain" {
+            component "User" as userDomain
+            component "Ticket" as ticketDomain
+        }
+        
+        component "UserService" as userSvc
+        interface "UserRepository" as userRepoInt
+        interface "EventManagerService" as eventPort
+        interface "AuthService" as authPort
+    }
+    
+    package "Infrastructure Layer" #E8EAF6 {
+        component "MongoUserRepository" as mongoRepo
+        component "EventManagerAdapter" as eventAdapter
+        component "AuthenticationService" as authSvc
+        component "ServiceAuthClient" as s2sAuth
+    }
+}
+
+database "MongoDB" as mongo
+component "IDM (gRPC)" as idm
+component "EventManager" as eventMgr
+
+router --> handler
+handler --> userUC
+
+userUC --> userSvc
+userUC --> eventPort
+userUC --> authPort
+
+userSvc --> userRepoInt
+userRepoInt <|.. mongoRepo
+eventPort <|.. eventAdapter
+authPort <|.. authSvc
+
+mongoRepo --> mongo
+eventAdapter --> eventMgr
+authSvc --> idm
+
+note right of userDomain
+  **✓ PROS**
+  • Domain knows nothing about HTTP
+  • Easy to swap MongoDB for another DB
+  • Interfaces make testing easy
+
+  **✗ CONS**
+  • Ticket duplicated in 2 databases
+  • S2S auth adds latency
+  • No caching layer
+end note
+
+note bottom of userUC
+  **Clean Architecture:**
+  Use cases orchestrate domain logic.
+  Infrastructure adapts to external systems.
+end note
+
+@enduml

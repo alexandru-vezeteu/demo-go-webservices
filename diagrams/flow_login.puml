@@ -1,0 +1,40 @@
+@startuml Login_Flow
+
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 2
+skinparam sequenceParticipantBorderColor #2C3E50
+skinparam sequenceLifeLineBorderColor #7F8C8D
+
+title Login Flow
+
+actor "Client" as client
+participant "Frontend\n(React)" as frontend
+participant "IDM-Gateway\n(HTTP:8000)" as gateway
+participant "IDM Service\n(gRPC:50051)" as idm
+database "PostgreSQL\n(IDM)" as db
+database "Redis\n(Blacklist)" as redis
+
+client -> frontend: Enter email + password
+frontend -> gateway: POST /api/idm/auth/login\n{email, password}
+
+gateway -> idm: gRPC Login(email, password)
+
+idm -> db: Find user by email
+db --> idm: User record (id, email, hashed_password, role)
+
+idm -> idm: Verify password with bcrypt
+
+alt Password valid
+    idm -> idm: Generate JWT token\n(user_id, email, role, exp)
+    idm --> gateway: LoginResponse\n{success: true, token, user_id, role, email}
+    gateway --> frontend: 200 OK\n{token, user_id, role, email}
+    frontend -> frontend: Store token in localStorage
+    frontend -> frontend: Set userInfo in AuthContext
+    frontend --> client: Redirect to Dashboard
+else Password invalid
+    idm --> gateway: LoginResponse\n{success: false, message: "Invalid credentials"}
+    gateway --> frontend: 401 Unauthorized
+    frontend --> client: Show error message
+end
+
+@enduml

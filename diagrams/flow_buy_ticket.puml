@@ -1,0 +1,53 @@
+@startuml Buy_Ticket_Flow
+
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 2
+skinparam sequenceParticipantBorderColor #2C3E50
+skinparam sequenceLifeLineBorderColor #7F8C8D
+
+title Buy Ticket Flow
+
+actor "Client" as client
+participant "Frontend\n(React)" as frontend
+participant "User Service\n(HTTP)" as userSvc
+participant "IDM Service\n(gRPC)" as idm
+participant "EventManager\n(HTTP)" as eventMgr
+database "MongoDB\n(Users)" as userDB
+database "PostgreSQL\n(Events)" as eventDB
+
+client -> frontend: Select event/packet + Buy
+frontend -> userSvc: POST /api/user-manager/clients/:user_id/tickets\n{packet_id or event_id}\nHeader: Authorization: Bearer <token>
+
+userSvc -> idm: gRPC VerifyToken(token)
+idm --> userSvc: Valid, user_id, role
+
+userSvc -> userSvc: Generate unique ticket code
+userSvc -> userSvc: Get service token for S2S auth
+
+userSvc -> idm: gRPC Login(service_email, service_password)
+idm --> userSvc: service_token
+
+userSvc -> eventMgr: PUT /api/event-manager/tickets/:code\n{packet_id, event_id}\nHeader: Authorization: Bearer <service_token>
+
+eventMgr -> idm: gRPC VerifyToken(service_token)
+idm --> eventMgr: Valid, role=serviciu_clienti
+
+eventMgr -> eventDB: INSERT ticket (code, packet_id, event_id)
+eventDB --> eventMgr: Created
+
+eventMgr --> userSvc: 200 OK / 201 Created\n{code, packet_id, event_id}
+
+userSvc -> userDB: Update user: push ticket to ticket_list
+userDB --> userSvc: OK
+
+userSvc --> frontend: 201 Created\n{ticket details}
+frontend --> client: Show "Ticket Purchased!" + ticket code
+
+note right of userSvc
+  Service-to-Service Authentication:
+  User Service authenticates to 
+  EventManager using a dedicated
+  service account (clients_service@system.local)
+end note
+
+@enduml

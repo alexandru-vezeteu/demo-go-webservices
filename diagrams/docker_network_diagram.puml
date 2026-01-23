@@ -1,0 +1,58 @@
+@startuml Docker_Network_Diagram
+
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle rectangle
+
+title POS Event Manager - Docker Networks
+
+' pos-network is the outer circle containing all services
+cloud "pos-network" as posnet #E8F6F3 {
+    
+    ' idm-network nested inside
+    cloud "idm-network" as idmnet #FDEDEC {
+        component "idmService\n(gRPC:50051)" as idm
+        database "idmDB\nPostgreSQL" as idmdb
+        database "idmRedis\nRedis" as redis
+        
+        component "idm-gateway\n(HTTP:8000)" as gateway
+    }
+    
+    ' user-network nested inside
+    cloud "user-network" as usernet #FEF9E7 {
+        component "userService\n(HTTP)" as user
+        database "userDB\nMongoDB" as userdb
+    }
+    
+    ' event-network nested inside
+    cloud "event-network" as eventnet #EBF5FB {
+        component "eventManager\n(HTTP)" as eventmgr
+        database "eventManagerDB\nPostgreSQL" as eventdb
+    }
+    
+    component "frontend\n(React:5173)" as fe
+}
+
+' External access
+actor "Browser" as browser
+
+browser --> gateway : auth API
+browser --> fe : web app
+
+' Service communications (via pos-network)
+gateway ..> idm : gRPC
+user ..> idm : gRPC
+user ..> eventmgr : HTTP
+eventmgr ..> idm : gRPC
+
+' Internal DB connections
+idm --> idmdb
+idm --> redis
+user --> userdb
+eventmgr --> eventdb
+
+note bottom of posnet
+  All services share **pos-network** for inter-service communication.
+  Each service also has a dedicated network for its database.
+end note
+
+@enduml

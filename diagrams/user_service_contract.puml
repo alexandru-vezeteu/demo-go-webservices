@@ -1,0 +1,26 @@
+@startuml User_Service_Contract
+
+skinparam backgroundColor #FEFEFE
+
+title User Service Contract (HTTP /api/user-manager)
+
+map "Users" as users {
+  POST /users => Create user (email, first_name, last_name)
+  GET /users/:id => Get user by ID
+  PATCH /users/:id => Update user
+  DELETE /users/:id => Delete user
+}
+
+map "Customers" as customers {
+  GET /events/:event_id/customers => Get customers by event
+  GET /packets/:packet_id/customers => Get customers by packet
+}
+
+map "Tickets" as tickets {
+  POST /clients/:user_id/tickets => Create ticket for user (packet_id or event_id)
+}
+
+users -[hidden]-> customers
+customers -[hidden]-> tickets
+
+@enduml

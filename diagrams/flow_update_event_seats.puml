@@ -1,0 +1,57 @@
+@startuml Flow_Update_Event_Seats
+
+skinparam backgroundColor #FEFEFE
+skinparam activityBackgroundColor #FFFFCC
+skinparam activityBorderColor #2C3E50
+
+title Update Event Seats Flow
+
+start
+
+:Client sends PATCH /events/:id\n{seats: newValue};
+
+:Authenticate via IDM (VerifyToken);
+
+if (seats < 0?) then (yes)
+  :Return 400\n"seats cannot be negative";
+  stop
+else (no)
+endif
+
+:Count **directSoldTickets**\nfor this event;
+
+:Get all **EventPackets** linked\nto this event via inclusions;
+
+:Sum **totalPacketAllocatedSeats**\nfrom all linked packets;
+
+:Calculate **totalRequired** =\ndirectSoldTickets + totalPacketAllocatedSeats;
+
+if (newSeats < totalRequired?) then (yes)
+  :Return 400\n"cannot reduce seats to X:\ntotal required is Y\n(Z direct + W in packets)";
+  stop
+else (no)
+endif
+
+:Update event.seats in PostgreSQL;
+
+:Return 200 OK\nwith updated Event;
+
+stop
+
+note right
+  **Increasing seats:** Always OK
+  No constraints violated.
+  
+  **Decreasing seats:** Must check:
+  • Direct tickets sold for event
+  • Seats allocated to all packets
+  
+  Example: Event has 100 seats
+  - 20 direct tickets sold
+  - Packet A allocated 30 seats
+  - Packet B allocated 25 seats
+  
+  Minimum allowed: 20 + 30 + 25 = 75
+end note
+
+@enduml

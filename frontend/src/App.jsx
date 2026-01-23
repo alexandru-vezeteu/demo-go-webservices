@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children }) => {
 const Layout = ({ children }) => {
   const { isAuthenticated, logout, userInfo } = useAuth();
   const role = userInfo?.role?.toLowerCase();
-  const isOwner = role === 'owner' || role === 'owner-event';
+  const isOwner = role === 'owner-event';
   const isClient = role === 'client';
 
   return (

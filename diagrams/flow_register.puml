@@ -1,0 +1,47 @@
+@startuml Register_Flow
+
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 2
+skinparam sequenceParticipantBorderColor #2C3E50
+skinparam sequenceLifeLineBorderColor #7F8C8D
+
+title Register Flow
+
+actor "Client" as client
+participant "Frontend\n(React)" as frontend
+participant "IDM-Gateway\n(HTTP:8000)" as gateway
+participant "IDM Service\n(gRPC:50051)" as idm
+participant "User Service\n(HTTP)" as userSvc
+database "PostgreSQL\n(IDM)" as idmDB
+database "MongoDB\n(Users)" as userDB
+
+client -> frontend: Fill registration form\n(email, password, role)
+frontend -> gateway: POST /api/idm/auth/register\n{email, password, role}
+
+gateway -> idm: gRPC Register(email, password, role)
+
+idm -> idm: Validate role\n(owner-event | client)
+idm -> idm: Hash password with bcrypt
+
+idm -> idmDB: Check if email exists
+alt Email exists
+    idmDB --> idm: User found
+    idm --> gateway: RegisterResponse\n{success: false, message: "Email exists"}
+    gateway --> frontend: 400 Bad Request
+    frontend --> client: Show error
+else Email available
+    idmDB --> idm: Not found
+    idm -> idmDB: INSERT user (email, hashed_password, role)
+    idmDB --> idm: Created with user_id
+    
+    idm -> userSvc: POST /api/user-manager/users\n{id: user_id, email: email}
+    userSvc -> userDB: INSERT user document
+    userDB --> userSvc: OK
+    userSvc --> idm: 201 Created
+    
+    idm --> gateway: RegisterResponse\n{success: true, user_id: id}
+    gateway --> frontend: 201 Created
+    frontend --> client: Redirect to Login
+end
+
+@enduml

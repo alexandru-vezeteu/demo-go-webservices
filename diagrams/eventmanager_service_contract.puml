@@ -1,0 +1,43 @@
+@startuml EventManager_Service_Contract
+
+skinparam backgroundColor #FEFEFE
+
+title EventManager Service Contract (HTTP /api/event-manager)
+
+map "Events" as events {
+  POST /events => Create event
+  GET /events => Filter/list events
+  GET /events/:id => Get event by ID
+  PATCH /events/:id => Update event
+  DELETE /events/:id => Delete event
+}
+
+map "Event Packets" as packets {
+  POST /event-packets => Create packet
+  GET /event-packets => Filter/list packets
+  GET /event-packets/:id => Get packet by ID
+  PATCH /event-packets/:id => Update packet
+  DELETE /event-packets/:id => Delete packet
+}
+
+map "Inclusions" as inclusions {
+  POST .../event/:eid/packet/:pid => Bind event to packet
+  GET .../event/:event_id => Get packets for event
+  GET .../packet/:packet_id => Get events in packet
+  PATCH .../event/:eid/packet/:pid => Update inclusion
+  DELETE .../event/:eid/packet/:pid => Remove binding
+}
+
+map "Tickets" as tickets {
+  POST /tickets => Create ticket
+  GET /tickets/:code => Get ticket by code
+  PATCH /tickets/:code => Partial update
+  PUT /tickets/:code => Full update (upsert)
+  DELETE /tickets/:code => Delete ticket
+}
+
+events -[hidden]-> packets
+packets -[hidden]-> inclusions
+inclusions -[hidden]-> tickets
+
+@enduml

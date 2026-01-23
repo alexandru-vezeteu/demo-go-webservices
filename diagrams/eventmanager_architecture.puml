@@ -1,0 +1,106 @@
+@startuml EventManager_Service_Architecture
+
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle uml2
+skinparam packageStyle rectangle
+
+title EventManager Service - Clean Architecture
+
+package "EventManager Service (Go/Gin)" {
+    
+    package "HTTP Layer" #E8F8F5 {
+        component "Gin Router" as router
+        component "EventHandler" as eventH
+        component "PacketHandler" as packetH
+        component "InclusionHandler" as inclH
+        component "TicketHandler" as ticketH
+    }
+    
+    package "Application Layer" #FFF9C4 {
+        package "Use Cases" {
+            component "EventUseCase" as eventUC
+            component "PacketUseCase" as packetUC
+            component "InclusionUseCase" as inclUC
+            component "TicketUseCase" as ticketUC
+        }
+        
+        package "Domain" {
+            component "Event" as eventD
+            component "EventPacket" as packetD
+            component "Ticket" as ticketD
+        }
+        
+        package "Services" {
+            component "EventService" as eventSvc
+            component "PacketService" as packetSvc
+            component "TicketService" as ticketSvc
+        }
+        
+        interface "EventRepo" as eventRI
+        interface "PacketRepo" as packetRI
+        interface "InclusionRepo" as inclRI
+        interface "TicketRepo" as ticketRI
+    }
+    
+    package "Infrastructure Layer" #E8EAF6 {
+        component "GormEventRepo" as gormE
+        component "GormPacketRepo" as gormP
+        component "GormInclusionRepo" as gormI
+        component "GormTicketRepo" as gormT
+        component "AuthService" as authSvc
+    }
+}
+
+database "PostgreSQL" as pg
+component "IDM (gRPC)" as idm
+
+router --> eventH
+router --> packetH
+router --> inclH
+router --> ticketH
+
+eventH --> eventUC
+packetH --> packetUC
+inclH --> inclUC
+ticketH --> ticketUC
+
+eventUC --> eventSvc
+eventUC --> authSvc
+packetUC --> packetSvc
+ticketUC --> ticketSvc
+
+eventSvc --> eventRI
+packetSvc --> packetRI
+ticketSvc --> ticketRI
+
+eventRI <|.. gormE
+packetRI <|.. gormP
+inclRI <|.. gormI
+ticketRI <|.. gormT
+
+gormE --> pg
+gormP --> pg
+gormI --> pg
+gormT --> pg
+authSvc --> idm
+
+note right of eventD
+  **✓ PROS**
+  • Clear layer separation
+  • GORM hidden behind interfaces
+  • Each entity has own service
+  • Auth centralized via IDM
+
+  **✗ CONS**
+  • DummyAuthz = no real RBAC
+  • No transaction handling
+  • Missing audit log
+end note
+
+note bottom of pg
+  **Clean Architecture:**
+  Single Responsibility per layer.
+  Open/Closed for new entities.
+end note
+
+@enduml

@@ -1,0 +1,42 @@
+@startuml Logout_Flow
+
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 2
+skinparam sequenceParticipantBorderColor #2C3E50
+skinparam sequenceLifeLineBorderColor #7F8C8D
+
+title Logout Flow
+
+actor "Client" as client
+participant "Frontend\n(React)" as frontend
+participant "IDM-Gateway\n(HTTP:8000)" as gateway
+participant "IDM Service\n(gRPC:50051)" as idm
+database "Redis\n(Blacklist)" as redis
+
+client -> frontend: Click "Logout"
+frontend -> frontend: Get token from localStorage
+
+frontend -> gateway: POST /api/idm/auth/revoke\n{token}
+
+gateway -> idm: gRPC RevokeToken(token)
+
+idm -> idm: Parse JWT to get expiration
+idm -> redis: Add token to blacklist\n(with TTL = token expiration)
+redis --> idm: OK
+
+idm --> gateway: RevokeTokenResponse\n{success: true}
+gateway --> frontend: 200 OK
+
+frontend -> frontend: Remove token from localStorage
+frontend -> frontend: Remove userInfo from localStorage
+frontend -> frontend: Clear AuthContext state
+
+frontend --> client: Redirect to Home
+
+note right of redis
+  Token is blacklisted until
+  it would have expired anyway.
+  Prevents reuse of stolen tokens.
+end note
+
+@enduml
