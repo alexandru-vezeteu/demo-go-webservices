@@ -1,0 +1,71 @@
+@startuml Delete_Event_Packet_Inclusion_Flow
+
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 2
+skinparam sequenceParticipantBorderColor #2C3E50
+skinparam sequenceLifeLineBorderColor #7F8C8D
+
+title Delete Event Packet Inclusion Flow
+
+actor "Client" as client
+participant "Frontend\n(React)" as frontend
+participant "EventManager\n(HTTP)" as eventMgr
+participant "IDM Service\n(gRPC)" as idm
+database "PostgreSQL\n(Events)" as eventDB
+
+client -> frontend: Remove event from packet
+frontend -> eventMgr: DELETE /api/event-manager/event-packet-inclusions/event/:event_id/packet/:packet_id\nHeader: Authorization: Bearer <token>
+
+eventMgr -> eventMgr: Extract token from header
+alt No Authorization header
+    eventMgr --> frontend: 401 Unauthorized\n"Authorization header required"
+    frontend --> client: Show error
+end
+
+eventMgr -> eventMgr: Parse event_id and packet_id
+alt Invalid ID format
+    eventMgr --> frontend: 400 Bad Request\n"invalid id format"
+    frontend --> client: Show error
+end
+
+eventMgr -> idm: gRPC WhoIsUser(token)
+alt Invalid/expired token
+    idm --> eventMgr: Error
+    eventMgr --> frontend: 422 Unprocessable Entity\n"invalid or expired token"
+    frontend --> client: Show login required
+end
+idm --> eventMgr: UserIdentity (id, role)
+
+eventMgr -> eventDB: SELECT inclusion WHERE event_id = :event_id AND packet_id = :packet_id
+alt Inclusion not found
+    eventDB --> eventMgr: Not found
+    eventMgr --> frontend: 404 Not Found
+    frontend --> client: Show "Inclusion not found"
+end
+eventDB --> eventMgr: EventPacketInclusion data
+
+eventMgr -> eventMgr: CanUserDeleteEventPacketInclusion(identity, event_id, packet_id)
+note right of eventMgr
+  Authorization check:
+  - User must be owner of the packet
+  - OR user has admin role
+end note
+
+alt Not authorized
+    eventMgr --> frontend: 403 Forbidden\n"you don't have permission to delete this inclusion"
+    frontend --> client: Show "Access denied"
+end
+
+eventMgr -> eventDB: DELETE FROM event_packet_inclusions\nWHERE event_id = :event_id AND packet_id = :packet_id
+eventDB --> eventMgr: Deleted inclusion data
+
+eventMgr --> frontend: 200 OK\n{deleted inclusion with HATEOAS links}
+frontend --> client: Show "Event removed from packet!"
+
+note over eventMgr
+  Effect: Removes the association between
+  an event and a packet. The allocated_seats
+  for this event within the packet are freed.
+end note
+
+@enduml

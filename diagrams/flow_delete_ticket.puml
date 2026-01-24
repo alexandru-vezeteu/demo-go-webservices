@@ -1,0 +1,68 @@
+@startuml Delete_Ticket_Flow
+
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 2
+skinparam sequenceParticipantBorderColor #2C3E50
+skinparam sequenceLifeLineBorderColor #7F8C8D
+
+title Delete Ticket Flow
+
+actor "Client" as client
+participant "Frontend\n(React)" as frontend
+participant "EventManager\n(HTTP)" as eventMgr
+participant "IDM Service\n(gRPC)" as idm
+database "PostgreSQL\n(Events)" as eventDB
+
+client -> frontend: Delete ticket (refund/cancel)
+frontend -> eventMgr: DELETE /api/event-manager/tickets/:code\nHeader: Authorization: Bearer <token>
+
+eventMgr -> eventMgr: Extract token from header
+alt No Authorization header
+    eventMgr --> frontend: 401 Unauthorized\n"Authorization header required"
+    frontend --> client: Show error
+end
+
+eventMgr -> idm: gRPC WhoIsUser(token)
+alt Invalid/expired token
+    idm --> eventMgr: Error
+    eventMgr --> frontend: 422 Unprocessable Entity\n"invalid or expired token"
+    frontend --> client: Show login required
+end
+idm --> eventMgr: UserIdentity (id, role)
+
+eventMgr -> eventDB: SELECT ticket WHERE code = :code
+alt Ticket not found
+    eventDB --> eventMgr: Not found
+    eventMgr --> frontend: 404 Not Found
+    frontend --> client: Show "Ticket not found"
+end
+eventDB --> eventMgr: Ticket data
+
+eventMgr -> eventMgr: CanUserDeleteTicket(identity, ticket)
+note right of eventMgr
+  Authorization check:
+  - User must own the ticket
+  - OR user has service account role (serviciu_clienti)
+  - OR user has admin role
+end note
+
+alt Not authorized
+    eventMgr --> frontend: 403 Forbidden\n"you don't have permission to delete this ticket"
+    frontend --> client: Show "Access denied"
+end
+
+eventMgr -> eventMgr: Validate ticket code not empty
+
+eventMgr -> eventDB: DELETE FROM tickets WHERE code = :code
+eventDB --> eventMgr: Deleted ticket data
+
+eventMgr --> frontend: 200 OK\n{deleted ticket with HATEOAS links}
+frontend --> client: Show "Ticket cancelled!"
+
+note over eventMgr
+  Note: Deleting a ticket frees up:
+  - 1 seat if event-based ticket
+  - 1 allocated seat if packet-based ticket
+end note
+
+@enduml

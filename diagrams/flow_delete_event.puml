@@ -1,0 +1,59 @@
+@startuml Delete_Event_Flow
+
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 2
+skinparam sequenceParticipantBorderColor #2C3E50
+skinparam sequenceLifeLineBorderColor #7F8C8D
+
+title Delete Event Flow
+
+actor "Client" as client
+participant "Frontend\n(React)" as frontend
+participant "EventManager\n(HTTP)" as eventMgr
+participant "IDM Service\n(gRPC)" as idm
+database "PostgreSQL\n(Events)" as eventDB
+
+client -> frontend: Delete event (click delete)
+frontend -> eventMgr: DELETE /api/event-manager/events/:id\nHeader: Authorization: Bearer <token>
+
+eventMgr -> eventMgr: Extract token from header
+alt No Authorization header
+    eventMgr --> frontend: 401 Unauthorized\n"Authorization header required"
+    frontend --> client: Show error
+end
+
+eventMgr -> idm: gRPC WhoIsUser(token)
+alt Invalid/expired token
+    idm --> eventMgr: Error
+    eventMgr --> frontend: 422 Unprocessable Entity\n"invalid or expired token"
+    frontend --> client: Show login required
+end
+idm --> eventMgr: UserIdentity (id, role)
+
+eventMgr -> eventDB: SELECT event WHERE id = :id
+alt Event not found
+    eventDB --> eventMgr: Not found
+    eventMgr --> frontend: 404 Not Found
+    frontend --> client: Show "Event not found"
+end
+eventDB --> eventMgr: Event data
+
+eventMgr -> eventMgr: CanUserDeleteEvent(identity, event)
+note right of eventMgr
+  Authorization check:
+  - User must be owner of event
+  - OR user has admin role
+end note
+
+alt Not authorized
+    eventMgr --> frontend: 403 Forbidden\n"you don't have permission to delete this event"
+    frontend --> client: Show "Access denied"
+end
+
+eventMgr -> eventDB: DELETE FROM events WHERE id = :id
+eventDB --> eventMgr: Deleted event data
+
+eventMgr --> frontend: 200 OK\n{deleted event with HATEOAS links}
+frontend --> client: Show "Event deleted!" + redirect
+
+@enduml

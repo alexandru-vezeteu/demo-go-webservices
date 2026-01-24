@@ -14,7 +14,7 @@ func NewDummyAuthorizationService() service.AuthorizationService {
 
 // oricine poate vedea/crea un event
 func (s *DummyAuthorizationService) CanUserCreateEvent(ctx context.Context, user service.UserIdentity) (bool, error) {
-	return true, nil
+	return user.Role == service.RoleOwnerEvent, nil
 }
 
 func (s *DummyAuthorizationService) CanUserViewEvent(ctx context.Context, user service.UserIdentity, event *domain.Event) (bool, error) {

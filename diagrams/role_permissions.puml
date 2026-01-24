@@ -1,0 +1,125 @@
+@startuml Role_Permissions_Matrix
+
+skinparam backgroundColor #FEFEFE
+skinparam classBorderColor #2C3E50
+skinparam noteBorderColor #7F8C8D
+skinparam tablebordercolor black
+
+title Role-Based Access Control (RBAC) Permissions Matrix
+
+legend top left
+  |= Symbol |= Meaning |
+  | ✓ | Allowed |
+  | ✗ | Denied |
+  | ○ | Owner only |
+  | ● | Self only |
+endlegend
+
+note as SystemRoles
+  **System Roles (defined in IDM)**
+  ----
+  • **admin** - System administrator
+  • **owner-event** - Event organizer/owner
+  • **client** - Regular customer
+  • **serviciu_clienti** - Service account (S2S auth)
+end note
+
+package "EventManager Service" {
+  
+  note as EventPerms
+    **Event Permissions**
+    |= Action |= admin |= owner-event |= client |= serviciu_clienti |
+    | Create Event | ✗ | ✓ | ✗ | ✗ |
+    | View Event | ✓ | ✓ | ✓ | ✓ |
+    | Edit Event | ○ | ○ | ○ | ○ |
+    | Delete Event | ○ | ○ | ○ | ○ |
+
+    ○ = Only if user is the event owner (OwnerID)
+  end note
+  
+  note as PacketPerms
+    **Event Packet Permissions**
+    |= Action |= admin |= owner-event |= client |= serviciu_clienti |
+    | Create Packet | ✗ | ✓ | ✗ | ✗ |
+    | View Packet | ✓ | ✓ | ✓ | ✓ |
+    | Edit Packet | ○ | ○ | ○ | ○ |
+    | Delete Packet | ○ | ○ | ○ | ○ |
+
+    ○ = Only if user is the packet owner (OwnerID)
+  end note
+  
+  note as InclusionPerms
+    **Packet Inclusion Permissions**
+    |= Action |= admin |= owner-event |= client |= serviciu_clienti |
+    | Create Inclusion | ✗ | ✓ | ✗ | ✗ |
+    | View Inclusion | ✓ | ✓ | ✓ | ✓ |
+    | Update Inclusion | ✗ | ✓ | ✗ | ✗ |
+    | Delete Inclusion | ✗ | ✓ | ✗ | ✗ |
+
+    Note: Only owner-event role can modify inclusions.
+  end note
+  
+  note as TicketPerms
+    **Ticket Permissions (EventManager)**
+    |= Action |= admin |= owner-event |= client |= serviciu_clienti |
+    | Create Ticket | ✗ | ✗ | ✗ | ✓ |
+    | View Ticket | ✗ | ✗ | ✗ | ✗ |
+    | Edit Ticket | ✗ | ✗ | ✗ | ✗ |
+    | Delete Ticket | ✗ | ✗ | ✗ | ✗ |
+    | Buy Ticket | ✓ | ✓ | ✓ | ✓ |
+
+    Note: Tickets cannot be viewed/edited/deleted
+    directly in EventManager. serviciu_clienti is
+    the only role that can create tickets (S2S).
+    Ticket management is done via User Service.
+  end note
+}
+
+package "User Service" {
+  
+  note as UserPerms
+    **User Profile Permissions**
+    |= Action |= admin |= owner-event |= client |= serviciu_clienti |
+    | View User | ● | ● | ● | ● |
+    | Edit User | ● | ● | ● | ● |
+    | Delete User | ● | ● | ● | ● |
+
+    ● = Only if actor is the target user (self)
+  end note
+  
+  note as ClientTicketPerms
+    **Ticket Permissions (User Service)**
+    |= Action |= admin |= owner-event |= client |= serviciu_clienti |
+    | View Own Tickets | ● | ● | ● | ● |
+    | Edit Own Tickets | ● | ● | ● | ● |
+    | Buy Ticket | ✓ | ✓ | ✓ | ✓ |
+
+    ● = Only if user owns the ticket
+  end note
+  
+  note as CustomerPerms
+    **Customer List Permissions**
+    |= Action |= admin |= owner-event |= client |= serviciu_clienti |
+    | View Event Customers | ✗ | ✓ | ✗ | ✗ |
+    | View Packet Customers | ✗ | ✓ | ✗ | ✗ |
+
+    Allows event owners to see who bought tickets.
+  end note
+}
+
+package "IDM Service" {
+  
+  note as IDMPerms
+    **IDM Permissions**
+    |= Action |= Any Role |
+    | Register (client/owner) | ✓ |
+    | Login | ✓ |
+    | Logout (invalidate token) | ✓ |
+    | Verify Token | ✓ |
+
+    Note: IDM has no role-based restrictions.
+    All endpoints are public or token-authenticated.
+  end note
+}
+
+@enduml
